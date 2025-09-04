@@ -42,7 +42,7 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
 
     try:
         # 使用 request 方法发送 HEAD 请求
-        response, error = await manager.computed.async_client.request("HEAD", url)
+        response, error = await manager.computed.async_client.request("GET", url)
 
         # 处理请求失败的情况
         if response is None:
