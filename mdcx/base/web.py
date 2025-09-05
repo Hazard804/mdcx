@@ -41,8 +41,22 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
         return
 
     try:
-        # 使用 request 方法发送 HEAD 请求
-        response, error = await manager.computed.async_client.request("GET", url)
+        # 判断是否为 awsimgsrc.dmm.co.jp 图片链接
+        if "awsimgsrc.dmm.co.jp" in url:
+            # 检查参数是否已存在
+            has_w = re.search(r"[?&]w=120(&|$)", url)
+            has_h = re.search(r"[?&]h=90(&|$)", url)
+            if not (has_w and has_h):
+                # 拼接参数
+                if "?" in url:
+                    url += "&w=120&h=90"
+                else:
+                    url += "?&w=120&h=90"
+            # 使用 GET 请求
+            response, error = await manager.computed.async_client.request("GET", url)
+        else:
+            # 其他情况使用 HEAD 请求
+            response, error = await manager.computed.async_client.request("HEAD", url)
 
         # 处理请求失败的情况
         if response is None:
@@ -84,6 +98,13 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
                 return
         # 如果返回内容的文件大小 < 8k，视为不可用
         elif int(content_length) < 8192:
+            # awsimgsrc.dmm.co.jp 且 GET 请求时跳过小于8K的检查
+            if (
+                "awsimgsrc.dmm.co.jp" in true_url
+                and getattr(response.request, "method", None) == "GET"
+            ):
+                signal.add_log(f"✅ 检测链接通过: awsimgsrc 小图 {true_url}")
+                return int(content_length) if length else true_url.replace("w=120&h=90", "")
             signal.add_log(f"🔴 检测链接失败: 返回大小({content_length}) < 8k {true_url}")
             return
 
