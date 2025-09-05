@@ -99,10 +99,7 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
         # 如果返回内容的文件大小 < 8k，视为不可用
         elif int(content_length) < 8192:
             # awsimgsrc.dmm.co.jp 且 GET 请求时跳过小于8K的检查
-            if (
-                "awsimgsrc.dmm.co.jp" in true_url
-                and getattr(response.request, "method", None) == "GET"
-            ):
+            if "awsimgsrc.dmm.co.jp" in true_url and getattr(response.request, "method", None) == "GET":
                 signal.add_log(f"✅ 检测链接通过: awsimgsrc 小图 {true_url}")
                 return int(content_length) if length else true_url.replace("w=120&h=90", "")
             signal.add_log(f"🔴 检测链接失败: 返回大小({content_length}) < 8k {true_url}")
