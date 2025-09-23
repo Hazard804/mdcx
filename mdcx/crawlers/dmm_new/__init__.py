@@ -2,6 +2,7 @@ import re
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import override
+import asyncio
 
 from parsel import Selector
 from patchright._impl._api_structures import SetCookieParam
@@ -9,6 +10,7 @@ from patchright.async_api import Browser
 
 from mdcx.base.web import check_url
 from mdcx.config.models import Website
+from mdcx.config.manager import manager
 from mdcx.models.types import CrawlerInput
 from mdcx.utils.dataclass import update_valid
 from mdcx.utils.gather_group import GatherGroup
@@ -31,6 +33,55 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
     def __init__(self, client: AsyncWebClient, base_url: str = "", browser: Browser | None = None):
         super().__init__(client, base_url, browser)
+
+    async def _http_request_with_retry(self, method: str, url: str, **kwargs):
+        """
+        带重试机制的 HTTP 请求
+        
+        Args:
+            method: HTTP 方法 ('GET', 'POST', 'HEAD')
+            url: 请求 URL
+            **kwargs: 其他请求参数
+            
+        Returns:
+            (response, error) 元组
+        """
+        timeout = manager.config.timeout  # 从配置获取超时时间
+        max_retries = manager.config.retry  # 从配置获取重试次数
+        
+        last_error = None
+        
+        for attempt in range(max_retries + 1):
+            try:
+                if method.upper() == 'POST':
+                    if 'json_data' in kwargs:
+                        response, error = await self.async_client.post_json(url, **kwargs)
+                    else:
+                        response, error = await self.async_client.post_text(url, **kwargs)
+                elif method.upper() == 'GET':
+                    response, error = await self.async_client.get_text(url, **kwargs)
+                elif method.upper() == 'HEAD':
+                    response, error = await self.async_client.request("HEAD", url, **kwargs)
+                else:
+                    response, error = await self.async_client.request(method, url, **kwargs)
+                
+                # 如果请求成功，直接返回
+                if response is not None:
+                    return response, error
+                
+                # 记录失败信息
+                last_error = error
+                
+            except Exception as e:
+                last_error = str(e)
+            
+            # 重试前等待（指数退避）
+            if attempt < max_retries:
+                wait_time = min(2 ** attempt, 10)  # 最多等待10秒
+                await asyncio.sleep(wait_time)
+        
+        # 所有重试都失败了
+        return None, f"请求失败，已重试 {max_retries} 次: {last_error}"
 
     @classmethod
     @override
@@ -129,7 +180,11 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             category = parse_category(url)
             d[category].append(url)
 
-        async with GatherGroup[CrawlerData]() as group:
+        # 设置 GatherGroup 的整体超时时间，给单个请求更多时间
+        # 因为我们已经在单个请求中实现了重试机制
+        total_timeout = manager.config.timeout * (manager.config.retry + 1) * 2  # 给足够的时间
+
+        async with GatherGroup[CrawlerData](timeout=total_timeout) as group:
             for url in d[Category.FANZA_TV]:
                 group.add(self.fetch_fanza_tv(ctx, url))
             for url in d[Category.DMM_TV]:
@@ -167,8 +222,11 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             return CrawlerData()
         cid = cid.group(1)
 
-        response, error = await self.async_client.post_json(
-            "https://api.tv.dmm.co.jp/graphql", json_data=fanza_tv_payload(cid)
+        # 使用带重试的 HTTP 请求
+        response, error = await self._http_request_with_retry(
+            "POST", 
+            "https://api.tv.dmm.co.jp/graphql", 
+            json_data=fanza_tv_payload(cid)
         )
         if response is None:
             ctx.debug(f"Fanza TV API 请求失败: {cid=} {error=}")
@@ -219,8 +277,12 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             ctx.debug(f"无法从 DMM TV URL 提取 seasonId: {detail_url}")
             return CrawlerData()
         season_id = season_id.group(1)
-        response, error = await self.async_client.post_json(
-            "https://api.tv.dmm.com/graphql", json_data=dmm_tv_com_payload(season_id)
+        
+        # 使用带重试的 HTTP 请求
+        response, error = await self._http_request_with_retry(
+            "POST", 
+            "https://api.tv.dmm.com/graphql", 
+            json_data=dmm_tv_com_payload(season_id)
         )
         if response is None:
             ctx.debug(f"DMM TV API 请求失败: {season_id=} {error=}")

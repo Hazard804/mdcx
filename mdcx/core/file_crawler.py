@@ -130,10 +130,9 @@ class FileScraper:
 
         c = await self.crawler_provider.get(website)
 
-        # 对爬虫函数调用添加超时限制, 超时异常由调用者处理
-        if os.getenv("DEBUG"):
-            timeout = None
-        r = await asyncio.wait_for(c.run(task_input), timeout=timeout)
+        # 移除外层超时限制，让内层的 GatherGroup 处理超时和重试
+        # 原有的超时机制已由各个 HTTP 请求单独处理
+        r = await c.run(task_input)
         return r
 
     async def _call_crawlers(self, task_input: CrawlerInput, type_sites: set[Website]) -> CrawlersResult | None:

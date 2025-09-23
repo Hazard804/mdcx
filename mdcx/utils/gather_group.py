@@ -10,10 +10,11 @@ class GatherGroup[T = Any]:
     始终将异常作为结果返回, 调用方需手动检查. 如果需要直接抛出异常, 可使用 TaskGroup.
     """
 
-    def __init__(self):
+    def __init__(self, timeout: float | None = None):
         self._tasks: list[Coroutine] = []
         self._results: list[Any]
         self._entered = False
+        self._timeout = timeout
 
     def add(self, coro: Coroutine[Any, Any, T]) -> Awaitable[T]:
         """
@@ -21,7 +22,6 @@ class GatherGroup[T = Any]:
 
         Args:
             coro: 要执行的协程或可等待对象
-            name: 任务名称（可选）
 
         Returns:
             创建的 Task 对象
@@ -39,8 +39,22 @@ class GatherGroup[T = Any]:
     async def __aexit__(self, exc_type, exc_value, traceback):
         if not self._tasks:
             return
-        # 使用 gather 等待所有任务完成
-        self._results = await asyncio.gather(*self._tasks, return_exceptions=True)
+        
+        # 支持组级别的超时控制（可选）
+        try:
+            if self._timeout is not None:
+                self._results = await asyncio.wait_for(
+                    asyncio.gather(*self._tasks, return_exceptions=True),
+                    timeout=self._timeout
+                )
+            else:
+                # 使用原有的 gather 等待所有任务完成
+                self._results = await asyncio.gather(*self._tasks, return_exceptions=True)
+        except asyncio.TimeoutError:
+            # 超时时，asyncio.wait_for 会自动取消内部的 gather 任务
+            # 我们只需要创建超时异常结果，不需要手动取消 Coroutine
+            timeout_error = asyncio.TimeoutError(f"GatherGroup 整体超时 ({self._timeout}s)")
+            self._results = [timeout_error] * len(self._tasks)
 
     @property
     def results(self) -> list[T | Exception]:

@@ -180,3 +180,4 @@ Log/
 # dev files
 dev/
 *.ipynb
+highdpi_passthrough
