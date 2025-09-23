@@ -76,6 +76,19 @@ class AsyncWebClient:
 
         return headers
 
+    def _should_force_new_connection(self, url: str) -> bool:
+        """
+        判断是否需要为特定网站强制建立新连接（禁用连接池复用）
+        
+        Args:
+            url: 请求的URL
+            
+        Returns:
+            bool: 是否强制建立新连接
+        """
+        # JavaDB 经常遇到IP封锁问题，需要强制每次建立新连接以便代理轮询
+        return "javdb" in url.lower()
+
     async def request(
         self,
         method: HttpMethod,
@@ -111,15 +124,25 @@ class AsyncWebClient:
             await self.limiters.get(u.host).acquire()
             retry_count = self.retry
             error_msg = ""
+            should_force_new_connection = self._should_force_new_connection(url) and use_proxy
+            
             for attempt in range(retry_count):
                 # 采用保守的重试策略, 除特定状态码外不进行重试
                 retry = False
                 try:
+                    # 为 JavaDB 等网站强制建立新连接以支持代理轮询
+                    request_headers = headers.copy() if headers else {}
+                    if should_force_new_connection:
+                        # 添加 Connection: close 头部强制关闭连接，避免连接池复用
+                        request_headers["Connection"] = "close"
+                        if attempt > 0:
+                            self.log_fn(f"🔄 JavaDB 重试 {attempt + 1}/{retry_count} - 强制新连接以支持代理轮询")
+                    
                     resp: Response = await self.curl_session.request(
                         method,
                         url,
                         proxy=self.proxy if use_proxy else None,
-                        headers=headers,
+                        headers=request_headers,
                         cookies=cookies,
                         data=data,
                         json=json_data,
