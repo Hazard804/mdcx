@@ -65,6 +65,11 @@ jobs:
         with:
           activate-environment: true
 
+      - name: Install lxml pre-built wheel (Windows)
+        if: ${{ matrix.build == 'windows' }}
+        run: |
+          uv pip install --find-links https://download.lfd.uci.edu/pythonlibs/archived/ lxml==5.4.0 || uv pip install lxml==5.3.0
+
       - name: Set up python env
         run: uv sync --locked --all-extras --dev
 

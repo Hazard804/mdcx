@@ -69,7 +69,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 elif method.upper() == "HEAD":
                     response, error = await self.async_client.request("HEAD", url, **kwargs)
                 else:
-                    response, error = await self.async_client.request(method, url, **kwargs)
+                    response, error = await self.async_client.request(method.upper(), url, **kwargs)
 
                 # 如果请求成功，直接返回
                 if response is not None:
