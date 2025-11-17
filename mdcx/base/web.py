@@ -40,32 +40,42 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
         signal.add_log(f"🔴 检测链接失败: 格式错误 {url}")
         return
 
-    try:
-        # 判断是否为 awsimgsrc.dmm.co.jp 图片链接
-        if "awsimgsrc.dmm.co.jp" in url:
-            # 检查参数是否已存在
-            has_w = re.search(r"[?&]w=120(&|$)", url)
-            has_h = re.search(r"[?&]h=90(&|$)", url)
-            if not (has_w and has_h):
-                # 拼接参数
-                if "?" in url:
-                    url += "&w=120&h=90"
+    # 对于 AWS 图片链接，增加重试次数
+    is_aws_image = "awsimgsrc.dmm.co.jp" in url
+    max_retries = 3 if is_aws_image else 1
+    
+    for retry_attempt in range(max_retries):
+        try:
+            # 判断是否为 awsimgsrc.dmm.co.jp 图片链接
+            if is_aws_image:
+                # 检查参数是否已存在
+                has_w = re.search(r"[?&]w=120(&|$)", url)
+                has_h = re.search(r"[?&]h=90(&|$)", url)
+                if not (has_w and has_h):
+                    # 拼接参数
+                    if "?" in url:
+                        url += "&w=120&h=90"
+                    else:
+                        url += "?&w=120&h=90"
+                # 使用 GET 请求
+                response, error = await manager.computed.async_client.request("GET", url)
+            else:
+                # 其他情况使用 HEAD 请求
+                response, error = await manager.computed.async_client.request("HEAD", url)
+
+            # 处理请求失败的情况
+            if response is None:
+                if retry_attempt < max_retries - 1:
+                    signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {error}")
+                    await asyncio.sleep(1 + retry_attempt)  # 指数退避
+                    continue
                 else:
-                    url += "?&w=120&h=90"
-            # 使用 GET 请求
-            response, error = await manager.computed.async_client.request("GET", url)
-        else:
-            # 其他情况使用 HEAD 请求
-            response, error = await manager.computed.async_client.request("HEAD", url)
+                    signal.add_log(f"🔴 检测链接失败: {error}")
+                    return
 
-        # 处理请求失败的情况
-        if response is None:
-            signal.add_log(f"🔴 检测链接失败: {error}")
-            return
-
-        # 不输出获取 dmm预览视频(trailer) 最高分辨率的测试结果到日志中
-        if response.status_code == 404 and "_w.mp4" in url:
-            return
+            # 不输出获取 dmm预览视频(trailer) 最高分辨率的测试结果到日志中
+            if response.status_code == 404 and "_w.mp4" in url:
+                return
 
         # 返回重定向的url
         true_url = str(response.url)
@@ -105,12 +115,17 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
             signal.add_log(f"🔴 检测链接失败: 返回大小({content_length}) < 8k {true_url}")
             return
 
-        signal.add_log(f"✅ 检测链接通过: 返回大小({content_length}) {true_url}")
-        return int(content_length) if length else true_url
+            signal.add_log(f"✅ 检测链接通过: 返回大小({content_length}) {true_url}")
+            return int(content_length) if length else true_url
 
-    except Exception as e:
-        signal.add_log(f"🔴 检测链接失败: 未知异常 {e} {url}")
-        return
+        except Exception as e:
+            if retry_attempt < max_retries - 1:
+                signal.add_log(f"🟡 检测链接异常，正在重试 ({retry_attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(1 + retry_attempt)
+                continue
+            else:
+                signal.add_log(f"🔴 检测链接失败: 未知异常 {e} {url}")
+                return
 
 
 async def get_avsox_domain() -> str:
