@@ -10,26 +10,32 @@ from ..models.log_buffer import LogBuffer
 def get_title(data):  # 获取标题
     return data.get("article", {}).get("title", "")
 
+
 def get_cover(data, number):  # 获取封面URL
     image_url = data.get("article", {}).get("image_url", "")
     if image_url and "no-image" not in image_url:
         return image_url
     return ""
 
+
 def get_release_date(data):  # 获取发行日期
     return data.get("article", {}).get("release_date", "")
+
 
 def get_actors(data):  # 获取演员
     actresses = data.get("article", {}).get("actresses", [])
     return ",".join([actress.get("name", "") for actress in actresses]) if actresses else ""
 
+
 def get_tags(data):  # 获取标签
     tags = data.get("article", {}).get("tags", [])
     return ",".join([tag.get("name", "") for tag in tags]) if tags else ""
 
+
 def get_studio(data):  # 获取厂家
     writer = data.get("article", {}).get("writer", {})
     return writer.get("name", "")
+
 
 def get_video_type(data):  # 获取视频类型
     censored = data.get("article", {}).get("censored")
@@ -40,14 +46,17 @@ def get_video_type(data):  # 获取视频类型
     else:
         return ""
 
+
 def get_video_url(data):  # 获取视频URL
     # video_id = data.get("article", {}).get("video_id")
     # if video_id:
     #     return f"https://example.com/videos/{video_id}.mp4"
     return ""
 
+
 def get_video_time(data):  # 获取视频时长
     return data.get("article", {}).get("duration", "")
+
 
 def cookie_str_to_dict(cookie_str: str) -> dict:  # cookie 转为字典
     cookies = {}
@@ -79,35 +88,32 @@ async def main(
     web_info = "\n       "
 
     try:
-        if not real_url:
-            url_search = f"https://fc2ppvdb.com/articles/{number}"
-
         debug_info = f"番号地址: {real_url}"
         LogBuffer.info().write(web_info + debug_info)
         # ========================================================================番号详情页
         # 创建 session
-        cookies = cookie_str_to_dict(manager.config.javdb) # 使用 javdb 的 cookie 作为 fc2ppvdb 的 cookie
+        cookies = cookie_str_to_dict(manager.config.javdb)  # 使用 javdb 的 cookie 作为 fc2ppvdb 的 cookie
         if manager.config.use_proxy:
             proxies = {
-                'http': manager.config.proxy,
-                'https': manager.config.proxy,
+                "http": manager.config.proxy,
+                "https": manager.config.proxy,
             }
         else:
             proxies = None
         async with AsyncSession(cookies=cookies, proxies=proxies) as session:
             # 访问详情页面，提交 cookie
-            url_article = f'https://fc2ppvdb.com/articles/{number}'
+            url_article = f"https://fc2ppvdb.com/articles/{number}"
             response_article = await session.get(url_article)
             if response_article.status_code != 200:
                 raise Exception(f"详情页请求失败: {response_article.status_code}")
 
             # 访问 XHR 接口获取 JSON 数据
-            xhr_url = f'https://fc2ppvdb.com/articles/article-info?videoid={number}'
+            xhr_url = f"https://fc2ppvdb.com/articles/article-info?videoid={number}"
             response_xhr = await session.get(xhr_url)
             if response_xhr.status_code != 200:
                 raise Exception(f"XHR 请求失败: {response_xhr.status_code}")
 
-        html_info = response_xhr.json() # json 传给旧变量
+        html_info = response_xhr.json()  # json 传给旧变量
 
         title = get_title(html_info)
         if not title:

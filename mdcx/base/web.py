@@ -43,7 +43,7 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
     # 对于 AWS 图片链接，增加重试次数
     is_aws_image = "awsimgsrc.dmm.co.jp" in url
     max_retries = 3 if is_aws_image else 1
-    
+
     for retry_attempt in range(max_retries):
         try:
             # 判断是否为 awsimgsrc.dmm.co.jp 图片链接
@@ -77,43 +77,43 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
             if response.status_code == 404 and "_w.mp4" in url:
                 return
 
-        # 返回重定向的url
-        true_url = str(response.url)
-        if real_url:
-            return true_url
+            # 返回重定向的url
+            true_url = str(response.url)
+            if real_url:
+                return true_url
 
-        # 检查是否需要登录
-        if "login" in true_url:
-            signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
-            return
-
-        # 检查是否带有图片不存在的关键词
-        bad_url_keys = ["now_printing", "nowprinting", "noimage", "nopic", "media_violation"]
-        for each_key in bad_url_keys:
-            if each_key in true_url:
-                signal.add_log(f"🔴 检测链接失败: 图片已被网站删除 {url}")
+            # 检查是否需要登录
+            if "login" in true_url:
+                signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
                 return
 
-        # 获取文件大小
-        content_length = response.headers.get("Content-Length")
-        if not content_length:
-            # 如果没有获取到文件大小，尝试下载数据
-            content, error = await manager.computed.async_client.get_content(true_url)
+            # 检查是否带有图片不存在的关键词
+            bad_url_keys = ["now_printing", "nowprinting", "noimage", "nopic", "media_violation"]
+            for each_key in bad_url_keys:
+                if each_key in true_url:
+                    signal.add_log(f"🔴 检测链接失败: 图片已被网站删除 {url}")
+                    return
 
-            if content is not None and len(content) > 0:
-                signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
-                return 10240 if length else true_url
-            else:
-                signal.add_log(f"🔴 检测链接失败: 未返回大小且预下载失败 {true_url}")
+            # 获取文件大小
+            content_length = response.headers.get("Content-Length")
+            if not content_length:
+                # 如果没有获取到文件大小，尝试下载数据
+                content, error = await manager.computed.async_client.get_content(true_url)
+
+                if content is not None and len(content) > 0:
+                    signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
+                    return 10240 if length else true_url
+                else:
+                    signal.add_log(f"🔴 检测链接失败: 未返回大小且预下载失败 {true_url}")
+                    return
+            # 如果返回内容的文件大小 < 8k，视为不可用
+            elif int(content_length) < 8192:
+                # awsimgsrc.dmm.co.jp 且 GET 请求时跳过小于8K的检查
+                if "awsimgsrc.dmm.co.jp" in true_url and getattr(response.request, "method", None) == "GET":
+                    signal.add_log(f"✅ 检测链接通过: awsimgsrc 小图 {true_url}")
+                    return int(content_length) if length else true_url.replace("w=120&h=90", "")
+                signal.add_log(f"🔴 检测链接失败: 返回大小({content_length}) < 8k {true_url}")
                 return
-        # 如果返回内容的文件大小 < 8k，视为不可用
-        elif int(content_length) < 8192:
-            # awsimgsrc.dmm.co.jp 且 GET 请求时跳过小于8K的检查
-            if "awsimgsrc.dmm.co.jp" in true_url and getattr(response.request, "method", None) == "GET":
-                signal.add_log(f"✅ 检测链接通过: awsimgsrc 小图 {true_url}")
-                return int(content_length) if length else true_url.replace("w=120&h=90", "")
-            signal.add_log(f"🔴 检测链接失败: 返回大小({content_length}) < 8k {true_url}")
-            return
 
             signal.add_log(f"✅ 检测链接通过: 返回大小({content_length}) {true_url}")
             return int(content_length) if length else true_url

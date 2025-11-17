@@ -1,5 +1,3 @@
-import asyncio
-import os
 import re
 from itertools import chain
 from typing import TYPE_CHECKING

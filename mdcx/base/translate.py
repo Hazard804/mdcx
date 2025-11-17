@@ -3,7 +3,7 @@ import hashlib
 import random
 import time
 from typing import Literal, cast
-from urllib.parse import unquote, quote
+from urllib.parse import quote
 
 from ..config.manager import manager
 from ..signals import signal
