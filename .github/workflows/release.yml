@@ -64,11 +64,9 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           activate-environment: true
-          enable-cache: true
 
       - name: Set up python env
-        run: uv sync --locked --all-extras --dev --no-build
-        continue-on-error: false
+        run: uv sync --locked --all-extras --dev
 
       - name: Build macOS app - macOS
         if: ${{ matrix.build == 'macos' }}
