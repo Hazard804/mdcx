@@ -215,6 +215,22 @@ async def get_dmm_trailer(trailer_url: str) -> str:
     if trailer_url.startswith("//"):
         trailer_url = "https:" + trailer_url
 
+    # 处理临时链接格式（/pv/{temp_key}/{filename}），转换为标准格式
+    # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/asfb00192_mhb_w.mp4
+    # 标准格式示例: https://cc3001.dmm.co.jp/litevideo/freepv/a/asf/asfb00192/asfb00192_mhb_w.mp4
+    if "/pv/" in trailer_url:
+        filename_match = re.search(r"/pv/[^/]+/(.+?)(?:\.mp4)?$", trailer_url)
+        if filename_match:
+            filename_base = filename_match.group(1).replace(".mp4", "")
+            number_match = re.match(r"([a-z]+\d+)", filename_base)
+            if number_match:
+                cid = number_match.group(1)
+                prefix = cid[0]
+                three_char = cid[:3]
+                trailer_url = (
+                    f"https://cc3001.dmm.co.jp/litevideo/freepv/{prefix}/{three_char}/{cid}/{filename_base}.mp4"
+                )
+
     """
     DMM预览片分辨率对应关系:
     '_sm_w.mp4': 320*180, 3.8MB     # 最低分辨率
