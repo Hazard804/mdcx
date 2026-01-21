@@ -267,15 +267,21 @@ async def get_dmm_trailer(trailer_url: str) -> str:
                                     signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
                                     break
                         else:
-                            # 网络错误、超时等，重试
-                            signal.add_log(f"🟡 转换后的URL网络错误: {error}，准备重试 ({attempt + 1}/3)...")
-                            if attempt < 2:
-                                await asyncio.sleep(0.5 * (attempt + 1))
-                                continue
-                            else:
-                                # 重试3次仍失败，回退到原始URL
-                                signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                            # 检查是否为 404 错误
+                            if "404" in str(error):
+                                # 404错误说明转换后的URL不存在，直接回退
+                                signal.add_log("⚠️ 转换后的URL返回404，回退到原始链接")
                                 break
+                            else:
+                                # 其他网络错误、超时等，重试
+                                signal.add_log(f"🟡 转换后的URL网络错误: {error}，准备重试 ({attempt + 1}/3)...")
+                                if attempt < 2:
+                                    await asyncio.sleep(0.5 * (attempt + 1))
+                                    continue
+                                else:
+                                    # 重试3次仍失败，回退到原始URL
+                                    signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                                    break
                     except Exception as e:
                         # 异常处理，继续重试
                         signal.add_log(f"🟡 转换后的URL异常: {e}，准备重试 ({attempt + 1}/3)...")
