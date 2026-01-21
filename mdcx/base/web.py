@@ -220,8 +220,8 @@ async def get_dmm_trailer(trailer_url: str) -> str:
     # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/1start4814k.mp4
     # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/n_707agvn001_dmb_w.mp4
     # 标准格式示例: https://cc3001.dmm.co.jp/litevideo/freepv/a/asf/asfb00192/asfb00192_mhb_w.mp4
-    converted_url = None
     if "/pv/" in trailer_url:
+        signal.add_log("🔄 检测到临时预告片链接，开始转换...")
         filename_match = re.search(r"/pv/[^/]+/(.+?)(?:\.mp4)?$", trailer_url)
         if filename_match:
             filename_base = filename_match.group(1).replace(".mp4", "")
@@ -234,19 +234,59 @@ async def get_dmm_trailer(trailer_url: str) -> str:
                 converted_url = (
                     f"https://cc3001.dmm.co.jp/litevideo/freepv/{prefix}/{three_char}/{cid}/{filename_base}.mp4"
                 )
-                # 尝试验证转换后的URL
+                signal.add_log(f"📝 转换后的URL: {converted_url}")
+                # 尝试验证转换后的URL，最多重试3次（仅对非404错误重试）
                 for attempt in range(3):
-                    check_result = await check_url(converted_url)
-                    if check_result is not None:
-                        # 转换后的URL有效
-                        trailer_url = converted_url
-                        break
-                    elif attempt < 2:
-                        # 非404错误，重试
-                        await asyncio.sleep(0.5 * (attempt + 1))
-                    else:
-                        # 三次重试都失败，保留原始URL继续处理
-                        pass
+                    try:
+                        # 进行HEAD请求检测
+                        response, error = await manager.computed.async_client.request("HEAD", converted_url)
+
+                        if response is not None:
+                            # 请求成功
+                            if response.status_code == 404:
+                                # 404错误说明转换后的URL不存在，回退到原始URL
+                                signal.add_log("⚠️ 转换后的URL返回404，回退到原始链接")
+                                break
+                            elif 200 <= response.status_code < 300:
+                                # 2xx成功，使用转换后的URL
+                                signal.add_log(f"✅ 转换后的URL验证成功 (HTTP {response.status_code})")
+                                trailer_url = converted_url
+                                break
+                            else:
+                                # 其他4xx/5xx错误，继续重试
+                                retry_msg = (
+                                    f"🟡 转换后的URL检测失败 (HTTP {response.status_code})，"
+                                    f"准备重试 ({attempt + 1}/3)..."
+                                )
+                                signal.add_log(retry_msg)
+                                if attempt < 2:
+                                    await asyncio.sleep(0.5 * (attempt + 1))
+                                    continue
+                                else:
+                                    # 重试3次仍失败，回退到原始URL
+                                    signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                                    break
+                        else:
+                            # 网络错误、超时等，重试
+                            signal.add_log(f"🟡 转换后的URL网络错误: {error}，准备重试 ({attempt + 1}/3)...")
+                            if attempt < 2:
+                                await asyncio.sleep(0.5 * (attempt + 1))
+                                continue
+                            else:
+                                # 重试3次仍失败，回退到原始URL
+                                signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                                break
+                    except Exception as e:
+                        # 异常处理，继续重试
+                        signal.add_log(f"🟡 转换后的URL异常: {e}，准备重试 ({attempt + 1}/3)...")
+                        if attempt < 2:
+                            await asyncio.sleep(0.5 * (attempt + 1))
+                            continue
+                        else:
+                            # 重试3次仍失败，回退到原始URL
+                            signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                            break
+
 
     """
     DMM预览片分辨率对应关系:
