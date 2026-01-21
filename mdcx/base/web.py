@@ -287,7 +287,6 @@ async def get_dmm_trailer(trailer_url: str) -> str:
                             signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
                             break
 
-
     """
     DMM预览片分辨率对应关系:
     '_sm_w.mp4': 320*180, 3.8MB     # 最低分辨率
