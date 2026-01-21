@@ -240,7 +240,7 @@ async def get_dmm_trailer(trailer_url: str) -> str:
     '_dm_w.mp4': 560*316, 10.1MB    # 中等分辨率
     '_dmb_w.mp4': 720*404, 14.6MB   # 次高分辨率
     '_mhb_w.mp4': 720*404, 27.9MB   # 最高分辨率
-    
+
     示例:
     https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00090/ssis00090_sm_w.mp4
     https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00090/ssis00090_dm_w.mp4
