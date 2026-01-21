@@ -220,6 +220,7 @@ async def get_dmm_trailer(trailer_url: str) -> str:
     # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/1start4814k.mp4
     # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/n_707agvn001_dmb_w.mp4
     # 标准格式示例: https://cc3001.dmm.co.jp/litevideo/freepv/a/asf/asfb00192/asfb00192_mhb_w.mp4
+    converted_url = None
     if "/pv/" in trailer_url:
         filename_match = re.search(r"/pv/[^/]+/(.+?)(?:\.mp4)?$", trailer_url)
         if filename_match:
@@ -230,9 +231,22 @@ async def get_dmm_trailer(trailer_url: str) -> str:
             if re.search(r"[a-z]", cid, re.IGNORECASE) and re.search(r"\d", cid):
                 prefix = cid[0]
                 three_char = cid[:3]
-                trailer_url = (
+                converted_url = (
                     f"https://cc3001.dmm.co.jp/litevideo/freepv/{prefix}/{three_char}/{cid}/{filename_base}.mp4"
                 )
+                # 尝试验证转换后的URL
+                for attempt in range(3):
+                    check_result = await check_url(converted_url)
+                    if check_result is not None:
+                        # 转换后的URL有效
+                        trailer_url = converted_url
+                        break
+                    elif attempt < 2:
+                        # 非404错误，重试
+                        await asyncio.sleep(0.5 * (attempt + 1))
+                    else:
+                        # 三次重试都失败，保留原始URL继续处理
+                        pass
 
     """
     DMM预览片分辨率对应关系:
