@@ -361,7 +361,10 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     async def post_process(self, ctx, res):
         if not res.number:
             res.number = ctx.input.number
-        res.image_download = "VR" in res.title
+        # 对于VR视频或特定制作商（如SOD），直接使用ps.jpg而不进行裁剪
+        # SOD系列通常采用特殊的宽高比，无法通过裁剪获得最佳效果
+        studios_direct_download = {"SOD", "SOD Create"}
+        res.image_download = "VR" in res.title or res.studio in studios_direct_download
         res.originaltitle = res.title
         res.originalplot = res.outline
         # check aws image
