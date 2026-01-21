@@ -217,14 +217,17 @@ async def get_dmm_trailer(trailer_url: str) -> str:
 
     # 处理临时链接格式（/pv/{temp_key}/{filename}），转换为标准格式
     # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/asfb00192_mhb_w.mp4
+    # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/1start4814k.mp4
+    # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/n_707agvn001_dmb_w.mp4
     # 标准格式示例: https://cc3001.dmm.co.jp/litevideo/freepv/a/asf/asfb00192/asfb00192_mhb_w.mp4
     if "/pv/" in trailer_url:
         filename_match = re.search(r"/pv/[^/]+/(.+?)(?:\.mp4)?$", trailer_url)
         if filename_match:
             filename_base = filename_match.group(1).replace(".mp4", "")
-            number_match = re.match(r"([a-z]+\d+)", filename_base)
-            if number_match:
-                cid = number_match.group(1)
+            # 去掉质量标记后缀（_*b_w 格式，如 _mhb_w, _dmb_w, _sm_w, _dm_w 等）
+            cid = re.sub(r"(_[a-z]+b?_w)?$", "", filename_base)
+            # 确保提取到的是有效的产品ID（包含字母和数字）
+            if re.search(r"[a-z]", cid, re.IGNORECASE) and re.search(r"\d", cid):
                 prefix = cid[0]
                 three_char = cid[:3]
                 trailer_url = (

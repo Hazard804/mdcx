@@ -251,20 +251,20 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         trailer_url = data.sampleMovie.url.replace("hlsvideo", "litevideo")
 
         # 检测是否为临时链接（包含 /pv/ 路径的临时 URL）
-        # 例如: https://cc3001.dmm.co.jp/pv/{temp_key}/{filename_with_ext}
+        # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/{filename}
+        # 支持多种格式：asfb00192_mhb_w, 1start4814k, n_707agvn001_dmb_w 等
         if "/pv/" in trailer_url:
             # 从临时链接中提取文件名
             filename_match = re.search(r"/pv/[^/]+/(.+?)(?:\.mp4)?$", trailer_url)
             if filename_match:
                 filename_base = filename_match.group(1).replace(".mp4", "")
-                # 从文件名中提取号码部分，例如 dasd00648_mhb_w -> dasd00648
-                number_match = re.match(r"([a-z]+\d+)", filename_base)
-                if number_match:
-                    cid = number_match.group(1)
+                # 去掉质量标记后缀（_*b_w 格式，如 _mhb_w, _dmb_w, _sm_w, _dm_w 等）
+                cid = re.sub(r"(_[a-z]+b?_w)?$", "", filename_base)
+                # 确保提取到的是有效的产品ID（包含字母和数字）
+                if re.search(r"[a-z]", cid, re.IGNORECASE) and re.search(r"\d", cid):
                     # 构建标准格式的链接
                     # 格式: /litevideo/freepv/{prefix}/{three_char}/{full_number}/{filename}.mp4
-                    # 例如: /litevideo/freepv/d/das/dasd00648/dasd00648_dmb_w.mp4
-                    prefix = cid[0]  # 第一个字母
+                    prefix = cid[0]  # 第一个字符
                     three_char = cid[:3]  # 前三个字符
                     # 使用原始文件名但替换为标准格式
                     trailer = (
