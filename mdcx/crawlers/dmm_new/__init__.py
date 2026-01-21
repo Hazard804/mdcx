@@ -249,7 +249,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
         # https://cc3001.dmm.co.jp/hlsvideo/freepv/s/ssi/ssis00497/playlist.m3u8
         trailer_url = data.sampleMovie.url.replace("hlsvideo", "litevideo")
-        
+
         # 检测是否为临时链接（包含 /pv/ 路径的临时 URL）
         # 例如: https://cc3001.dmm.co.jp/pv/{temp_key}/{filename_with_ext}
         if "/pv/" in trailer_url:
@@ -267,7 +267,9 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                     prefix = cid[0]  # 第一个字母
                     three_char = cid[:3]  # 前三个字符
                     # 使用原始文件名但替换为标准格式
-                    trailer = f"https://cc3001.dmm.co.jp/litevideo/freepv/{prefix}/{three_char}/{cid}/{filename_base}.mp4"
+                    trailer = (
+                        f"https://cc3001.dmm.co.jp/litevideo/freepv/{prefix}/{three_char}/{cid}/{filename_base}.mp4"
+                    )
                 else:
                     trailer = ""
             else:
