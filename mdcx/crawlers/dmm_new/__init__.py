@@ -369,9 +369,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         for attempt in range(max_retries):
             try:
                 # 先尝试HEAD请求
-                async with manager.computed.async_client.request(
-                    "HEAD", url, timeout=10
-                ) as resp:
+                async with manager.computed.async_client.request("HEAD", url, timeout=10) as resp:
                     if resp.status == 200:
                         content_length = resp.headers.get("content-length")
                         if content_length:
@@ -390,9 +388,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         for attempt in range(max_retries):
             try:
                 # 使用stream=True只读取响应头而不下载内容
-                async with manager.computed.async_client.request(
-                    "GET", url, timeout=10
-                ) as resp:
+                async with manager.computed.async_client.request("GET", url, timeout=10) as resp:
                     if resp.status == 200:
                         content_length = resp.headers.get("content-length")
                         if content_length:
@@ -435,8 +431,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                         use_direct_download = "VR" in res.title
                     else:
                         ctx.debug(
-                            f"检测到SOD工作室: {res.studio}，ps.jpg分辨率充足({ps_size}B)，"
-                            f"将直接使用原始图片不进行裁剪"
+                            f"检测到SOD工作室: {res.studio}，ps.jpg分辨率充足({ps_size}B)，将直接使用原始图片不进行裁剪"
                         )
                 else:
                     ctx.debug(f"检测到SOD工作室: {res.studio}，无法获取图片大小，将直接使用原始图片不进行裁剪")
