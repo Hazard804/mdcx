@@ -357,6 +357,55 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             return await super()._fetch_detail(ctx, url, False)  # 对于确定不需要浏览器的, 强制不使用
         return await super()._fetch_detail(ctx, url, None)
 
+    async def _get_url_content_length(self, url: str) -> int | None:
+        """获取URL的Content-Length（文件大小）
+
+        先尝试HEAD请求，如果返回405则改用GET请求并立即关闭连接
+        包含重试机制（最多3次重试）
+        """
+        max_retries = 3
+        retry_delays = [0.5, 1.0, 1.5]
+
+        for attempt in range(max_retries):
+            try:
+                # 先尝试HEAD请求
+                async with manager.computed.async_client.request(
+                    "HEAD", url, timeout=10
+                ) as resp:
+                    if resp.status == 200:
+                        content_length = resp.headers.get("content-length")
+                        if content_length:
+                            return int(content_length)
+                    elif resp.status == 405:
+                        # 405 Method Not Allowed，改用GET请求
+                        break
+
+            except Exception:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delays[attempt])
+                    continue
+                return None
+
+        # 使用GET请求获取文件大小
+        for attempt in range(max_retries):
+            try:
+                # 使用stream=True只读取响应头而不下载内容
+                async with manager.computed.async_client.request(
+                    "GET", url, timeout=10
+                ) as resp:
+                    if resp.status == 200:
+                        content_length = resp.headers.get("content-length")
+                        if content_length:
+                            return int(content_length)
+                    return None
+            except Exception:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delays[attempt])
+                    continue
+                return None
+
+        return None
+
     @override
     async def post_process(self, ctx, res):
         if not res.number:
@@ -364,9 +413,37 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         # 对于VR视频或SOD工作室，直接使用ps.jpg而不进行裁剪
         # SOD系列通常采用特殊的宽高比，无法通过裁剪获得最佳效果
         is_sod_studio = "SOD" in (res.studio or "")
-        if is_sod_studio:
-            ctx.debug(f"检测到SOD工作室: {res.studio}，将直接使用原始图片不进行裁剪")
-        res.image_download = "VR" in res.title or is_sod_studio
+        use_direct_download = "VR" in res.title or is_sod_studio
+
+        if is_sod_studio and res.poster and res.thumb:
+            # 对SOD工作室，比较ps.jpg和pl.jpg的大小
+            # 如果ps.jpg分辨率明显低于pl.jpg，则使用裁剪后的poster而不是直接下载
+            ps_url = res.poster  # ps.jpg
+            pl_url = res.thumb  # pl.jpg
+            try:
+                # 获取两个文件的大小
+                ps_size = await self._get_url_content_length(ps_url)
+                pl_size = await self._get_url_content_length(pl_url)
+
+                if ps_size and pl_size:
+                    # 如果ps.jpg大小不足pl.jpg的50%，则认为分辨率太低，改用裁剪版本
+                    if ps_size < pl_size * 0.5:
+                        ctx.debug(
+                            f"SOD工作室ps.jpg分辨率过低({ps_size}B) vs pl.jpg({pl_size}B)，"
+                            f"将使用裁剪后的图片而不是直接下载"
+                        )
+                        use_direct_download = "VR" in res.title
+                    else:
+                        ctx.debug(
+                            f"检测到SOD工作室: {res.studio}，ps.jpg分辨率充足({ps_size}B)，"
+                            f"将直接使用原始图片不进行裁剪"
+                        )
+                else:
+                    ctx.debug(f"检测到SOD工作室: {res.studio}，无法获取图片大小，将直接使用原始图片不进行裁剪")
+            except Exception as e:
+                ctx.debug(f"SOD工作室图片大小比较失败: {e}，将直接使用原始图片不进行裁剪")
+
+        res.image_download = use_direct_download
         res.originaltitle = res.title
         res.originalplot = res.outline
         # check aws image
