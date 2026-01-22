@@ -413,7 +413,10 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         use_direct_download = "VR" in res.title or is_sod_studio
 
         # 调试：输出studio字段和SOD检测结果
-        signal.add_log(f"📊 [调试] 视频 {res.number} studio: '{res.studio}', is_sod: {is_sod_studio}")
+        signal.add_log(
+            f"📊 [调试] 视频 {res.number} studio: '{res.studio}', is_sod: {is_sod_studio}, "
+            f"poster: {bool(res.poster)}, thumb: {bool(res.thumb)}"
+        )
 
         if is_sod_studio and res.poster and res.thumb:
             # 对SOD工作室，比较ps.jpg和pl.jpg的大小
