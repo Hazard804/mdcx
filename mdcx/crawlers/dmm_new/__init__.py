@@ -372,17 +372,18 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 # 先尝试HEAD请求
                 response, error = await manager.computed.async_client.request("HEAD", url)
 
-                if response is not None and response.status == 200:
-                    content_length = response.headers.get("content-length")
-                    if content_length:
-                        signal.add_log(f"HEAD获取文件大小成功: {url} -> {content_length}B")
-                        return int(content_length)
-                elif response is not None and response.status == 405:
-                    # 405 Method Not Allowed，改用GET请求
-                    signal.add_log(f"HEAD请求返回405，将切换为GET请求: {url}")
-                    break
-                elif response is not None:
-                    signal.add_log(f"HEAD请求返回{response.status}: {url}")
+                if response is not None:
+                    if response.status_code == 200:
+                        content_length = response.headers.get("Content-Length")
+                        if content_length:
+                            signal.add_log(f"HEAD获取文件大小成功: {url} -> {content_length}B")
+                            return int(content_length)
+                    elif response.status_code == 405:
+                        # 405 Method Not Allowed，改用GET请求
+                        signal.add_log(f"HEAD请求返回405，将切换为GET请求: {url}")
+                        break
+                    else:
+                        signal.add_log(f"HEAD请求返回{response.status_code}: {url}")
                 elif error:
                     signal.add_log(f"HEAD请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {error}")
 
@@ -397,15 +398,16 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             try:
                 response, error = await manager.computed.async_client.request("GET", url)
 
-                if response is not None and response.status == 200:
-                    content_length = response.headers.get("content-length")
-                    if content_length:
-                        signal.add_log(f"GET获取文件大小成功: {url} -> {content_length}B")
-                        return int(content_length)
+                if response is not None:
+                    if response.status_code == 200:
+                        content_length = response.headers.get("Content-Length")
+                        if content_length:
+                            signal.add_log(f"GET获取文件大小成功: {url} -> {content_length}B")
+                            return int(content_length)
+                        else:
+                            signal.add_log(f"GET请求成功但无Content-Length头: {url}")
                     else:
-                        signal.add_log(f"GET请求成功但无Content-Length头: {url}")
-                elif response is not None:
-                    signal.add_log(f"GET请求返回{response.status}: {url}")
+                        signal.add_log(f"GET请求返回{response.status_code}: {url}")
                 elif error:
                     signal.add_log(f"GET请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {error}")
 
