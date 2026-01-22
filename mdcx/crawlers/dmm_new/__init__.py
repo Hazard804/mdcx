@@ -12,6 +12,7 @@ from mdcx.base.web import check_url
 from mdcx.config.manager import manager
 from mdcx.config.models import Website
 from mdcx.models.types import CrawlerInput
+from mdcx.signals import signal
 from mdcx.utils.dataclass import update_valid
 from mdcx.utils.gather_group import GatherGroup
 from mdcx.web_async import AsyncWebClient
@@ -424,19 +425,19 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 if ps_size and pl_size:
                     # 如果ps.jpg大小不足pl.jpg的50%，则认为分辨率太低，改用裁剪版本
                     if ps_size < pl_size * 0.5:
-                        ctx.debug(
+                        signal.add_log(
                             f"SOD工作室ps.jpg分辨率过低({ps_size}B) vs pl.jpg({pl_size}B)，"
                             f"将使用裁剪后的图片而不是直接下载"
                         )
                         use_direct_download = "VR" in res.title
                     else:
-                        ctx.debug(
+                        signal.add_log(
                             f"检测到SOD工作室: {res.studio}，ps.jpg分辨率充足({ps_size}B)，将直接使用原始图片不进行裁剪"
                         )
                 else:
-                    ctx.debug(f"检测到SOD工作室: {res.studio}，无法获取图片大小，将直接使用原始图片不进行裁剪")
+                    signal.add_log(f"检测到SOD工作室: {res.studio}，无法获取图片大小，将直接使用原始图片不进行裁剪")
             except Exception as e:
-                ctx.debug(f"SOD工作室图片大小比较失败: {e}，将直接使用原始图片不进行裁剪")
+                signal.add_log(f"SOD工作室图片大小比较失败: {e}，将直接使用原始图片不进行裁剪")
 
         res.image_download = use_direct_download
         res.originaltitle = res.title
