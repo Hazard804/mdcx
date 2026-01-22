@@ -361,7 +361,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     async def _get_url_content_length(self, url: str) -> int | None:
         """获取URL的Content-Length（文件大小）
 
-        先尝试HEAD请求，如果返回405则改用GET请求并立即关闭连接
+        先尝试HEAD请求，如果返回405则改用GET请求
         包含重试机制（最多3次重试）
         """
         max_retries = 3
@@ -370,47 +370,52 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         for attempt in range(max_retries):
             try:
                 # 先尝试HEAD请求
-                async with manager.computed.async_client.request("HEAD", url, timeout=10) as resp:
-                    if resp.status == 200:
-                        content_length = resp.headers.get("content-length")
-                        if content_length:
-                            signal.add_log(f"HEAD获取文件大小成功: {url} -> {content_length}B")
-                            return int(content_length)
-                    elif resp.status == 405:
-                        # 405 Method Not Allowed，改用GET请求
-                        signal.add_log(f"HEAD请求返回405，将切换为GET请求: {url}")
-                        break
-                    else:
-                        signal.add_log(f"HEAD请求返回{resp.status}: {url}")
+                response, error = await manager.computed.async_client.request("HEAD", url)
+
+                if response is not None and response.status == 200:
+                    content_length = response.headers.get("content-length")
+                    if content_length:
+                        signal.add_log(f"HEAD获取文件大小成功: {url} -> {content_length}B")
+                        return int(content_length)
+                elif response is not None and response.status == 405:
+                    # 405 Method Not Allowed，改用GET请求
+                    signal.add_log(f"HEAD请求返回405，将切换为GET请求: {url}")
+                    break
+                elif response is not None:
+                    signal.add_log(f"HEAD请求返回{response.status}: {url}")
+                elif error:
+                    signal.add_log(f"HEAD请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {error}")
 
             except Exception as e:
                 signal.add_log(f"HEAD请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {e}")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delays[attempt])
-                    continue
-                return None
+
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delays[attempt])
 
         # 使用GET请求获取文件大小
         for attempt in range(max_retries):
             try:
-                # 使用stream=True只读取响应头而不下载内容
-                async with manager.computed.async_client.request("GET", url, timeout=10) as resp:
-                    if resp.status == 200:
-                        content_length = resp.headers.get("content-length")
-                        if content_length:
-                            signal.add_log(f"GET获取文件大小成功: {url} -> {content_length}B")
-                            return int(content_length)
-                        else:
-                            signal.add_log(f"GET请求成功但无Content-Length头: {url}")
+                response, error = await manager.computed.async_client.request("GET", url)
+
+                if response is not None and response.status == 200:
+                    content_length = response.headers.get("content-length")
+                    if content_length:
+                        signal.add_log(f"GET获取文件大小成功: {url} -> {content_length}B")
+                        return int(content_length)
                     else:
-                        signal.add_log(f"GET请求返回{resp.status}: {url}")
-                    return None
+                        signal.add_log(f"GET请求成功但无Content-Length头: {url}")
+                elif response is not None:
+                    signal.add_log(f"GET请求返回{response.status}: {url}")
+                elif error:
+                    signal.add_log(f"GET请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {error}")
+
+                return None
+
             except Exception as e:
                 signal.add_log(f"GET请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {e}")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delays[attempt])
-                    continue
-                return None
+
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delays[attempt])
 
         return None
 
