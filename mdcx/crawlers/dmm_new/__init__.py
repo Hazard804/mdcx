@@ -374,12 +374,17 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                     if resp.status == 200:
                         content_length = resp.headers.get("content-length")
                         if content_length:
+                            signal.add_log(f"HEAD获取文件大小成功: {url} -> {content_length}B")
                             return int(content_length)
                     elif resp.status == 405:
                         # 405 Method Not Allowed，改用GET请求
+                        signal.add_log(f"HEAD请求返回405，将切换为GET请求: {url}")
                         break
+                    else:
+                        signal.add_log(f"HEAD请求返回{resp.status}: {url}")
 
-            except Exception:
+            except Exception as e:
+                signal.add_log(f"HEAD请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {e}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delays[attempt])
                     continue
@@ -393,9 +398,15 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                     if resp.status == 200:
                         content_length = resp.headers.get("content-length")
                         if content_length:
+                            signal.add_log(f"GET获取文件大小成功: {url} -> {content_length}B")
                             return int(content_length)
+                        else:
+                            signal.add_log(f"GET请求成功但无Content-Length头: {url}")
+                    else:
+                        signal.add_log(f"GET请求返回{resp.status}: {url}")
                     return None
-            except Exception:
+            except Exception as e:
+                signal.add_log(f"GET请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {e}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delays[attempt])
                     continue
