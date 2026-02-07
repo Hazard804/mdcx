@@ -112,11 +112,7 @@ async def deepl_translate(title: str, outline: str, ls: Literal["JA", "EN"] = "J
 
 def _normalize_translated_linebreaks(text: str) -> str:
     text = (
-        text.replace("\r\n", "\n")
-        .replace("\r", "\n")
-        .replace("\\r\\n", "\n")
-        .replace("\\n", "\n")
-        .replace("\\r", "\n")
+        text.replace("\r\n", "\n").replace("\r", "\n").replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n")
     )
     text = re.sub(r"(?i)&lt;\s*br\s*/?\s*&gt;", "\n", text)
     return re.sub(r"(?i)<\s*br\s*/?\s*>", "\n", text)
