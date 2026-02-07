@@ -39,7 +39,7 @@ from mdcx.config.enums import NfoInclude, Switch, Website
 from mdcx.config.extend import deal_url, get_movie_path_setting
 from mdcx.config.manager import manager
 from mdcx.config.resources import resources
-from mdcx.consts import IS_WINDOWS, LOCAL_VERSION
+from mdcx.consts import GITHUB_ISSUES_URL, GITHUB_RELEASES_URL, IS_WINDOWS, LOCAL_VERSION
 from mdcx.core.nfo import write_nfo
 from mdcx.core.scraper import again_search, get_remain_list, start_new_scrape
 from mdcx.image import get_pixmap
@@ -555,11 +555,11 @@ class MyMAinWindow(QMainWindow):
                 signal_qt.show_scrape_info()
                 self.Ui.label_show_version.setCursor(Qt.OpenHandCursor)  # 设置鼠标形状为十字形
                 version_info = f'基于 MDC-GUI 修改 · 当前版本: {self.localversion} （ <font color="red" >最新版本是: {latest_version}，请及时更新！🚀 </font>）'
-                download_link = ' ⬇️ <a href="https://github.com/sqzw-x/mdcx/releases">下载新版本</a>'
+                download_link = f' ⬇️ <a href="{GITHUB_RELEASES_URL}">下载新版本</a>'
             else:
                 version_info = f'基于 MDC-GUI 修改 · 当前版本: {self.localversion} （ <font color="green">你使用的是最新版本！🎉 </font>）'
 
-        feedback = ' 💌 问题反馈: <a href="https://github.com/sqzw-x/mdcx/issues/new/choose">GitHub Issues</a>'
+        feedback = f' 💌 问题反馈: <a href="{GITHUB_ISSUES_URL}">GitHub Issues</a>'
 
         # 显示版本信息和反馈入口
         signal_qt.show_log_text(version_info)
@@ -582,7 +582,7 @@ class MyMAinWindow(QMainWindow):
     # region 各种点击跳转浏览器
     def label_version_clicked(self, ev):
         try:
-            webbrowser.open("https://github.com/sqzw-x/mdcx/releases")
+            webbrowser.open(GITHUB_RELEASES_URL)
         except Exception:
             signal_qt.show_traceback_log(traceback.format_exc())
 

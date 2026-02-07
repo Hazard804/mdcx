@@ -54,6 +54,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: "Set up Python"
         uses: actions/setup-python@v5
@@ -86,8 +89,13 @@ jobs:
 
       - name: Get changelog
         id: get-changelog
-        if: ${{ matrix.build == 'macos' }}
+        shell: bash
         run: |
+          tag="${{ github.ref_name }}"
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            tag="${{ github.event.inputs.tag }}"
+          fi
+          uv run changelog --tag "$tag" --output changelog.md
           echo 'CHANGELOG<<EOF' >> $GITHUB_OUTPUT
           cat changelog.md >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
@@ -111,4 +119,5 @@ jobs:
           asset_name: MDCx-$tag-${{ matrix.build }}-${{ matrix.arch }}${{ matrix.tail }}-${{ github.sha }}.exe
           file: dist/MDCx.exe
           prerelease: ${{ !startsWith(github.event.inputs.tag || github.ref_name, '220') }}
+          body: ${{ steps.get-changelog.outputs.CHANGELOG }}
           tag: ${{ github.event.inputs.tag || github.ref }}

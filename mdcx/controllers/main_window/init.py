@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QAction, QMenu, QSystemTrayIcon, QTreeWidgetItem
 from mdcx.config.enums import Website
 from mdcx.config.extend import get_movie_path_setting
 from mdcx.config.resources import resources
-from mdcx.consts import IS_WINDOWS
+from mdcx.consts import GITHUB_RELEASES_URL, IS_WINDOWS
 from mdcx.manual import ManualConfig
 from mdcx.models.flags import Flags
 from mdcx.signals import signal_qt
@@ -247,7 +247,7 @@ def Init_Singal(self: "MyMAinWindow"):
     )
     self.Ui.label_get_cookie_url.mousePressEvent = lambda ev: n(webbrowser.open("https://tieba.baidu.com/p/5492736764"))
     self.Ui.label_download_actor_db.mousePressEvent = lambda ev: n(
-        webbrowser.open("https://github.com/sqzw-x/mdcx/releases/tag/actor_info_database")
+        webbrowser.open(f"{GITHUB_RELEASES_URL}/tag/actor_info_database")
     )
     # endregion
 

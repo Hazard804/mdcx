@@ -316,12 +316,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
     @staticmethod
     def _is_valid_dmm_cid(cid: str) -> bool:
-        return bool(
-            cid
-            and "." not in cid
-            and re.search(r"[a-z]", cid, flags=re.IGNORECASE)
-            and re.search(r"\d", cid)
-        )
+        return bool(cid and "." not in cid and re.search(r"[a-z]", cid, flags=re.IGNORECASE) and re.search(r"\d", cid))
 
     @classmethod
     def _build_pv_trailer_from_thumbnail(cls, thumbnail_url: str) -> str:
@@ -515,7 +510,9 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 f"🎬 DMM预告片[详情源直取]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}"
             )
 
-        should_try_litevideo = not trailer or self._trailer_quality_rank(trailer) < self._trailer_quality_rank("xhhb.mp4")
+        should_try_litevideo = not trailer or self._trailer_quality_rank(trailer) < self._trailer_quality_rank(
+            "xhhb.mp4"
+        )
         if should_try_litevideo:
             litevideo_candidates = await self._fetch_litevideo_trailer_candidates(ctx, content_cid)
             if litevideo_candidates:
@@ -541,7 +538,9 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 )
 
         if trailer:
-            signal.add_log(f"🎬 DMM预告片[最终]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}")
+            signal.add_log(
+                f"🎬 DMM预告片[最终]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}"
+            )
         else:
             signal.add_log(f"🟠 DMM预告片[最终]: cid={content_cid} 未获取到可用链接")
 
