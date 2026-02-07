@@ -39,6 +39,19 @@ def run_git_command(command: list[str]) -> str:
         raise typer.Exit(1)
 
 
+def git_ref_exists(ref: str) -> bool:
+    """检查给定 ref 是否存在（tag / branch / commit）。"""
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", ref],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    return result.returncode == 0
+
+
 def get_latest_tag(pattern: str) -> str | None:
     """获取匹配模式的最新tag"""
     command = ["git", "tag", "-l", pattern, "--sort=-v:refname"]
@@ -56,6 +69,23 @@ def get_commit_log_for_head_tag(head_tag: str) -> str:
     command = ["git", "tag", "-l", "--sort=-v:refname"]
     output = run_git_command(command)
     tags = [tag for tag in output.split("\n") if tag]
+
+    if not tags:
+        if git_ref_exists(head_tag):
+            command = ["git", "log", "--pretty=format:%h %s", head_tag]
+        else:
+            console.print(f"[yellow]tag '{head_tag}' 不存在，回退为基于 HEAD 生成。[/yellow]")
+            command = ["git", "log", "--pretty=format:%h %s", "HEAD"]
+        return run_git_command(command)
+
+    if head_tag not in tags:
+        if git_ref_exists(head_tag):
+            command = ["git", "log", "--pretty=format:%h %s", f"{tags[0]}..{head_tag}"]
+            return run_git_command(command)
+
+        console.print(f"[yellow]tag '{head_tag}' 不存在，回退为基于 HEAD 生成。[/yellow]")
+        return get_commit_log(tags[0])
+
     previous_tag = ""
     for tag in tags:
         if tag == head_tag:
