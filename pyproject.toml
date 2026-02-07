@@ -24,7 +24,7 @@ dependencies = [
     "pydantic-settings>=2.10.1",
     "pyqt5==5.15.11",
     "pyqt5-qt5==5.15.2; sys_platform == 'win32'", # 更高版本无 Windows wheel
-    # "pyqt5-pt5==5.15.17; sys_platform != 'win32'",
+    "pyqt5-qt5==5.15.17; sys_platform != 'win32'",
     "zhconv==1.4.3",
 ]
 
@@ -56,3 +56,9 @@ dev = [
 
 [tool.uv]
 package = true
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+]
