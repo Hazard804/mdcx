@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -7,7 +8,16 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-console = Console()
+
+def configure_stdio_utf8() -> None:
+    """确保在 Windows CI 等场景下也能输出中文日志。"""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
+configure_stdio_utf8()
+console = Console(legacy_windows=False)
 app = typer.Typer(help="生成 changelog", context_settings={"help_option_names": ["-h", "--help"]})
 
 
