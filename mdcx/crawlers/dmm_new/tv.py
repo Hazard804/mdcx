@@ -24,7 +24,7 @@ class Item(BaseModel):
 
 class SampleMovie(BaseModel):
     url: str = ""
-    # thumbnail: str = ""
+    thumbnail: str = ""
 
 
 class SamplePicture(BaseModel):

@@ -222,6 +222,9 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
             if is_valid(r.trailer):
                 candidate_trailer = str(r.trailer)
+                if self._is_hls_playlist_trailer(candidate_trailer):
+                    ctx.debug(f"跳过 m3u8 预告片候选: url={candidate_trailer}")
+                    continue
                 candidate_rank = self._trailer_quality_rank(candidate_trailer)
                 source_hint = f" external_id={r.external_id}" if is_valid(r.external_id) else ""
                 ctx.debug(f"trailer 候选: rank={candidate_rank}{source_hint} url={candidate_trailer}")
@@ -249,6 +252,9 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             elif str(res.trailer) != best_trailer:
                 ctx.debug(f"trailer 最终改写为更高质量: old={res.trailer}; new={best_trailer}")
             res.trailer = best_trailer
+        elif res is not None and is_valid(res.trailer) and self._is_hls_playlist_trailer(str(res.trailer)):
+            ctx.debug(f"trailer 最终清空 m3u8 链接: old={res.trailer}")
+            res.trailer = ""
 
         return res
 
@@ -258,18 +264,42 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             "sm": 1,
             "dm": 2,
             "dmb": 3,
-            "mhb": 4,
-            "hhb": 5,
-            "4k": 6,
+            "mmb": 4,
+            "hmb": 5,
+            "mhb": 6,
+            "hhb": 7,
+            "4k": 8,
+        }
+        alias = {
+            "mmbs": "mmb",
+            "hmbs": "hmb",
+            "mhbs": "mhb",
+            "hhbs": "hhb",
+            "4ks": "4k",
         }
 
-        if matched := re.search(r"_(sm|dm|dmb|mhb|hhb|4k)_[a-z]\.mp4$", trailer_url, flags=re.IGNORECASE):
-            return quality_levels[matched.group(1).lower()]
+        if matched := re.search(
+            r"_(sm|dm|dmb|mmb|hmb|mhb|hhb|4k|mmbs|hmbs|mhbs|hhbs|4ks)_[a-z]\.mp4$",
+            trailer_url,
+            flags=re.IGNORECASE,
+        ):
+            quality = alias.get(matched.group(1).lower(), matched.group(1).lower())
+            return quality_levels.get(quality, 0)
 
-        if matched := re.search(r"(sm|dm|dmb|mhb|hhb|4k)\.mp4$", trailer_url, flags=re.IGNORECASE):
-            return quality_levels[matched.group(1).lower()]
+        if matched := re.search(
+            r"(sm|dm|dmb|mmb|hmb|mhb|hhb|4k|mmbs|hmbs|mhbs|hhbs|4ks)\.mp4$",
+            trailer_url,
+            flags=re.IGNORECASE,
+        ):
+            quality = alias.get(matched.group(1).lower(), matched.group(1).lower())
+            return quality_levels.get(quality, 0)
 
         return 0
+
+    @staticmethod
+    def _is_hls_playlist_trailer(trailer_url: str) -> bool:
+        trailer_url = str(trailer_url or "").lower()
+        return ".m3u8" in trailer_url
 
     @classmethod
     def _pick_higher_quality_trailer(cls, current_url: str, candidate_url: str) -> str:
@@ -284,19 +314,183 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
         return current_url
 
+    @staticmethod
+    def _is_valid_dmm_cid(cid: str) -> bool:
+        return bool(
+            cid
+            and "." not in cid
+            and re.search(r"[a-z]", cid, flags=re.IGNORECASE)
+            and re.search(r"\d", cid)
+        )
+
+    @classmethod
+    def _build_pv_trailer_from_thumbnail(cls, thumbnail_url: str) -> str:
+        thumbnail_url = cls._with_https(str(thumbnail_url or "").strip())
+        matched = re.search(
+            r"https?://pics\.litevideo\.dmm\.co\.jp/pv/([^/?#]+)/([^/?#]+)\.jpg(?:[?#].*)?$",
+            thumbnail_url,
+            flags=re.IGNORECASE,
+        )
+        if not matched:
+            return ""
+        token, stem = matched.groups()
+        if not cls._is_valid_dmm_cid(stem):
+            return ""
+        return f"https://cc3001.dmm.co.jp/pv/{token}/{stem}mhb.mp4"
+
+    @classmethod
+    def _build_freepv_trailer_from_cid(cls, cid: str, quality_suffix: str = "_sm_w") -> str:
+        cid = str(cid or "").strip().lower()
+        if not cls._is_valid_dmm_cid(cid):
+            return ""
+        return f"https://cc3001.dmm.co.jp/litevideo/freepv/{cid[0]}/{cid[:3]}/{cid}/{cid}{quality_suffix}.mp4"
+
+    @staticmethod
+    def _extract_litevideo_player_url(detail_html: str) -> str:
+        if not detail_html:
+            return ""
+        if not (matched := re.search(r'<iframe[^>]+src="([^"]+digitalapi[^"]+)"', detail_html, flags=re.IGNORECASE)):
+            return ""
+        return DmmCrawler._with_https(html_utils.unescape(matched.group(1)))
+
+    @classmethod
+    def _extract_litevideo_trailer_candidates(cls, player_html: str) -> list[str]:
+        if not player_html:
+            return []
+        trailers: list[str] = []
+        for source in re.findall(
+            r'"src":"(\\/\\/cc3001\.dmm\.co\.jp\\/pv\\/[^\"]+?\.mp4)"',
+            player_html,
+            flags=re.IGNORECASE,
+        ):
+            trailer_url = cls._with_https(source.replace("\\/", "/"))
+            if trailer_url and trailer_url not in trailers:
+                trailers.append(trailer_url)
+        return trailers
+
+    async def _fetch_litevideo_trailer_candidates(self, ctx: Context, content_cid: str) -> list[str]:
+        detail_url = f"https://www.dmm.co.jp/litevideo/-/detail/=/cid={content_cid}/"
+        detail_html, error = await self._http_request_with_retry("GET", detail_url)
+        if detail_html is None:
+            ctx.debug(f"litevideo 详情页请求失败: {content_cid=} {error=}")
+            return []
+
+        player_url = self._extract_litevideo_player_url(detail_html)
+        if not player_url:
+            ctx.debug(f"litevideo 详情页未找到播放器 iframe: {content_cid=}")
+            return []
+
+        player_html, error = await self._http_request_with_retry("GET", player_url)
+        if player_html is None:
+            ctx.debug(f"litevideo 播放器页请求失败: {content_cid=} {error=}")
+            return []
+
+        return self._extract_litevideo_trailer_candidates(player_html)
+
+    @classmethod
+    def _build_fanza_trailer_url(
+        cls,
+        sample_movie_url: str,
+        sample_movie_thumbnail: str = "",
+        fallback_cid: str = "",
+    ) -> str:
+        raw_url = cls._with_https(str(sample_movie_url or "").strip())
+        if not raw_url:
+            return ""
+
+        if re.search(r"\.mp4(?:[?#].*)?$", raw_url, flags=re.IGNORECASE):
+            return raw_url
+
+        trailer_url = raw_url.replace("hlsvideo", "litevideo")
+
+        if "/pv/" in trailer_url and "playlist.m3u8" in trailer_url:
+            return ""
+
+        cid_match = re.search(r"/([^/]+)/playlist\.m3u8", trailer_url)
+        if cid_match:
+            cid_from_url = cid_match.group(1)
+            return trailer_url.replace("playlist.m3u8", cid_from_url + "_sm_w.mp4")
+        return ""
+
+    @classmethod
+    def _build_fanza_fallback_candidates(cls, sample_movie_thumbnail: str, fallback_cid: str) -> list[str]:
+        candidates: list[str] = []
+
+        for suffix in ("_4k_w", "_hhb_w", "_mhb_w", "_hmb_w", "_mmb_w", "_dmb_w", "_dm_w", "_sm_w"):
+            trailer = cls._build_freepv_trailer_from_cid(fallback_cid, quality_suffix=suffix)
+            if trailer and trailer not in candidates:
+                candidates.append(trailer)
+
+        if trailer_from_thumb := cls._build_pv_trailer_from_thumbnail(sample_movie_thumbnail):
+            if trailer_from_thumb not in candidates:
+                candidates.append(trailer_from_thumb)
+
+        return candidates
+
+    async def _validate_trailer_url(self, ctx: Context, trailer_url: str) -> str:
+        trailer_url = self._with_https(str(trailer_url or "").strip())
+        if not trailer_url:
+            return ""
+
+        cookies = self._get_cookies(ctx)
+        checks: list[tuple[str, dict[str, str] | None]] = [
+            ("HEAD", None),
+            ("GET", {"Range": "bytes=0-0"}),
+        ]
+
+        for method, headers in checks:
+            response, error = await self.async_client.request(method, trailer_url, headers=headers, cookies=cookies)
+            if response is None:
+                ctx.debug(f"trailer 校验失败: {method} {trailer_url} {error=}")
+                continue
+
+            if response.status_code not in (200, 206):
+                continue
+
+            content_type = str(response.headers.get("Content-Type") or "").lower()
+            if "text/html" in content_type or "application/xml" in content_type:
+                continue
+            if content_type and "video" not in content_type and "octet-stream" not in content_type:
+                continue
+
+            return str(response.url)
+
+        return ""
+
+    async def _pick_best_valid_trailer(self, ctx: Context, candidates: list[str]) -> str:
+        best_trailer = ""
+        for trailer_url in dict.fromkeys(candidates):
+            validated = await self._validate_trailer_url(ctx, trailer_url)
+            if not validated:
+                continue
+            best_trailer = self._pick_higher_quality_trailer(best_trailer, validated)
+        return best_trailer
+
+    @classmethod
+    def _pick_best_unvalidated_trailer(cls, current_url: str, candidates: list[str]) -> str:
+        best_trailer = current_url
+        for trailer_url in dict.fromkeys(candidates):
+            trailer_url = cls._with_https(str(trailer_url or "").strip())
+            if not trailer_url:
+                continue
+            if cls._is_hls_playlist_trailer(trailer_url):
+                continue
+            best_trailer = cls._pick_higher_quality_trailer(best_trailer, trailer_url)
+        return best_trailer
+
     async def fetch_fanza_tv(self, ctx: Context, detail_url: str) -> CrawlerData:
-        cid = re.search(r"content=([^&/]+)", detail_url)
-        if not cid:
+        cid_match = re.search(r"content=([^&/]+)", detail_url)
+        if not cid_match:
             ctx.debug(f"无法从 DMM TV URL 提取 cid: {detail_url}")
             return CrawlerData()
-        cid = cid.group(1)
+        content_cid = cid_match.group(1).lower()
 
         # 使用带重试的 HTTP 请求
         response, error = await self._http_request_with_retry(
-            "POST", "https://api.tv.dmm.co.jp/graphql", json_data=fanza_tv_payload(cid)
+            "POST", "https://api.tv.dmm.co.jp/graphql", json_data=fanza_tv_payload(content_cid)
         )
         if response is None:
-            ctx.debug(f"Fanza TV API 请求失败: {cid=} {error=}")
+            ctx.debug(f"Fanza TV API 请求失败: {content_cid=} {error=}")
             return CrawlerData()
         try:
             resp = FanzaResp.model_validate(response)
@@ -310,41 +504,46 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             if sample_pic.imageLarge:
                 extrafanart.append(sample_pic.imageLarge)
 
-        # https://cc3001.dmm.co.jp/hlsvideo/freepv/s/ssi/ssis00497/playlist.m3u8
-        trailer_url = data.sampleMovie.url.replace("hlsvideo", "litevideo")
+        trailer = self._build_fanza_trailer_url(
+            data.sampleMovie.url,
+            sample_movie_thumbnail=data.sampleMovie.thumbnail,
+            fallback_cid=content_cid,
+        )
+        trailer = self._pick_best_unvalidated_trailer("", [trailer] if trailer else [])
+        if trailer:
+            signal.add_log(
+                f"🎬 DMM预告片[详情源直取]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}"
+            )
 
-        # 检测是否为临时链接（包含 /pv/ 路径的临时 URL）
-        # 临时链接示例: https://cc3001.dmm.co.jp/pv/{temp_key}/{filename}
-        # 支持多种格式：asfb00192_mhb_w, 1start4814k, n_707agvn001_dmb_w 等
-        if "/pv/" in trailer_url:
-            # 从临时链接中提取文件名
-            filename_match = re.search(r"/pv/[^/]+/(.+?)(?:\.mp4)?$", trailer_url)
-            if filename_match:
-                filename_base = filename_match.group(1).replace(".mp4", "")
-                # 去掉质量标记后缀（_*b_w 格式，如 _mhb_w, _dmb_w, _sm_w, _dm_w 等）
-                cid = re.sub(r"(_[a-z]+b?_w)?$", "", filename_base)
-                # 确保提取到的是有效的产品ID（包含字母和数字）
-                if re.search(r"[a-z]", cid, re.IGNORECASE) and re.search(r"\d", cid):
-                    # 构建标准格式的链接
-                    # 格式: /litevideo/freepv/{prefix}/{three_char}/{full_number}/{filename}.mp4
-                    prefix = cid[0]  # 第一个字符
-                    three_char = cid[:3]  # 前三个字符
-                    # 使用原始文件名但替换为标准格式
-                    trailer = (
-                        f"https://cc3001.dmm.co.jp/litevideo/freepv/{prefix}/{three_char}/{cid}/{filename_base}.mp4"
+        should_try_litevideo = not trailer or self._trailer_quality_rank(trailer) < self._trailer_quality_rank("xhhb.mp4")
+        if should_try_litevideo:
+            litevideo_candidates = await self._fetch_litevideo_trailer_candidates(ctx, content_cid)
+            if litevideo_candidates:
+                ctx.debug(f"litevideo 直连预告片候选数: {len(litevideo_candidates)} {content_cid=}")
+                signal.add_log(f"🎬 DMM预告片[litevideo候选]: cid={content_cid} count={len(litevideo_candidates)}")
+                best_litevideo = self._pick_best_unvalidated_trailer("", litevideo_candidates)
+                if best_litevideo:
+                    signal.add_log(
+                        f"🎬 DMM预告片[litevideo最优]: cid={content_cid} rank={self._trailer_quality_rank(best_litevideo)} {best_litevideo}"
                     )
-                else:
-                    trailer = ""
-            else:
-                trailer = ""
+                trailer = self._pick_higher_quality_trailer(trailer, best_litevideo)
+
+        if not trailer:
+            fallback_candidates = self._build_fanza_fallback_candidates(
+                sample_movie_thumbnail=data.sampleMovie.thumbnail,
+                fallback_cid=content_cid,
+            )
+            signal.add_log(f"🎬 DMM预告片[兜底校验]: cid={content_cid} count={len(fallback_candidates)}")
+            trailer = await self._pick_best_valid_trailer(ctx, fallback_candidates)
+            if trailer:
+                signal.add_log(
+                    f"🎬 DMM预告片[兜底命中]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}"
+                )
+
+        if trailer:
+            signal.add_log(f"🎬 DMM预告片[最终]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}")
         else:
-            # 原有的标准链接处理逻辑
-            cid_match = re.search(r"/([^/]+)/playlist.m3u8", trailer_url)
-            if cid_match:
-                cid = cid_match.group(1)
-                trailer = trailer_url.replace("playlist.m3u8", cid + "_sm_w.mp4")
-            else:
-                trailer = ""
+            signal.add_log(f"🟠 DMM预告片[最终]: cid={content_cid} 未获取到可用链接")
 
         return CrawlerData(
             title=data.title,
