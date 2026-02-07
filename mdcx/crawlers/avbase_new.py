@@ -158,13 +158,9 @@ class AvbaseCrawler(BaseCrawler):
             if poster_size and thumb_size:
                 if poster_size < thumb_size * 0.5:
                     res.image_download = is_vr_title
-                    signal.add_log(
-                        f"AVBASE SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，改为裁剪模式"
-                    )
+                    signal.add_log(f"AVBASE SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，改为裁剪模式")
                 else:
-                    signal.add_log(
-                        f"AVBASE SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，保持直接下载"
-                    )
+                    signal.add_log(f"AVBASE SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，保持直接下载")
             else:
                 signal.add_log("AVBASE SOD 图片判定: 无法获取 ps/pl 大小，保持直接下载")
 

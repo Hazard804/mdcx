@@ -414,9 +414,7 @@ class Config(BaseModel):
             ),
             CrawlerResultFields.THUMB: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM, Website.AVBASE]),
             CrawlerResultFields.POSTER: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM, Website.AVBASE]),
-            CrawlerResultFields.EXTRAFANART: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.DMM, Website.AVBASE]
-            ),
+            CrawlerResultFields.EXTRAFANART: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM, Website.AVBASE]),
             CrawlerResultFields.TRAILER: FieldConfig(
                 site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE]
             ),
