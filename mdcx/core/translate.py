@@ -18,7 +18,7 @@ from ..models.types import CrawlersResult
 from ..number import get_number_letters
 from ..signals import signal
 from ..utils import clean_list, get_used_time
-from ..utils.language import is_japanese
+from ..utils.language import is_japanese, is_probably_english_for_translation
 
 
 def translate_info(json_data: CrawlersResult, has_sub: bool):
@@ -245,6 +245,7 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
     title_sehua_zh = manager.config.title_sehua_zh
     title_yesjav = manager.config.title_yesjav
     title_is_jp = is_japanese(json_data.title)
+    title_is_en = is_probably_english_for_translation(json_data.title)
 
     # 处理title
     if title_language != Language.JP:
@@ -271,11 +272,16 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
                 LogBuffer.log().write(f"\n 🆈 Yesjav title done!({get_used_time(start_time)}s)")
 
         # 使用json_data数据
-        if not movie_title and title_translate and title_is_jp:
+        if not movie_title and title_translate and (title_is_jp or title_is_en):
             trans_title = json_data.title
 
     # 处理outline
-    if json_data.outline and outline_language != Language.JP and outline_translate and is_japanese(json_data.outline):
+    if (
+        json_data.outline
+        and outline_language != Language.JP
+        and outline_translate
+        and (is_japanese(json_data.outline) or is_probably_english_for_translation(json_data.outline))
+    ):
         trans_outline = json_data.outline
 
     # 翻译

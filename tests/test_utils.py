@@ -1,7 +1,7 @@
 import pytest
 
 from mdcx.utils import clean_list
-from mdcx.utils.language import is_english, is_japanese
+from mdcx.utils.language import is_english, is_japanese, is_probably_english_for_translation
 
 
 @pytest.mark.parametrize(
@@ -50,3 +50,19 @@ def test_is_english(s, expected):
 )
 def test_clean_list(s, expected):
     assert clean_list(s) == expected
+
+
+@pytest.mark.parametrize(
+    "s,expected",
+    [
+        ("", False),
+        ("Youngermommy.24.11.09", True),
+        ("Ricky Spanish is on the phone with his friend.", True),
+        ("Scarlett’s fantasy gets wild — and explicit.", True),
+        ("これは日本語の文章です。", False),
+        ("中文简介内容", False),
+        ("abc 中文 mixed", False),
+    ],
+)
+def test_is_probably_english_for_translation(s, expected):
+    assert is_probably_english_for_translation(s) == expected

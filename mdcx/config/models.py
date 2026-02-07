@@ -63,9 +63,13 @@ class TranslateConfig(BaseModel):
     llm_url: HttpUrl = Field(default=HttpUrl("https://api.llm.com/v1"), title="LLM API Host")
     llm_model: str = Field(default="gpt-3.5-turbo", title="模型 ID")
     llm_key: str = Field(default="", title="LLM API Key")
-    llm_prompt: str = Field(
+    llm_prompt_title: str = Field(
         default="Please translate the following text to {lang}. Output only the translation without any explanation.\n{content}",
-        title="LLM 提示词",
+        title="LLM 标题提示词",
+    )
+    llm_prompt_outline: str = Field(
+        default="Please translate the following text to {lang}. Output only the translation without any explanation.\n{content}",
+        title="LLM 简介提示词",
     )
     llm_read_timeout: int = Field(default=60, title="LLM 读取超时 (秒)", description="LLM 生成耗时较长, 建议设置较大值")
     llm_max_req_sec: float = Field(default=1, title="LLM 每秒最大请求数")
@@ -752,6 +756,18 @@ class Config(BaseModel):
             d["use_database"] = bool(r)
         if isinstance(r := d.get("local_library"), str):
             d["local_library"] = str_to_list(r, ",")
+
+        # 兼容旧版 llm_prompt 配置
+        if isinstance(translate_config := d.get("translate_config"), dict):
+            old_prompt = translate_config.pop("llm_prompt", None)
+            if isinstance(old_prompt, str):
+                translate_config.setdefault("llm_prompt_title", old_prompt)
+                translate_config.setdefault("llm_prompt_outline", old_prompt)
+        if isinstance(old_prompt := d.get("llm_prompt"), str):
+            translate_config = d.setdefault("translate_config", {})
+            if isinstance(translate_config, dict):
+                translate_config.setdefault("llm_prompt_title", old_prompt)
+                translate_config.setdefault("llm_prompt_outline", old_prompt)
         if "site_configs" not in d:
             d["site_configs"] = {Website.DMM: SiteConfig(use_browser=True)}
         elif Website.DMM not in d["site_configs"]:

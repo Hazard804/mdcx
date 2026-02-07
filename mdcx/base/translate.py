@@ -109,16 +109,14 @@ async def deepl_translate(title: str, outline: str, ls: Literal["JA", "EN"] = "J
     return r1, r2, None
 
 
-async def _llm_translate(text: str, target_language: str = "简体中文") -> str | None:
+async def _llm_translate(text: str, prompt_template: str, target_language: str = "简体中文") -> str | None:
     """调用 LLM 翻译文本"""
     if not text:
         return ""
     return await manager.computed.llm_client.ask(
         model=manager.config.translate_config.llm_model,
         system_prompt="You are a professional translator.",
-        user_prompt=manager.config.translate_config.llm_prompt.replace("{content}", text).replace(
-            "{lang}", target_language
-        ),
+        user_prompt=prompt_template.replace("{content}", text).replace("{lang}", target_language),
         temperature=manager.config.translate_config.llm_temperature,
         max_try=manager.config.translate_config.llm_max_try,
         log_fn=signal.add_log,
@@ -126,7 +124,11 @@ async def _llm_translate(text: str, target_language: str = "简体中文") -> st
 
 
 async def llm_translate(title: str, outline: str, target_language: str = "简体中文"):
-    r1, r2 = await asyncio.gather(_llm_translate(title, target_language), _llm_translate(outline, target_language))
+    translate_config = manager.config.translate_config
+    r1, r2 = await asyncio.gather(
+        _llm_translate(title, translate_config.llm_prompt_title, target_language),
+        _llm_translate(outline, translate_config.llm_prompt_outline, target_language),
+    )
     if r1 is None or r2 is None:
         return "", "", "LLM 翻译失败! 查看网络日志以获取更多信息"
     return r1, r2, None

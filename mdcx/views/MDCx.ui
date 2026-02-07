@@ -13067,7 +13067,7 @@
                           </widget>
                         </item>
                         <item row="5" column="0">
-                          <widget class="QLabel" name="label_llm_prompt">
+                          <widget class="QLabel" name="label_llm_prompt_title">
                             <property name="minimumSize">
                               <size>
                                 <width>130</width>
@@ -13075,7 +13075,7 @@
                               </size>
                             </property>
                             <property name="text">
-                              <string>Prompt:</string>
+                              <string>标题 Prompt:</string>
                             </property>
                             <property name="alignment">
                               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -13083,7 +13083,7 @@
                           </widget>
                         </item>
                         <item row="5" column="1">
-                          <widget class="QTextEdit" name="textEdit_llm_prompt">
+                          <widget class="QTextEdit" name="textEdit_llm_prompt_title">
                             <property name="minimumSize">
                               <size>
                                 <width>300</width>
@@ -13097,7 +13097,38 @@
                             </property>
                           </widget>
                         </item>
+                        <item row="6" column="0">
+                          <widget class="QLabel" name="label_llm_prompt_outline">
+                            <property name="minimumSize">
+                              <size>
+                                <width>130</width>
+                                <height>30</height>
+                              </size>
+                            </property>
+                            <property name="text">
+                              <string>简介 Prompt:</string>
+                            </property>
+                            <property name="alignment">
+                              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                            </property>
+                          </widget>
+                        </item>
                         <item row="6" column="1">
+                          <widget class="QTextEdit" name="textEdit_llm_prompt_outline">
+                            <property name="minimumSize">
+                              <size>
+                                <width>300</width>
+                                <height>60</height>
+                              </size>
+                            </property>
+                            <property name="styleSheet">
+                              <string notr="true"> border: 1px solid rgba(0,0,0, 50);
+                                border-radius: 1px;
+                                font: &quot;Courier&quot;;</string>
+                            </property>
+                          </widget>
+                        </item>
+                        <item row="7" column="1">
                           <widget class="QLabel" name="label_llm_prompt_desc">
                             <property name="styleSheet">
                               <string notr="true">color: rgb(8, 128, 128);</string>
@@ -13107,7 +13138,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="7" column="1">
+                        <item row="8" column="1">
                           <widget class="QDoubleSpinBox" name="doubleSpinBox_llm_max_req_sec">
                             <property name="minimumSize">
                               <size>
@@ -13120,7 +13151,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="7" column="0">
+                        <item row="8" column="0">
                           <widget class="QLabel" name="label_llm_max_req_sec">
                             <property name="minimumSize">
                               <size>
@@ -13136,7 +13167,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="8" column="1">
+                        <item row="9" column="1">
                           <widget class="QLabel" name="label_llm_max_req_sec_desc">
                             <property name="styleSheet">
                               <string notr="true">color: rgb(8, 128, 128);</string>
@@ -13146,7 +13177,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="9" column="1">
+                        <item row="10" column="1">
                           <widget class="QSpinBox" name="spinBox_llm_max_try">
                             <property name="minimumSize">
                               <size>
@@ -13156,7 +13187,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="9" column="0">
+                        <item row="10" column="0">
                           <widget class="QLabel" name="label_llm_max_try">
                             <property name="minimumSize">
                               <size>
@@ -13172,7 +13203,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="10" column="1">
+                        <item row="11" column="1">
                           <widget class="QLabel" name="label_llm_max_try_desc">
                             <property name="styleSheet">
                               <string notr="true">color: rgb(8, 128, 128);</string>
@@ -13182,7 +13213,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="11" column="0">
+                        <item row="12" column="0">
                           <widget class="QLabel" name="label_llm_temperature">
                             <property name="minimumSize">
                               <size>
@@ -13198,7 +13229,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="11" column="1">
+                        <item row="12" column="1">
                           <widget class="QDoubleSpinBox" name="doubleSpinBox_llm_temperature">
                             <property name="minimumSize">
                               <size>

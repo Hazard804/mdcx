@@ -172,7 +172,12 @@ class ConfigV1:
     llm_url: str = r"https://api.llm.com/v1"
     llm_model: str = r"gpt-3.5-turbo"
     llm_key: str = r""
-    llm_prompt: str = "Please translate the following text to {lang}. Output only the translation without any explanation.\n{content}"  # 原文-{content} 目标语言-{lang}
+    llm_prompt_title: str = (
+        "Please translate the following text to {lang}. Output only the translation without any explanation.\n{content}"
+    )  # 原文-{content} 目标语言-{lang}
+    llm_prompt_outline: str = (
+        "Please translate the following text to {lang}. Output only the translation without any explanation.\n{content}"
+    )  # 原文-{content} 目标语言-{lang}
     llm_max_req_sec: float = 1  # 每秒请求次数限制
     llm_max_try: int = 5
     llm_temperature: float = 0.2
