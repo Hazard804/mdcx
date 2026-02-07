@@ -101,9 +101,13 @@ jobs:
             tag="${{ github.event.inputs.tag }}"
           fi
           uv run changelog --tag "$tag" --output changelog.md
-          echo 'CHANGELOG<<EOF' >> $GITHUB_OUTPUT
-          cat changelog.md >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
+          delimiter="__MDCX_CHANGELOG_EOF__"
+          {
+            echo "CHANGELOG<<$delimiter"
+            cat changelog.md
+            echo
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Resolve release type
         id: release-type
