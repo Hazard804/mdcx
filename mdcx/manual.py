@@ -475,6 +475,7 @@ class ManualConfig:
         ".chs",
     ]
     WEB_DIC = {
+        "avbase": Website.AVBASE,
         "airav.io": Website.AIRAV_CC,
         "airav.wiki": Website.AIRAV,
         "9sex": Website.AVSEX,

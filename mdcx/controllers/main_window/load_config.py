@@ -172,7 +172,14 @@ def load_config(self: "MyMAinWindow"):
         # region website
         AllItems = [self.Ui.comboBox_website_all.itemText(i) for i in range(self.Ui.comboBox_website_all.count())]
         # 指定单个刮削网站
-        self.Ui.comboBox_website_all.setCurrentIndex(AllItems.index(manager.config.website_single.value))
+        website_single_value = manager.config.website_single.value
+        if website_single_value in AllItems:
+            self.Ui.comboBox_website_all.setCurrentIndex(AllItems.index(website_single_value))
+        else:
+            self.Ui.comboBox_website_all.setCurrentIndex(0)
+            signal_qt.show_log_text(
+                f"⚠️ 指定网站 '{website_single_value}' 不在 UI 网站列表中，已回退为 {self.Ui.comboBox_website_all.itemText(0)}\n"
+            )
         # 有码番号刮削网站
         self.Ui.lineEdit_website_youma.setText(",".join([site.value for site in manager.config.website_youma]))
         # 无码番号刮削网站

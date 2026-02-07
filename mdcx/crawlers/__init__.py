@@ -4,6 +4,7 @@ from ..config.models import Website
 from . import (
     airav,
     airav_cc,
+    avbase_new,
     avsex,
     avsox,
     cableav,
@@ -39,6 +40,7 @@ from . import (
     theporndb,
     xcity,
 )
+from .avbase_new import AvbaseCrawler
 from .base import get_crawler, register_crawler
 from .base.compat import get_v1_crawler, register_v1_crawler
 from .dmm_new import DmmCrawler
@@ -86,6 +88,7 @@ CRAWLER_FUNCS: list[tuple[Website, Callable]] = [
 
 register_crawler(DmmCrawler)
 register_crawler(JavdbCrawler)
+register_crawler(AvbaseCrawler)
 for site, func in CRAWLER_FUNCS:
     register_v1_crawler(site, func)
 

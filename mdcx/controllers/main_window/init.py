@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QMenu, QSystemTrayIcon, QTreeWidgetItem
 
+from mdcx.config.enums import Website
 from mdcx.config.extend import get_movie_path_setting
 from mdcx.config.resources import resources
 from mdcx.consts import IS_WINDOWS
@@ -104,7 +105,10 @@ def Init_Ui(self: "MyMAinWindow"):
     self.Ui.textBrowser_log_main_3.hide()  # 失败列表隐藏
     self.Ui.pushButton_scraper_failed_list.hide()
     self.Ui.pushButton_save_failed_list.hide()
-    self.Ui.comboBox_custom_website.addItems(ManualConfig.SUPPORTED_WEBSITES)
+    supported_websites = list(ManualConfig.SUPPORTED_WEBSITES)
+    if Website.AVBASE.value not in supported_websites:
+        supported_websites.append(Website.AVBASE.value)
+    self.Ui.comboBox_custom_website.addItems(supported_websites)
     # self.Ui.textBrowser_log_main.document().setMaximumBlockCount(100000)     # 限制日志页最大行数rowCount
     # self.Ui.textBrowser_log_main_2.document().setMaximumBlockCount(30000)     # 限制日志页最大行数rowCount
     self.Ui.textBrowser_log_main.viewport().installEventFilter(self)  # 注册事件用于识别点击控件时隐藏失败列表面板

@@ -589,7 +589,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             ]
             for aws_url in aws_urls:
                 if await check_url(aws_url):
-                    ctx.debug(f"use aws image: {aws_url}")
+                    signal.add_log(f"DMM 使用 AWS 高清图: {aws_url}")
                     res.thumb = aws_url
                     break
         res.poster = res.thumb.replace("pl.jpg", "ps.jpg")

@@ -148,7 +148,9 @@ class AsyncWebClient:
                     if resp.status_code >= 300 and not (resp.status_code == 302 and resp.headers.get("Location")):
                         error_msg = f"HTTP {resp.status_code}"
                         retry = resp.status_code in (
+                            500,  # Internal Server Error
                             502,  # Bad Gateway
+                            503,  # Service Unavailable
                             403,  # Forbidden
                             408,  # Request Timeout
                             429,  # Too Many Requests

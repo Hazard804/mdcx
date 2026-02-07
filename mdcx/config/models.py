@@ -288,6 +288,7 @@ class Config(BaseModel):
     website_single: Website = Field(default=Website.AIRAV_CC, title="单个网站")  # todo 移除
     website_youma: set[Website] = Field(
         default_factory=lambda: {
+            Website.AVBASE,
             Website.OFFICIAL,
             Website.IQQTV,
             Website.AVSEX,
@@ -326,6 +327,7 @@ class Config(BaseModel):
     )
     website_suren: set[Website] = Field(
         default_factory=lambda: {
+            Website.AVBASE,
             Website.MGSTAGE,
             Website.AVSEX,
             Website.JAV321,
@@ -369,61 +371,65 @@ class Config(BaseModel):
     field_configs: dict[CrawlerResultFields, FieldConfig] = Field(
         default_factory=lambda: {
             CrawlerResultFields.TITLE: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
                 language=Language.JP,
             ),
             CrawlerResultFields.ORIGINALTITLE: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
             ),
             CrawlerResultFields.OUTLINE: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
                 language=Language.JP,
             ),
             CrawlerResultFields.ORIGINALPLOT: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
             ),
             CrawlerResultFields.ACTORS: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
                 language=Language.JP,
             ),
             CrawlerResultFields.ALL_ACTORS: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.JAVDB, Website.AVBASE],
                 language=Language.JP,
             ),
             CrawlerResultFields.TAGS: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
                 language=Language.ZH_CN,
             ),
             CrawlerResultFields.DIRECTORS: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
                 language=Language.JP,
             ),
             CrawlerResultFields.SERIES: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
                 language=Language.JP,
             ),
             CrawlerResultFields.STUDIO: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
                 language=Language.JP,
             ),
             CrawlerResultFields.PUBLISHER: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB],
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE],
                 language=Language.JP,
             ),
-            CrawlerResultFields.THUMB: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM]),
-            CrawlerResultFields.POSTER: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM]),
-            CrawlerResultFields.EXTRAFANART: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM]),
+            CrawlerResultFields.THUMB: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM, Website.AVBASE]),
+            CrawlerResultFields.POSTER: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM, Website.AVBASE]),
+            CrawlerResultFields.EXTRAFANART: FieldConfig(
+                site_prority=[Website.THEPORNDB, Website.DMM, Website.AVBASE]
+            ),
             CrawlerResultFields.TRAILER: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB]
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE]
             ),
             CrawlerResultFields.RELEASE: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB]
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE]
             ),
             CrawlerResultFields.RUNTIME: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB]
+                site_prority=[Website.THEPORNDB, Website.OFFICIAL, Website.DMM, Website.JAVDB, Website.AVBASE]
             ),
-            CrawlerResultFields.SCORE: FieldConfig(site_prority=[Website.THEPORNDB, Website.DMM, Website.JAVDB]),
-            CrawlerResultFields.WANTED: FieldConfig(site_prority=[Website.DMM, Website.JAVDB]),
+            CrawlerResultFields.SCORE: FieldConfig(
+                site_prority=[Website.THEPORNDB, Website.DMM, Website.JAVDB, Website.AVBASE]
+            ),
+            CrawlerResultFields.WANTED: FieldConfig(site_prority=[Website.DMM, Website.JAVDB, Website.AVBASE]),
         },
         title="字段配置",
     )

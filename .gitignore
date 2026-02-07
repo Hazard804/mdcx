@@ -181,3 +181,5 @@ Log/
 dev/
 *.ipynb
 highdpi_passthrough
+
+scripts/local/

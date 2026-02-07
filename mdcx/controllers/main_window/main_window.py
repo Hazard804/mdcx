@@ -167,7 +167,7 @@ class MyMAinWindow(QMainWindow):
         self.show_net_info(
             "\n💡 说明：\n "
             "任意代理：javbus、jav321、javlibrary、mywife、giga、freejavbt、"
-            "mdtv、madouqu、7mmtv、faleno、dahlia、prestige、theporndb、cnmdb、fantastica、kin8\n "
+            "mdtv、madouqu、7mmtv、faleno、dahlia、prestige、theporndb、cnmdb、fantastica、kin8、avbase\n "
             "非日本代理：javdb、airav-cc、avsex（日本代理会报错）\n "
             "日本代理：seesaawiki、mgstage\n "
             "无需代理：avsex、hdouban、iqqtv、airav-wiki、love6、lulubar、fc2、fc2club、fc2hub\n\n"
@@ -1013,7 +1013,7 @@ class MyMAinWindow(QMainWindow):
                 "输入网址重新刮削",
                 f"文件名: {main_file_name}\n支持网站:airav_cc、airav、avsex、avsox、dmm、getchu、fc2"
                 f"、fc2club、fc2hub、iqqtv、jav321、javbus、javdb、freejavbt、javlibrary、mdtv"
-                f"、madouqu、mgstage、7mmtv、xcity、mywife、giga、faleno、dahlia、fantastica"
+                f"、madouqu、mgstage、7mmtv、xcity、mywife、giga、faleno、dahlia、fantastica、avbase"
                 f"、prestige、hdouban、lulubar、love6、cnmdb、theporndb、kin8\n请输入番号对应的网址（不是网站首页地址！！！是番号页面地址！！！）:",
             )
             if ok and text:
@@ -1628,6 +1628,7 @@ class MyMAinWindow(QMainWindow):
   <p><span style=" font-weight:700;">所有可用网站:</span></p>
   <li>airav</li>
   <li>airav_cc</li>
+  <li>avbase</li>
   <li>avsex</li>
   <li>avsox</li>
   <li>cableav</li>
@@ -1972,6 +1973,7 @@ class MyMAinWindow(QMainWindow):
             net_info = {
                 "github": ["https://raw.githubusercontent.com", ""],
                 "airav_cc": ["https://airav.io", ""],
+                "avbase": ["https://www.avbase.net", ""],
                 "iqqtv": ["https://iqq5.xyz", ""],
                 "avsex": ["https://paycalling.com", ""],
                 "freejavbt": ["https://freejavbt.com", ""],
