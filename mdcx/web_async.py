@@ -1,5 +1,6 @@
 import asyncio
 import random
+import sys
 from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
@@ -55,6 +56,22 @@ class AsyncWebClient:
 
         self.log_fn = log_fn if log_fn is not None else lambda _: None
         self.limiters = limiters if limiters is not None else AsyncWebLimiters()
+
+    def _log(self, message: str) -> None:
+        try:
+            self.log_fn(message)
+            return
+        except UnicodeEncodeError:
+            pass
+        except Exception:
+            return
+
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        safe_message = message.encode(encoding, errors="replace").decode(encoding, errors="replace")
+        try:
+            self.log_fn(safe_message)
+        except Exception:
+            pass
 
     def _prepare_headers(self, url: str | None = None, headers: dict[str, str] | None = None) -> dict[str, str]:
         """预处理请求头"""
@@ -138,7 +155,7 @@ class AsyncWebClient:
                             504,  # Gateway Timeout
                         )
                     else:
-                        self.log_fn(f"✅ {method} {url} 成功")
+                        self._log(f"✅ {method} {url} 成功")
                         return resp, ""
                 except Timeout:
                     error_msg = "连接超时"
@@ -154,14 +171,14 @@ class AsyncWebClient:
                     retry = False  # 其他异常不重试，避免死循环
                 if not retry:
                     break
-                self.log_fn(f"🔴 {method} {url} 失败: {error_msg} ({attempt + 1}/{retry_count})")
+                self._log(f"🔴 {method} {url} 失败: {error_msg} ({attempt + 1}/{retry_count})")
                 # 重试前等待
                 if attempt < retry_count - 1:
                     await asyncio.sleep(attempt * 3 + 2)
             return None, f"{method} {url} 失败: {error_msg}"
         except Exception as e:
             error_msg = f"{method} {url} 未知错误:  {str(e)}"
-            self.log_fn(f"🔴 {error_msg}")
+            self._log(f"🔴 {error_msg}")
             return None, error_msg
 
     async def get_text(
@@ -283,15 +300,15 @@ class AsyncWebClient:
         """获取文件大小"""
         response, error = await self.request("HEAD", url, use_proxy=use_proxy)
         if response is None:
-            self.log_fn(f"🔴 获取文件大小失败: {url} {error}")
+            self._log(f"🔴 获取文件大小失败: {url} {error}")
             return None
         if response.status_code < 400:
             try:
                 return int(response.headers.get("Content-Length"))
             except (ValueError, TypeError):
-                self.log_fn(f"🔴 获取文件大小失败: {url} Content-Length 解析错误")
+                self._log(f"🔴 获取文件大小失败: {url} Content-Length 解析错误")
                 return None
-        self.log_fn(f"🔴 获取文件大小失败: {url} HTTP {response.status_code}")
+        self._log(f"🔴 获取文件大小失败: {url} HTTP {response.status_code}")
         return None
 
     async def download(self, url: str, file_path: Path, *, use_proxy: bool = True) -> bool:
@@ -320,7 +337,7 @@ class AsyncWebClient:
 
         content, error = await self.get_content(url, use_proxy=use_proxy)
         if not content:
-            self.log_fn(f"🔴 下载失败: {url} {error}")
+            self._log(f"🔴 下载失败: {url} {error}")
             return False
         if not webp:
             try:
@@ -328,7 +345,7 @@ class AsyncWebClient:
                     await f.write(content)
                 return True
             except Exception as e:
-                self.log_fn(f"🔴 文件写入失败: {url} {file_path} {str(e)}")
+                self._log(f"🔴 文件写入失败: {url} {file_path} {str(e)}")
                 return False
         try:
             byte_stream = BytesIO(content)
@@ -339,7 +356,7 @@ class AsyncWebClient:
             img.close()
             return True
         except Exception as e:
-            self.log_fn(f"🔴 WebP转换失败: {url} {file_path} {str(e)}")
+            self._log(f"🔴 WebP转换失败: {url} {file_path} {str(e)}")
             return False
 
     async def _download_chunks(self, url: str, file_path: Path, file_size: int, use_proxy: bool = True) -> bool:
@@ -349,14 +366,14 @@ class AsyncWebClient:
         each_size = min(1 * MB, file_size)
         parts = [(s, min(s + each_size, file_size)) for s in range(0, file_size, each_size)]
 
-        self.log_fn(f"📦 分块下载: {url} {len(parts)} 个分块, 总大小: {file_size} bytes")
+        self._log(f"📦 分块下载: {url} {len(parts)} 个分块, 总大小: {file_size} bytes")
 
         # 先创建文件并预分配空间
         try:
             async with aiofiles.open(file_path, "wb") as f:
                 await f.truncate(file_size)
         except Exception as e:
-            self.log_fn(f"🔴 文件创建失败: {url} {str(e)}")
+            self._log(f"🔴 文件创建失败: {url} {str(e)}")
             return False
 
         # 创建下载任务
@@ -373,15 +390,15 @@ class AsyncWebClient:
             # 检查所有任务是否成功
             for i, err in enumerate(errors):
                 if isinstance(err, Exception):
-                    self.log_fn(f"🔴 分块 {i} 下载失败: {url} {str(err)}")
+                    self._log(f"🔴 分块 {i} 下载失败: {url} {str(err)}")
                     return False
                 elif err:
-                    self.log_fn(f"🔴 分块 {i} 下载失败: {url} {err}")
+                    self._log(f"🔴 分块 {i} 下载失败: {url} {err}")
                     return False
-            self.log_fn(f"✅ 多分块下载完成: {url} {file_path}")
+            self._log(f"✅ 多分块下载完成: {url} {file_path}")
             return True
         except Exception as e:
-            self.log_fn(f"🔴 并发下载异常: {url} {str(e)}")
+            self._log(f"🔴 并发下载异常: {url} {str(e)}")
             return False
 
     async def _download_chunk(
