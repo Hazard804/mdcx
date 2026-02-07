@@ -1,8 +1,11 @@
 import asyncio
+import html as html_utils
+import json
 import re
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import override
+from urllib.parse import urljoin
 
 from parsel import Selector
 from patchright._impl._api_structures import SetCookieParam
@@ -211,16 +214,75 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                     group.add(self.fetch_and_parse(ctx, u, parser))
 
         res = None
+        best_trailer = ""
         for r in group.results[::-1]:
             if isinstance(r, Exception):  # 预计只会返回空值, 不会抛出异常
                 ctx.debug(f"预料之外的异常: {r}")
                 continue
+
+            if is_valid(r.trailer):
+                candidate_trailer = str(r.trailer)
+                candidate_rank = self._trailer_quality_rank(candidate_trailer)
+                source_hint = f" external_id={r.external_id}" if is_valid(r.external_id) else ""
+                ctx.debug(f"trailer 候选: rank={candidate_rank}{source_hint} url={candidate_trailer}")
+
+                previous_best = best_trailer
+                best_trailer = self._pick_higher_quality_trailer(best_trailer, candidate_trailer)
+                if best_trailer != previous_best:
+                    if previous_best:
+                        prev_rank = self._trailer_quality_rank(previous_best)
+                        ctx.debug(
+                            f"trailer 最优更新: rank {prev_rank} -> {candidate_rank}; "
+                            f"old={previous_best}; new={best_trailer}"
+                        )
+                    else:
+                        ctx.debug(f"trailer 初始最优: rank={candidate_rank}; url={best_trailer}")
+
             if res is None:
                 res = r
             else:
                 res = update_valid(res, r, is_valid)
 
+        if res is not None and best_trailer:
+            if not is_valid(res.trailer):
+                ctx.debug(f"trailer 最终采用最优候选(补全空值): {best_trailer}")
+            elif str(res.trailer) != best_trailer:
+                ctx.debug(f"trailer 最终改写为更高质量: old={res.trailer}; new={best_trailer}")
+            res.trailer = best_trailer
+
         return res
+
+    @staticmethod
+    def _trailer_quality_rank(trailer_url: str) -> int:
+        quality_levels = {
+            "sm": 1,
+            "dm": 2,
+            "dmb": 3,
+            "mhb": 4,
+            "hhb": 5,
+            "4k": 6,
+        }
+
+        if matched := re.search(r"_(sm|dm|dmb|mhb|hhb|4k)_[a-z]\.mp4$", trailer_url, flags=re.IGNORECASE):
+            return quality_levels[matched.group(1).lower()]
+
+        if matched := re.search(r"(sm|dm|dmb|mhb|hhb|4k)\.mp4$", trailer_url, flags=re.IGNORECASE):
+            return quality_levels[matched.group(1).lower()]
+
+        return 0
+
+    @classmethod
+    def _pick_higher_quality_trailer(cls, current_url: str, candidate_url: str) -> str:
+        if not current_url:
+            return candidate_url
+
+        current_rank = cls._trailer_quality_rank(current_url)
+        candidate_rank = cls._trailer_quality_rank(candidate_url)
+
+        if candidate_rank > current_rank:
+            return candidate_url
+
+        return current_url
 
     async def fetch_fanza_tv(self, ctx: Context, detail_url: str) -> CrawlerData:
         cid = re.search(r"content=([^&/]+)", detail_url)
@@ -344,13 +406,98 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             external_id=detail_url,
         )
 
+    @staticmethod
+    def _with_https(url: str) -> str:
+        if url.startswith("//"):
+            return "https:" + url
+        return url
+
+    @staticmethod
+    def _extract_mono_trailer_from_ga_event(detail_html: str) -> str:
+        if not (matched := re.search(r"gaEventVideoStart\('([^']+)'", detail_html)):
+            return ""
+
+        payload = html_utils.unescape(matched.group(1))
+        try:
+            data = json.loads(payload)
+        except Exception:
+            return ""
+
+        trailer_url = str(data.get("video_url") or "").replace("\\/", "/")
+        return DmmCrawler._with_https(trailer_url)
+
+    @staticmethod
+    def _extract_mono_ajax_movie_path(detail_html: str) -> str:
+        if matched := re.search(r'data-video-url="([^"]+)"', detail_html):
+            return html_utils.unescape(matched.group(1))
+        if matched := re.search(r"sampleVideoRePlay\('([^']+)'\)", detail_html):
+            return html_utils.unescape(matched.group(1))
+        return ""
+
+    @staticmethod
+    def _extract_player_iframe_url(ajax_movie_html: str) -> str:
+        if matched := re.search(r'src="([^"]+)"', ajax_movie_html):
+            return DmmCrawler._with_https(html_utils.unescape(matched.group(1)))
+        return ""
+
+    @staticmethod
+    def _extract_mono_trailer_from_player(player_html: str) -> str:
+        if not (matched := re.search(r"const\s+args\s*=\s*(\{.*?\});", player_html, flags=re.DOTALL)):
+            return ""
+
+        try:
+            args = json.loads(matched.group(1))
+        except Exception:
+            return ""
+
+        bitrates = args.get("bitrates") or []
+        for item in bitrates:
+            if trailer_url := str(item.get("src") or ""):
+                return DmmCrawler._with_https(trailer_url)
+
+        return DmmCrawler._with_https(str(args.get("src") or ""))
+
+    async def _fetch_mono_trailer(self, ctx: DMMContext, detail_url: str, detail_html: str) -> str:
+        trailer_url = self._extract_mono_trailer_from_ga_event(detail_html)
+        if trailer_url:
+            return trailer_url
+
+        ajax_movie_path = self._extract_mono_ajax_movie_path(detail_html)
+        if not ajax_movie_path:
+            return ""
+
+        ajax_movie_url = urljoin(detail_url, ajax_movie_path)
+        ajax_movie_html, error = await super()._fetch_detail(ctx, ajax_movie_url, False)
+        if ajax_movie_html is None:
+            ctx.debug(f"mono ajax-movie 请求失败: {ajax_movie_url=} {error=}")
+            return ""
+
+        player_iframe_url = self._extract_player_iframe_url(ajax_movie_html)
+        if not player_iframe_url:
+            return ""
+
+        player_html, error = await super()._fetch_detail(ctx, player_iframe_url, False)
+        if player_html is None:
+            ctx.debug(f"mono player 请求失败: {player_iframe_url=} {error=}")
+            return ""
+
+        return self._extract_mono_trailer_from_player(player_html)
+
     async def fetch_and_parse(self, ctx: DMMContext, detail_url: str, parser: DetailPageParser) -> CrawlerData:
         html, error = await self._fetch_detail(ctx, detail_url)
         if html is None:
             ctx.debug(f"详情页请求失败: {error=}")
             return CrawlerData()
         ctx.debug(f"详情页请求成功: {detail_url=}")
-        return await parser.parse(ctx, Selector(html), external_id=detail_url)
+
+        parsed = await parser.parse(ctx, Selector(html), external_id=detail_url)
+
+        if parse_category(detail_url) == Category.MONO and not is_valid(parsed.trailer):
+            trailer_url = await self._fetch_mono_trailer(ctx, detail_url, html)
+            if trailer_url:
+                parsed.trailer = trailer_url
+
+        return parsed
 
     @override
     async def _fetch_detail(self, ctx: DMMContext, url: str, use_browser=None) -> tuple[str | None, str]:

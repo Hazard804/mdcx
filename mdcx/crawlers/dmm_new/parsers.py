@@ -1,3 +1,5 @@
+import html as html_utils
+import json
 import re
 from enum import StrEnum
 from typing import override
@@ -137,6 +139,26 @@ class MonoParser(DetailPageParser):
     async def score(self, ctx, html) -> str:
         score = extract_text(html, "//p[contains(@class,'d-review__average')]/strong/text()")
         return score.replace("点", "")
+
+    @override
+    async def trailer(self, ctx, html) -> FieldRes[str]:
+        html_content = html.get() or ""
+        if not html_content:
+            return ""
+
+        if not (matched := re.search(r"gaEventVideoStart\('([^']+)'", html_content)):
+            return ""
+
+        payload = html_utils.unescape(matched.group(1))
+        try:
+            data = json.loads(payload)
+        except Exception:
+            return ""
+
+        trailer = str(data.get("video_url") or "").replace("\\/", "/")
+        if trailer.startswith("//"):
+            trailer = "https:" + trailer
+        return trailer
 
     @override
     async def image_cut(self, ctx, html):

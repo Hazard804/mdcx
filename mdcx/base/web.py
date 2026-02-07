@@ -207,8 +207,8 @@ async def get_dmm_trailer(trailer_url: str) -> str:
     Returns:
         str: 有效的最高分辨率预告片 URL.
     """
-    # 如果不是DMM域名或已经是最高分辨率，则直接返回
-    if ".dmm.co" not in trailer_url or "_mhb_w.mp4" in trailer_url:
+    # 如果不是 DMM 域名则直接返回
+    if ".dmm.co" not in trailer_url:
         return trailer_url
 
     # 将相对URL转换为绝对URL
@@ -225,8 +225,11 @@ async def get_dmm_trailer(trailer_url: str) -> str:
         filename_match = re.search(r"/pv/[^/]+/(.+?)(?:\.mp4)?$", trailer_url)
         if filename_match:
             filename_base = filename_match.group(1).replace(".mp4", "")
-            # 去掉质量标记后缀（_[字母]+_[字母] 格式，支持 _mhb_w, _dmb_w, _sm_w, _sm_s, _dmb_h 等）
-            cid = re.sub(r"(_[a-z]+_[a-z])?$", "", filename_base)
+            # 去掉质量标记后缀
+            # 1) 旧格式: _mhb_w / _hhb_w / _4k_w / _dmb_h / _sm_s 等
+            # 2) 新格式: hhb / mhb / dmb / dm / sm（无 _w/_s 后缀）
+            cid = re.sub(r"(_[a-z0-9]+_[a-z])?$", "", filename_base, flags=re.IGNORECASE)
+            cid = re.sub(r"(hhb|mhb|dmb|dm|sm|4k)$", "", cid, flags=re.IGNORECASE)
             # 确保提取到的是有效的产品ID（包含字母和数字）
             if re.search(r"[a-z]", cid, re.IGNORECASE) and re.search(r"\d", cid):
                 prefix = cid[0]
@@ -294,51 +297,72 @@ async def get_dmm_trailer(trailer_url: str) -> str:
                             break
 
     """
-    DMM预览片分辨率对应关系:
+    DMM 预览片分辨率对应关系（旧格式）:
     '_sm_w.mp4': 320*180, 3.8MB     # 最低分辨率
     '_dm_w.mp4': 560*316, 10.1MB    # 中等分辨率
     '_dmb_w.mp4': 720*404, 14.6MB   # 次高分辨率
-    '_mhb_w.mp4': 720*404, 27.9MB   # 最高分辨率
+    '_mhb_w.mp4': 720*404, 27.9MB
+    '_hhb_w.mp4': 更高码率（常见约 60MB）
+    '_4k_w.mp4': 最高分辨率
 
-    其他可能的后缀: _s, _h 等（如 _sm_s.mp4, _dmb_h.mp4 等）
+    旧格式其他可能的后缀: _s, _h（如 _sm_s.mp4, _dmb_h.mp4）
+
+    DMM 预览片分辨率对应关系（新格式）:
+    'sm.mp4'  < 'dm.mp4' < 'dmb.mp4' < 'mhb.mp4' < 'hhb.mp4' < '4k.mp4'
+    常见示例: nima00070sm.mp4 / nima00070dm.mp4 / nima00070dmb.mp4 / nima00070mhb.mp4 / nima00070hhb.mp4 / nima000704k.mp4
 
     示例:
     https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00090/ssis00090_sm_w.mp4
     https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00090/ssis00090_dm_w.mp4
     https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00090/ssis00090_dmb_w.mp4
     https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00090/ssis00090_mhb_w.mp4
+    https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00090/ssis00090_hhb_w.mp4
+    https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00090/ssis00090_4k_w.mp4
+    https://cc3001.dmm.co.jp/pv/xxxx/nima00070mhb.mp4
+    https://cc3001.dmm.co.jp/pv/xxxx/nima00070hhb.mp4
+    https://cc3001.dmm.co.jp/pv/xxxx/nima000704k.mp4
     """
 
-    # 提取基础URL和质量标记，支持多种后缀格式
-    match = re.search(r"(.+)(_[a-z]{2,}\.mp4)$", trailer_url)
-    if not match:
+    # 旧格式：..._sm_w.mp4 / ..._dmb_h.mp4
+    if matched := re.search(r"(.+)_([a-z0-9]+)_([a-z])\.mp4$", trailer_url, flags=re.IGNORECASE):
+        base_url, quality_level, suffix_char = matched.groups()
+        quality_level = quality_level.lower()
+        suffix_char = suffix_char.lower()
+        quality_levels = ("sm", "dm", "dmb", "mhb", "hhb", "4k")
+
+        if quality_level in quality_levels:
+            current_index = quality_levels.index(quality_level)
+            suffix_candidates = (suffix_char,) + tuple(s for s in ("w", "s", "h") if s != suffix_char)
+            for i in range(len(quality_levels) - 1, current_index, -1):
+                higher_quality = quality_levels[i]
+                for test_suffix_char in suffix_candidates:
+                    test_url = base_url + f"_{higher_quality}_{test_suffix_char}.mp4"
+                    if await check_url(test_url):
+                        signal.add_log(
+                            f"🎬 DMM trailer 升级(旧格式): {quality_level}_{suffix_char} -> "
+                            f"{higher_quality}_{test_suffix_char}"
+                        )
+                        signal.add_log(f"🎬 DMM trailer URL: {trailer_url} -> {test_url}")
+                        return test_url
+            signal.add_log(f"🎬 DMM trailer 保持原质量(旧格式): {quality_level}_{suffix_char} {trailer_url}")
         return trailer_url
 
-    base_url, quality_tag = match.groups()
-    # 提取后缀字符（如 _sm_w 中的 w，_sm_s 中的 s）
-    suffix_match = re.search(r"_([a-z]+)_([a-z])", quality_tag)
-    if not suffix_match:
-        return trailer_url
+    # 新格式：...nima00070mhb.mp4 / ...nima00070hhb.mp4（无 _w/_s 后缀）
+    if matched := re.search(r"(.+?)(sm|dm|dmb|mhb|hhb|4k)\.mp4$", trailer_url, flags=re.IGNORECASE):
+        base_url, quality_level = matched.groups()
+        quality_level = quality_level.lower()
+        quality_levels = ("sm", "dm", "dmb", "mhb", "hhb", "4k")
 
-    quality_level, suffix_char = suffix_match.groups()
-
-    # 定义分辨率优先级（从低到高）
-    quality_levels = ("sm", "dm", "dmb", "mhb")
-
-    try:
-        current_index = quality_levels.index(quality_level)
-    except ValueError:
-        # 如果是未知的质量等级，直接返回原URL
-        return trailer_url
-
-    # 尝试从当前等级的下一个开始，获取更高分辨率
-    for i in range(current_index + 1, len(quality_levels)):
-        higher_quality = quality_levels[i]
-        # 尝试所有可能的后缀
-        for test_suffix_char in ("w", "s", "h"):
-            test_url = base_url + f"_{higher_quality}_{test_suffix_char}.mp4"
-            if await check_url(test_url):
-                return test_url
+        if quality_level in quality_levels:
+            current_index = quality_levels.index(quality_level)
+            for i in range(len(quality_levels) - 1, current_index, -1):
+                higher_quality = quality_levels[i]
+                test_url = base_url + f"{higher_quality}.mp4"
+                if await check_url(test_url):
+                    signal.add_log(f"🎬 DMM trailer 升级(新格式): {quality_level} -> {higher_quality}")
+                    signal.add_log(f"🎬 DMM trailer URL: {trailer_url} -> {test_url}")
+                    return test_url
+            signal.add_log(f"🎬 DMM trailer 保持原质量(新格式): {quality_level} {trailer_url}")
 
     return trailer_url
 
