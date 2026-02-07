@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import random
+import re
 import time
 from typing import Literal, cast
 from urllib.parse import quote
@@ -109,11 +110,23 @@ async def deepl_translate(title: str, outline: str, ls: Literal["JA", "EN"] = "J
     return r1, r2, None
 
 
+def _normalize_translated_linebreaks(text: str) -> str:
+    text = (
+        text.replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .replace("\\r\\n", "\n")
+        .replace("\\n", "\n")
+        .replace("\\r", "\n")
+    )
+    text = re.sub(r"(?i)&lt;\s*br\s*/?\s*&gt;", "\n", text)
+    return re.sub(r"(?i)<\s*br\s*/?\s*>", "\n", text)
+
+
 async def _llm_translate(text: str, prompt_template: str, target_language: str = "简体中文") -> str | None:
     """调用 LLM 翻译文本"""
     if not text:
         return ""
-    return await manager.computed.llm_client.ask(
+    translated = await manager.computed.llm_client.ask(
         model=manager.config.translate_config.llm_model,
         system_prompt="You are a professional translator.",
         user_prompt=prompt_template.replace("{content}", text).replace("{lang}", target_language),
@@ -121,6 +134,9 @@ async def _llm_translate(text: str, prompt_template: str, target_language: str =
         max_try=manager.config.translate_config.llm_max_try,
         log_fn=signal.add_log,
     )
+    if translated is None:
+        return None
+    return _normalize_translated_linebreaks(translated)
 
 
 async def llm_translate(title: str, outline: str, target_language: str = "简体中文"):

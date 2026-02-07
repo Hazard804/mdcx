@@ -66,9 +66,20 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
             raw = raw.replace(key, value)
         return raw
 
-    originalplot = rep(data.originalplot)
+    def normalize_linebreaks(raw: str) -> str:
+        raw = (
+            raw.replace("\r\n", "\n")
+            .replace("\r", "\n")
+            .replace("\\r\\n", "\n")
+            .replace("\\n", "\n")
+            .replace("\\r", "\n")
+        )
+        raw = re.sub(r"(?i)&lt;\s*br\s*/?\s*&gt;", "\n", raw)
+        return re.sub(r"(?i)<\s*br\s*/?\s*>", "\n", raw)
+
+    originalplot = normalize_linebreaks(rep(data.originalplot))
     originaltitle = rep(data.originaltitle)
-    outline = rep(data.outline)
+    outline = normalize_linebreaks(rep(data.outline))
     publisher = rep(data.publisher)
     series = rep(data.series)
     studio = rep(data.studio)
@@ -113,17 +124,16 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
 
         # 输出剧情简介
         if outline:
-            outline = outline.replace("\n", "<br>")
             if originalplot and originalplot != outline:
                 if OutlineShow.SHOW_ZH_JP in outline_show:
-                    outline += f"<br>  <br>{originalplot}"
+                    outline += f"\n\n{originalplot}"
                 elif OutlineShow.SHOW_JP_ZH in outline_show:
-                    outline = f"{originalplot}<br>  <br>{outline}"
+                    outline = f"{originalplot}\n\n{outline}"
                 outline_from = data.outline_from.capitalize().replace("Youdao", "有道").replace("Llm", "LLM")
                 if OutlineShow.SHOW_FROM in outline_show and outline_from:
-                    outline += f"<br>  <br>由 {outline_from} 提供翻译"
+                    outline += f"\n\n由 {outline_from} 提供翻译"
             if NfoInclude.OUTLINE_NO_CDATA in nfo_include_new:
-                temp_outline = outline.replace("<br>", "")
+                temp_outline = outline.replace("\n", "")
                 if NfoInclude.PLOT_ in nfo_include_new:
                     print(f"  <plot>{temp_outline}</plot>", file=code)
                 if NfoInclude.OUTLINE in nfo_include_new:
@@ -136,9 +146,8 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
 
         # 输出日文剧情简介
         if originalplot and NfoInclude.ORIGINALPLOT in nfo_include_new:
-            originalplot = originalplot.replace("\n", "<br>")
             if NfoInclude.OUTLINE_NO_CDATA in nfo_include_new:
-                temp_originalplot = originalplot.replace("<br>", "")
+                temp_originalplot = originalplot.replace("\n", "")
                 print(f"  <originalplot>{temp_originalplot}</originalplot>", file=code)
             else:
                 print("  <originalplot><![CDATA[" + originalplot + "]]></originalplot>", file=code)

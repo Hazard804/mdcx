@@ -53,6 +53,50 @@ async def test_llm_translate_uses_separate_prompts(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.asyncio
+async def test_llm_translate_normalizes_literal_linebreaks(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.base import translate as base_translate
+
+    cfg = base_translate.manager.config.translate_config
+    monkeypatch.setattr(cfg, "llm_prompt_title", "TITLE::{content}")
+    monkeypatch.setattr(cfg, "llm_prompt_outline", "OUTLINE::{content}")
+
+    async def fake_ask(*, user_prompt: str, **kwargs):
+        if user_prompt.startswith("TITLE::"):
+            return "标题第1行\\n标题第2行\\r\\n标题第3行"
+        return "简介第1行\\n简介第2行"
+
+    monkeypatch.setattr(base_translate.manager.computed.llm_client, "ask", fake_ask)
+
+    title, outline, error = await base_translate.llm_translate("Hello", "World")
+
+    assert error is None
+    assert title == "标题第1行\n标题第2行\n标题第3行"
+    assert outline == "简介第1行\n简介第2行"
+
+
+@pytest.mark.asyncio
+async def test_llm_translate_normalizes_br_tags(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.base import translate as base_translate
+
+    cfg = base_translate.manager.config.translate_config
+    monkeypatch.setattr(cfg, "llm_prompt_title", "TITLE::{content}")
+    monkeypatch.setattr(cfg, "llm_prompt_outline", "OUTLINE::{content}")
+
+    async def fake_ask(*, user_prompt: str, **kwargs):
+        if user_prompt.startswith("TITLE::"):
+            return "第一行<br>第二行<BR />第三行"
+        return "甲行&lt;br&gt;乙行"
+
+    monkeypatch.setattr(base_translate.manager.computed.llm_client, "ask", fake_ask)
+
+    title, outline, error = await base_translate.llm_translate("Hello", "World")
+
+    assert error is None
+    assert title == "第一行\n第二行\n第三行"
+    assert outline == "甲行\n乙行"
+
+
+@pytest.mark.asyncio
 async def test_translate_title_outline_supports_english(monkeypatch: pytest.MonkeyPatch):
     from mdcx.core import translate as core_translate
 
