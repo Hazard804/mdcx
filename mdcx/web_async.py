@@ -1,5 +1,6 @@
 import asyncio
 import random
+import re
 import sys
 import time
 from collections.abc import Callable
@@ -71,6 +72,7 @@ class AsyncWebClient:
         self._cf_bypass_timeout = 45.0
         self._cf_cookie_retries = 2
         self._cf_force_refresh_retries = 2
+        self._cf_request_bypass_rounds = 2
 
     def _log(self, message: str) -> None:
         try:
@@ -132,6 +134,17 @@ class AsyncWebClient:
             if str(k).lower() == key_lower:
                 return str(v)
         return ""
+
+    def _sanitize_url(self, url: str) -> tuple[str, bool]:
+        cleaned = (url or "").strip()
+        if not cleaned:
+            return cleaned, False
+        # 过滤类似 https://x.com?a=1">https://x.com?a=1 这类污染字符串
+        match = re.match(r"^(https?://[^\s\"'<>]+)", cleaned)
+        if not match:
+            return cleaned, False
+        normalized = match.group(1)
+        return normalized, normalized != cleaned
 
     def _is_cf_challenge_response(self, response: Response) -> bool:
         status = response.status_code
@@ -252,13 +265,15 @@ class AsyncWebClient:
         host: str,
         target_url: str,
         use_proxy: bool,
+        force_refresh: bool = False,
     ) -> tuple[dict[str, str], str, str]:
         lock = await self._get_cf_host_lock(host)
         async with lock:
             now = time.monotonic()
             last = self._cf_last_refresh_at.get(host, 0)
             challenge_hits = self._cf_host_challenge_hits.get(host, 0)
-            force_refresh = (now - last >= self._cf_bypass_cooldown) or challenge_hits >= 2
+            auto_force_refresh = (last > 0 and (now - last >= self._cf_bypass_cooldown)) or challenge_hits >= 2
+            should_force_refresh = force_refresh or auto_force_refresh
 
             bypass_targets: list[str] = []
             try:
@@ -275,10 +290,12 @@ class AsyncWebClient:
 
             error = ""
             for bypass_target in bypass_targets:
+                if should_force_refresh:
+                    self._log(f"🧨 {host} 使用强刷模式请求 bypass cookies: {bypass_target}")
                 self._log(f"🔐 {host} 向 bypass 请求 cookies: {bypass_target}")
                 cookies, user_agent, error = await self._call_bypass_cookies(
                     bypass_target,
-                    force_refresh=False,
+                    force_refresh=should_force_refresh,
                     use_proxy=use_proxy,
                 )
                 if cookies:
@@ -288,7 +305,7 @@ class AsyncWebClient:
                     self._cf_last_refresh_at[host] = time.monotonic()
                     return cookies, user_agent, ""
 
-            if force_refresh:
+            if not should_force_refresh:
                 for bypass_target in bypass_targets:
                     self._log(f"🧨 {host} bypass cookies 无效，强制刷新: {bypass_target}")
                     cookies, user_agent, error = await self._call_bypass_cookies(
@@ -337,6 +354,11 @@ class AsyncWebClient:
             tuple[Optional[Response], str]: (响应对象, 错误信息)
         """
         try:
+            original_url = url
+            url, sanitized = self._sanitize_url(url)
+            if sanitized:
+                self._log(f"⚠️ 检测到异常 URL，已清理: {original_url} -> {url}")
+
             u = httpx.URL(url)
             host = u.host or ""
             prepared_headers = self._prepare_headers(url, dict(headers or {}))
@@ -346,6 +368,8 @@ class AsyncWebClient:
             await self.limiters.get(u.host).acquire()
             retry_count = self.retry
             error_msg = ""
+            bypass_round = 0
+            force_refresh_used = False
 
             if enable_cf_bypass and self._cf_bypass_enabled and host and host in self._cf_host_cookies:
                 self._log(f"🍪 {host} 使用缓存 bypass cookies")
@@ -374,23 +398,42 @@ class AsyncWebClient:
                     if enable_cf_bypass and self._cf_bypass_enabled and host and self._is_cf_challenge_response(resp):
                         self._log(f"🛑 检测到 Cloudflare 挑战页: {method} {url}")
                         self._cf_host_challenge_hits[host] = self._cf_host_challenge_hits.get(host, 0) + 1
-                        bypass_cookies, bypass_user_agent, bypass_error = await self._try_bypass_cloudflare(
-                            host=host,
-                            target_url=url,
-                            use_proxy=False,
-                        )
-                        if bypass_cookies:
-                            retry = True
-                            should_sleep_before_retry = False
-                            error_msg = "Cloudflare challenge"
-                            if bypass_user_agent and all(k.lower() != "user-agent" for k in prepared_headers):
-                                prepared_headers["User-Agent"] = bypass_user_agent
-                            self._log(f"🛡️ {host} bypass 成功，准备立即重试")
-                            self._cf_host_challenge_hits[host] = 0
+                        if bypass_round >= self._cf_request_bypass_rounds:
+                            error_msg = (
+                                f"Cloudflare challenge 持续存在，bypass 已达上限 ({self._cf_request_bypass_rounds})"
+                            )
+                            retry = False
+                            self._cf_host_cookies.pop(host, None)
+                            self._log(f"🚫 {host} {error_msg}")
                         else:
-                            error_msg = f"Cloudflare challenge and bypass failed: {bypass_error}"
-                            retry = attempt < retry_count - 1
-                            self._log(f"⚠️ {host} bypass 失败: {bypass_error}")
+                            current_force_refresh = bypass_round > 0 and not force_refresh_used
+                            if current_force_refresh:
+                                self._log(f"🧨 {host} 再次命中挑战，尝试强制刷新 bypass cookies")
+                                self._cf_host_cookies.pop(host, None)
+
+                            bypass_cookies, bypass_user_agent, bypass_error = await self._try_bypass_cloudflare(
+                                host=host,
+                                target_url=url,
+                                use_proxy=False,
+                                force_refresh=current_force_refresh,
+                            )
+                            bypass_round += 1
+                            if current_force_refresh:
+                                force_refresh_used = True
+
+                            if bypass_cookies:
+                                retry = attempt < retry_count - 1
+                                should_sleep_before_retry = force_refresh_used
+                                error_msg = "Cloudflare challenge"
+                                if bypass_user_agent and all(k.lower() != "user-agent" for k in prepared_headers):
+                                    prepared_headers["User-Agent"] = bypass_user_agent
+                                self._log(
+                                    f"🛡️ {host} bypass 成功，准备重试 ({bypass_round}/{self._cf_request_bypass_rounds})"
+                                )
+                            else:
+                                error_msg = f"Cloudflare challenge and bypass failed: {bypass_error}"
+                                retry = attempt < retry_count - 1 and bypass_round < self._cf_request_bypass_rounds
+                                self._log(f"⚠️ {host} bypass 失败: {bypass_error}")
 
                     # 检查响应状态
                     elif resp.status_code >= 300 and not (resp.status_code == 302 and resp.headers.get("Location")):
@@ -406,6 +449,8 @@ class AsyncWebClient:
                         )
                     else:
                         self._log(f"✅ {method} {url} 成功")
+                        if host:
+                            self._cf_host_challenge_hits[host] = 0
                         return resp, ""
                 except Timeout:
                     error_msg = "连接超时"
