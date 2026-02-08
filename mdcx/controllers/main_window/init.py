@@ -249,6 +249,14 @@ def Init_Singal(self: "MyMAinWindow"):
     self.Ui.label_download_actor_db.mousePressEvent = lambda ev: n(
         webbrowser.open(f"{GITHUB_RELEASES_URL}/tag/actor_info_database")
     )
+
+    # 日志窗口链接仅外部打开，避免 QTextBrowser 内部跳转导致日志页变空
+    self.Ui.textBrowser_log_main.setOpenLinks(False)
+    self.Ui.textBrowser_log_main_2.setOpenLinks(False)
+    self.Ui.textBrowser_net_main.setOpenLinks(False)
+    self.Ui.textBrowser_log_main.anchorClicked.connect(lambda url: n(webbrowser.open(url.toString())))
+    self.Ui.textBrowser_log_main_2.anchorClicked.connect(lambda url: n(webbrowser.open(url.toString())))
+    self.Ui.textBrowser_net_main.anchorClicked.connect(lambda url: n(webbrowser.open(url.toString())))
     # endregion
 
     # region 控件更新
