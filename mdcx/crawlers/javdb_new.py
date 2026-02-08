@@ -1,4 +1,7 @@
+import asyncio
+import random
 import re
+import time
 from typing import override
 from urllib.parse import urljoin
 
@@ -124,6 +127,11 @@ class Parser(DetailPageParser):
 class JavdbCrawler(BaseCrawler):
     parser = Parser()
 
+    def __init__(self, client, base_url: str = "", browser=None):
+        super().__init__(client=client, base_url=base_url, browser=browser)
+        self._page_request_lock = asyncio.Lock()
+        self._last_page_request_at = 0.0
+
     @classmethod
     @override
     def site(cls) -> Website:
@@ -138,6 +146,28 @@ class JavdbCrawler(BaseCrawler):
     def _get_headers(self, ctx) -> dict[str, str] | None:
         if manager.config.javdb:
             return {"cookie": manager.config.javdb}
+
+    async def _throttle_page_request(self, ctx, request_type: str, url: str) -> None:
+        now = time.monotonic()
+        if self._last_page_request_at > 0:
+            interval = random.uniform(1.0, 2.0)
+            wait_seconds = interval - (now - self._last_page_request_at)
+            if wait_seconds > 0:
+                ctx.debug(f"Javdb 请求限流({request_type})，等待 {wait_seconds:.2f}s: {url}")
+                await asyncio.sleep(wait_seconds)
+        self._last_page_request_at = time.monotonic()
+
+    @override
+    async def _fetch_search(self, ctx, url: str, use_browser: bool | None = False) -> tuple[str | None, str]:
+        async with self._page_request_lock:
+            await self._throttle_page_request(ctx, "搜索", url)
+            return await super()._fetch_search(ctx, url, use_browser)
+
+    @override
+    async def _fetch_detail(self, ctx, url: str, use_browser: bool | None = False) -> tuple[str | None, str]:
+        async with self._page_request_lock:
+            await self._throttle_page_request(ctx, "详情", url)
+            return await super()._fetch_detail(ctx, url, use_browser)
 
     @override
     async def _generate_search_url(self, ctx) -> list[str]:
