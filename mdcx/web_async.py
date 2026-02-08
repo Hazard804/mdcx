@@ -158,7 +158,7 @@ class AsyncWebClient:
         has_marker = any(marker in body_text for marker in challenge_markers)
 
         # 规则1: 明确 header + 挑战文案
-        if (status in (403, 429, 503) and ("cloudflare" in server or bool(cf_ray)) and has_marker):
+        if status in (403, 429, 503) and ("cloudflare" in server or bool(cf_ray)) and has_marker:
             return True
         # 规则2: 挑战文案足够明确时，允许无 header 命中
         if has_marker and ("cf-chl" in body_text or "cdn-cgi/challenge-platform" in body_text):
