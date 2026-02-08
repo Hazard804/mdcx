@@ -1,3 +1,5 @@
+from concurrent.futures import CancelledError
+
 from ..config.manager import manager
 from ..utils import executor
 
@@ -10,11 +12,14 @@ def get_text_sync(
     use_proxy=True,
     encoding: str = "utf-8",
 ):
-    return executor.run(
-        manager.computed.async_client.get_text(
-            url, headers=headers, cookies=cookies, encoding=encoding, use_proxy=use_proxy
+    try:
+        return executor.run(
+            manager.computed.async_client.get_text(
+                url, headers=headers, cookies=cookies, encoding=encoding, use_proxy=use_proxy
+            )
         )
-    )
+    except CancelledError:
+        return None, "任务已取消"
 
 
 def get_json_sync(
@@ -24,6 +29,9 @@ def get_json_sync(
     cookies: dict[str, str] | None = None,
     use_proxy=True,
 ):
-    return executor.run(
-        manager.computed.async_client.get_json(url, headers=headers, cookies=cookies, use_proxy=use_proxy)
-    )
+    try:
+        return executor.run(
+            manager.computed.async_client.get_json(url, headers=headers, cookies=cookies, use_proxy=use_proxy)
+        )
+    except CancelledError:
+        return None, "任务已取消"

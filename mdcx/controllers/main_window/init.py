@@ -1,3 +1,4 @@
+import re
 import traceback
 import webbrowser
 from typing import TYPE_CHECKING
@@ -254,9 +255,16 @@ def Init_Singal(self: "MyMAinWindow"):
     self.Ui.textBrowser_log_main.setOpenLinks(False)
     self.Ui.textBrowser_log_main_2.setOpenLinks(False)
     self.Ui.textBrowser_net_main.setOpenLinks(False)
-    self.Ui.textBrowser_log_main.anchorClicked.connect(lambda url: n(webbrowser.open(url.toString())))
-    self.Ui.textBrowser_log_main_2.anchorClicked.connect(lambda url: n(webbrowser.open(url.toString())))
-    self.Ui.textBrowser_net_main.anchorClicked.connect(lambda url: n(webbrowser.open(url.toString())))
+
+    def _open_safe_url(url):
+        raw = url.toString()
+        m = re.match(r"^(https?://[^\s\"'<>]+)", raw)
+        target = m.group(1) if m else raw
+        webbrowser.open(target)
+
+    self.Ui.textBrowser_log_main.anchorClicked.connect(lambda url: n(_open_safe_url(url)))
+    self.Ui.textBrowser_log_main_2.anchorClicked.connect(lambda url: n(_open_safe_url(url)))
+    self.Ui.textBrowser_net_main.anchorClicked.connect(lambda url: n(_open_safe_url(url)))
     # endregion
 
     # region 控件更新

@@ -166,18 +166,19 @@ def get_real_time(t) -> str:
 
 
 def add_html(text: str) -> str:
+    # 先清理 URL 污染串（例如: https://a.com/...">https://a.com/...）
+    text = re.sub(r'(?P<u>https?://[^\s"\'<>]+)\s*">+\s*(?P=u)', r"\g<u>", text)
+
     # 特殊字符转义
     text = re.sub(r'href="https?://', 'href="🔮🧿⚔️', text, flags=re.IGNORECASE)  # 例外不转换的
 
-    # 替换链接为超链接
-    url_list = re.findall(r"http[s]?://[^\s\"'<>]+", text)
-    if url_list:
-        url_list = list(set(url_list))
-        url_list.sort(key=lambda i: len(i), reverse=True)
-        for each_url in url_list:
-            safe_href = each_url.replace("&", "&amp;")
-            new_url = f'<a href="{safe_href}">{each_url}</a>'
-            text = text.replace(each_url, new_url)
+    # 替换纯文本链接为超链接（避免替换 HTML 属性中的 URL）
+    def _replace_url(match: re.Match[str]) -> str:
+        each_url = match.group(1)
+        safe_href = each_url.replace("&", "&amp;")
+        return f'<a href="{safe_href}">{each_url}</a>'
+
+    text = re.sub(r'(?<!["\'=])(https?://[^\s"\'<>]+)', _replace_url, text)
     text = text.replace('href="🔮🧿⚔️', 'href="https')  # 还原不转换的
 
     # 链接放在span里，避免点击后普通文本变超链接，设置样式为pre-wrap（保留空格换行）

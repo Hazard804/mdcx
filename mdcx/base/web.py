@@ -395,6 +395,8 @@ def check_version() -> int | None:
     if manager.config.update_check:
         url = GITHUB_RELEASES_API_LATEST
         res_json, error = get_json_sync(url)
+        if error == "任务已取消":
+            return None
         if res_json is not None:
             try:
                 latest_version = res_json["tag_name"]
