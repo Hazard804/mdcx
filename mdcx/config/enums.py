@@ -514,6 +514,7 @@ class Website(Enum):
     LULUBAR = "lulubar"
     MADOUQU = "madouqu"
     MDTV = "mdtv"
+    MISSAV = "missav"
     MGSTAGE = "mgstage"
     MMTV = "7mmtv"
     MYWIFE = "mywife"

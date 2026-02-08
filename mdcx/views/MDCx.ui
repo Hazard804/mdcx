@@ -8565,6 +8565,11 @@
                                 <string>avbase</string>
                               </property>
                             </item>
+                            <item>
+                              <property name="text">
+                                <string>missav</string>
+                              </property>
+                            </item>
                           </widget>
                         </item>
                         <item row="2" column="1">
@@ -22861,7 +22866,7 @@
                 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Microsoft YaHei UI'; font-size:9pt;&quot;&gt;&lt;br /&gt; &lt;/span&gt; &lt;/p&gt;
                 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Microsoft YaHei UI'; font-size:9pt;&quot;&gt;&lt;br /&gt; &lt;/span&gt; &lt;/p&gt;
                 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Consolas,PingFang SC,Microsoft YaHei UI';&quot;&gt;4.10.网站选择&lt;/span&gt;&lt;span style=&quot; font-family:'Microsoft YaHei UI'; font-size:9pt;&quot;&gt; &lt;/span&gt; &lt;/p&gt;
-                &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Consolas,PingFang SC,Microsoft YaHei UI';&quot;&gt; 可以使用所有网站，或者指定网站（avsox,javbus,dmm,javdb,fc2club，mgstage，avbase）进行刮削。&lt;/span&gt;&lt;span style=&quot; font-family:'Microsoft YaHei UI'; font-size:9pt;&quot;&gt; &lt;/span&gt; &lt;/p&gt;
+                &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Consolas,PingFang SC,Microsoft YaHei UI';&quot;&gt; 可以使用所有网站，或者指定网站（avsox,javbus,dmm,javdb,fc2club，mgstage，avbase，missav）进行刮削。&lt;/span&gt;&lt;span style=&quot; font-family:'Microsoft YaHei UI'; font-size:9pt;&quot;&gt; &lt;/span&gt; &lt;/p&gt;
                 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Consolas,PingFang SC,Microsoft YaHei UI';&quot;&gt; 仅使用javdb进行刮削，尽量不要用，刮削30左右会被JAVDB封IP一段时间。&lt;/span&gt;&lt;span style=&quot; font-family:'Microsoft YaHei UI'; font-size:9pt;&quot;&gt; &lt;/span&gt; &lt;/p&gt;
                 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Microsoft YaHei UI'; font-size:9pt;&quot;&gt;&lt;br /&gt; &lt;/span&gt; &lt;/p&gt;
                 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Microsoft YaHei UI'; font-size:9pt;&quot;&gt;&lt;br /&gt; &lt;/span&gt; &lt;/p&gt;

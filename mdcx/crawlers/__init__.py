@@ -33,6 +33,7 @@ from . import (
     madouqu,
     mdtv,
     mgstage,
+    missav,
     mmtv,
     mywife,
     official,
@@ -89,6 +90,7 @@ CRAWLER_FUNCS: list[tuple[Website, Callable]] = [
 register_crawler(DmmCrawler)
 register_crawler(JavdbCrawler)
 register_crawler(AvbaseCrawler)
+register_crawler(missav.MissavCrawler)
 for site, func in CRAWLER_FUNCS:
     register_v1_crawler(site, func)
 

@@ -1511,9 +1511,9 @@ export const ValidationErrorSchema = {
 
 export const WebsiteSchema = {
     type: 'string',
-    enum: ['airav', 'airav_cc', 'avsex', 'avsox', 'cableav', 'cnmdb', 'dmm', 'faleno', 'fantastica', 'fc2', 'fc2club', 'fc2hub', 'fc2ppvdb', 'freejavbt', 'getchu', 'giga', 'hdouban', 'hscangku', 'iqqtv', 'jav321', 'javbus', 'javday', 'javdb', 'javlibrary', 'kin8', 'love6', 'lulubar', 'madouqu', 'mdtv', 'mgstage', '7mmtv', 'mywife', 'prestige', 'theporndb', 'xcity'],
+    enum: ['airav', 'airav_cc', 'avsex', 'avsox', 'cableav', 'cnmdb', 'dmm', 'faleno', 'fantastica', 'fc2', 'fc2club', 'fc2hub', 'fc2ppvdb', 'freejavbt', 'getchu', 'giga', 'hdouban', 'hscangku', 'iqqtv', 'jav321', 'javbus', 'javday', 'javdb', 'javlibrary', 'kin8', 'love6', 'lulubar', 'madouqu', 'mdtv', 'missav', 'mgstage', '7mmtv', 'mywife', 'prestige', 'theporndb', 'xcity'],
     title: 'Website',
-    showNames: ['AIRAV', 'AIRAV_CC', 'AVSEX', 'AVSOX', 'CABLEAV', 'CNMDB', 'DMM', 'FALENO', 'FANTASTICA', 'FC2', 'FC2CLUB', 'FC2HUB', 'FC2PPVDB', 'FREEJAVBT', 'GETCHU', 'GIGA', 'HDOUBAN', 'HSCANGKU', 'IQQTV', 'JAV321', 'JAVBUS', 'JAVDAY', 'JAVDB', 'JAVLIBRARY', 'KIN8', 'LOVE6', 'LULUBAR', 'MADOUQU', 'MDTV', 'MGSTAGE', 'MMTV', 'MYWIFE', 'PRESTIGE', 'THEPORNDB', 'XCITY']
+    showNames: ['AIRAV', 'AIRAV_CC', 'AVSEX', 'AVSOX', 'CABLEAV', 'CNMDB', 'DMM', 'FALENO', 'FANTASTICA', 'FC2', 'FC2CLUB', 'FC2HUB', 'FC2PPVDB', 'FREEJAVBT', 'GETCHU', 'GIGA', 'HDOUBAN', 'HSCANGKU', 'IQQTV', 'JAV321', 'JAVBUS', 'JAVDAY', 'JAVDB', 'JAVLIBRARY', 'KIN8', 'LOVE6', 'LULUBAR', 'MADOUQU', 'MDTV', 'MISSAV', 'MGSTAGE', 'MMTV', 'MYWIFE', 'PRESTIGE', 'THEPORNDB', 'XCITY']
 } as const;
 
 export const WebsiteSetSchema = {

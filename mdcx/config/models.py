@@ -309,6 +309,7 @@ class Config(BaseModel):
             Website.LOVE6,
             Website.LULUBAR,
             Website.MGSTAGE,
+            Website.MISSAV,
             Website.MYWIFE,
             Website.PRESTIGE,
             Website.XCITY,
@@ -326,6 +327,7 @@ class Config(BaseModel):
             Website.HDOUBAN,
             Website.JAVDB,
             Website.AIRAV,
+            Website.MISSAV,
         },
         title="无码网站源",
     )

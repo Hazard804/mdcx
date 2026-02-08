@@ -3672,6 +3672,7 @@ class Ui_MDCx(object):
         self.comboBox_website_all.addItem("")
         self.comboBox_website_all.addItem("")
         self.comboBox_website_all.addItem("")
+        self.comboBox_website_all.addItem("")
         self.gridLayout_28.addWidget(self.comboBox_website_all, 3, 1, 1, 1)
         self.label_315 = QtWidgets.QLabel(self.layoutWidget1)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
@@ -10457,6 +10458,7 @@ class Ui_MDCx(object):
         self.comboBox_website_all.setItemText(33, _translate("MDCx", "prestige"))
         self.comboBox_website_all.setItemText(34, _translate("MDCx", "javday"))
         self.comboBox_website_all.setItemText(35, _translate("MDCx", "avbase"))
+        self.comboBox_website_all.setItemText(36, _translate("MDCx", "missav"))
         self.label_315.setText(_translate("MDCx", "⚠️ 下载剧照、预告片，请选择「字段优先」或「指定网站」！「速度优先」信息不全！"))
         self.pushButton_scrape_note.setText(_translate("MDCx", "刮削不到？看这里！"))
         self.label_300.setText(_translate("MDCx", "⚠️ 注意！！！选择「字段优先」时，以下设置才有效！！！"))
@@ -11286,7 +11288,7 @@ class Ui_MDCx(object):
 "                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
 "                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
 "                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.10.网站选择</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 可以使用所有网站，或者指定网站（avsox,javbus,dmm,javdb,fc2club，mgstage，avbase）进行刮削。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
+"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 可以使用所有网站，或者指定网站（avsox,javbus,dmm,javdb,fc2club，mgstage，avbase，missav）进行刮削。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
 "                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 仅使用javdb进行刮削，尽量不要用，刮削30左右会被JAVDB封IP一段时间。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
 "                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
 "                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
