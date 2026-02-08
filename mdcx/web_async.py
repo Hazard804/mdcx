@@ -69,6 +69,8 @@ class AsyncWebClient:
         self._cf_last_refresh_at: dict[str, float] = {}
         self._cf_host_challenge_hits: dict[str, int] = {}
         self._cf_bypass_cooldown = 30.0
+        self._cf_recent_refresh_window = 10.0
+        self._cf_force_refresh_min_interval = 10.0
         self._cf_bypass_timeout = 45.0
         self._cf_cookie_retries = 2
         self._cf_force_refresh_retries = 2
@@ -135,6 +137,13 @@ class AsyncWebClient:
                 return str(v)
         return ""
 
+    def _set_header_case_insensitive(self, headers: dict[str, str], key: str, value: str) -> None:
+        key_lower = key.lower()
+        for k in list(headers):
+            if str(k).lower() == key_lower:
+                headers.pop(k, None)
+        headers[key] = value
+
     def _sanitize_url(self, url: str) -> tuple[str, bool]:
         cleaned = (url or "").strip()
         if not cleaned:
@@ -185,17 +194,44 @@ class AsyncWebClient:
     def _extract_bypass_payload(self, payload: Any) -> tuple[dict[str, str], str]:
         if not isinstance(payload, dict):
             return {}, ""
-        cookies = payload.get("cookies")
-        if not isinstance(cookies, dict):
-            cookies = {}
-        cookies = {str(k): str(v) for k, v in cookies.items() if k and v is not None}
 
-        user_agent = payload.get("user_agent")
-        if user_agent is None:
-            user_agent = payload.get("userAgent", "")
-        if not isinstance(user_agent, str):
-            user_agent = ""
-        return cookies, user_agent.strip()
+        candidates: list[dict[str, Any]] = [payload]
+        for key in ("data", "result", "payload"):
+            nested = payload.get(key)
+            if isinstance(nested, dict):
+                candidates.append(nested)
+
+        cookies: dict[str, str] = {}
+        for item in candidates:
+            raw_cookies = item.get("cookies")
+            if not isinstance(raw_cookies, dict):
+                continue
+            cookies = {str(k): str(v) for k, v in raw_cookies.items() if k and v is not None}
+            if cookies:
+                break
+
+        user_agent = ""
+        for item in candidates:
+            for key in ("user_agent", "userAgent", "ua", "browser_user_agent", "browserUserAgent"):
+                ua_value = item.get(key)
+                if isinstance(ua_value, str) and ua_value.strip():
+                    user_agent = ua_value.strip()
+                    break
+            if user_agent:
+                break
+
+            for key in ("headers", "request_headers", "requestHeaders"):
+                raw_headers = item.get(key)
+                if not isinstance(raw_headers, dict):
+                    continue
+                header_user_agent = self._extract_header_case_insensitive(raw_headers, "user-agent").strip()
+                if header_user_agent:
+                    user_agent = header_user_agent
+                    break
+            if user_agent:
+                break
+
+        return cookies, user_agent
 
     async def _call_bypass_cookies(
         self,
@@ -275,9 +311,27 @@ class AsyncWebClient:
         async with lock:
             now = time.monotonic()
             last = self._cf_last_refresh_at.get(host, 0)
+            cached_cookies = self._cf_host_cookies.get(host)
+            cached_user_agent = self._cf_host_user_agents.get(host, "")
+
+            # 单飞复用: 在并发场景下，后续请求复用刚刷新出来的 cookies，避免风暴
+            if cached_cookies and not force_refresh and last > 0 and (now - last) <= self._cf_recent_refresh_window:
+                self._log_cf("♻️ 复用最近刷新的 bypass cookies", host)
+                return dict(cached_cookies), cached_user_agent, ""
+
             challenge_hits = self._cf_host_challenge_hits.get(host, 0)
             auto_force_refresh = (last > 0 and (now - last >= self._cf_bypass_cooldown)) or challenge_hits >= 2
             should_force_refresh = force_refresh or auto_force_refresh
+
+            # 防止强刷风暴: 距离最近一次刷新过近时，优先复用缓存 cookies
+            if (
+                should_force_refresh
+                and cached_cookies
+                and last > 0
+                and (now - last) <= self._cf_force_refresh_min_interval
+            ):
+                self._log_cf("🕒 距离上次刷新过近，跳过强刷并复用缓存 cookies", host)
+                return dict(cached_cookies), cached_user_agent, ""
 
             bypass_targets: list[str] = []
             try:
@@ -306,7 +360,10 @@ class AsyncWebClient:
                     self._cf_host_cookies[host] = cookies
                     if user_agent:
                         self._cf_host_user_agents[host] = user_agent
+                    else:
+                        self._cf_host_user_agents.pop(host, None)
                     self._cf_last_refresh_at[host] = time.monotonic()
+                    self._cf_host_challenge_hits[host] = 0
                     return cookies, user_agent, ""
 
             if not should_force_refresh:
@@ -321,7 +378,10 @@ class AsyncWebClient:
                         self._cf_host_cookies[host] = cookies
                         if user_agent:
                             self._cf_host_user_agents[host] = user_agent
+                        else:
+                            self._cf_host_user_agents.pop(host, None)
                         self._cf_last_refresh_at[host] = time.monotonic()
+                        self._cf_host_challenge_hits[host] = 0
                         return cookies, user_agent, ""
 
             return {}, "", error
@@ -366,8 +426,12 @@ class AsyncWebClient:
             u = httpx.URL(url)
             host = u.host or ""
             prepared_headers = self._prepare_headers(url, dict(headers or {}))
-            if host and host in self._cf_host_user_agents and all(k.lower() != "user-agent" for k in prepared_headers):
-                prepared_headers["User-Agent"] = self._cf_host_user_agents[host]
+            bound_user_agent = self._cf_host_user_agents.get(host, "") if host else ""
+            if bound_user_agent:
+                request_user_agent = self._extract_header_case_insensitive(prepared_headers, "user-agent")
+                if request_user_agent.strip() and request_user_agent.strip() != bound_user_agent:
+                    self._log_cf("🧩 使用 bypass 绑定 UA 覆盖请求头 UA", host)
+                self._set_header_case_insensitive(prepared_headers, "User-Agent", bound_user_agent)
 
             await self.limiters.get(u.host).acquire()
             retry_count = self.retry
@@ -427,8 +491,11 @@ class AsyncWebClient:
                                 retry = attempt < retry_count - 1
                                 should_sleep_before_retry = force_refresh_used
                                 error_msg = "Cloudflare 挑战页"
-                                if bypass_user_agent and all(k.lower() != "user-agent" for k in prepared_headers):
-                                    prepared_headers["User-Agent"] = bypass_user_agent
+                                if bypass_user_agent:
+                                    self._set_header_case_insensitive(prepared_headers, "User-Agent", bypass_user_agent)
+                                    self._log_cf("🧩 已应用 bypass 返回的 User-Agent", host)
+                                else:
+                                    self._log_cf("⚠️ bypass 未返回 User-Agent，仅使用 cookies 重试", host)
                                 self._log_cf(
                                     f"✅ bypass 成功，准备重试 ({bypass_round}/{self._cf_request_bypass_rounds})", host
                                 )
