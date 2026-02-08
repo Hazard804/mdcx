@@ -42,6 +42,10 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     digital = DigitalParser()
     rental = RentalParser()
 
+    @staticmethod
+    def _log(message: str) -> None:
+        signal.add_log(f"🎬 [DMM] {message}")
+
     def __init__(self, client: AsyncWebClient, base_url: str = "", browser: Browser | None = None):
         super().__init__(client, base_url, browser)
 
@@ -506,9 +510,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         )
         trailer = self._pick_best_unvalidated_trailer("", [trailer] if trailer else [])
         if trailer:
-            signal.add_log(
-                f"🎬 DMM预告片[详情源直取]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}"
-            )
+            self._log(f"预告片[详情源直取]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}")
 
         should_try_litevideo = not trailer or self._trailer_quality_rank(trailer) < self._trailer_quality_rank(
             "xhhb.mp4"
@@ -517,11 +519,11 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             litevideo_candidates = await self._fetch_litevideo_trailer_candidates(ctx, content_cid)
             if litevideo_candidates:
                 ctx.debug(f"litevideo 直连预告片候选数: {len(litevideo_candidates)} {content_cid=}")
-                signal.add_log(f"🎬 DMM预告片[litevideo候选]: cid={content_cid} count={len(litevideo_candidates)}")
+                self._log(f"预告片[litevideo候选]: cid={content_cid} count={len(litevideo_candidates)}")
                 best_litevideo = self._pick_best_unvalidated_trailer("", litevideo_candidates)
                 if best_litevideo:
-                    signal.add_log(
-                        f"🎬 DMM预告片[litevideo最优]: cid={content_cid} rank={self._trailer_quality_rank(best_litevideo)} {best_litevideo}"
+                    self._log(
+                        f"预告片[litevideo最优]: cid={content_cid} rank={self._trailer_quality_rank(best_litevideo)} {best_litevideo}"
                     )
                 trailer = self._pick_higher_quality_trailer(trailer, best_litevideo)
 
@@ -530,19 +532,15 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 sample_movie_thumbnail=data.sampleMovie.thumbnail,
                 fallback_cid=content_cid,
             )
-            signal.add_log(f"🎬 DMM预告片[兜底校验]: cid={content_cid} count={len(fallback_candidates)}")
+            self._log(f"预告片[兜底校验]: cid={content_cid} count={len(fallback_candidates)}")
             trailer = await self._pick_best_valid_trailer(ctx, fallback_candidates)
             if trailer:
-                signal.add_log(
-                    f"🎬 DMM预告片[兜底命中]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}"
-                )
+                self._log(f"预告片[兜底命中]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}")
 
         if trailer:
-            signal.add_log(
-                f"🎬 DMM预告片[最终]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}"
-            )
+            self._log(f"预告片[最终]: cid={content_cid} rank={self._trailer_quality_rank(trailer)} {trailer}")
         else:
-            signal.add_log(f"🟠 DMM预告片[最终]: cid={content_cid} 未获取到可用链接")
+            self._log(f"🟠 预告片[最终]: cid={content_cid} 未获取到可用链接")
 
         return CrawlerData(
             title=data.title,
@@ -721,19 +719,19 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                     if response.status_code == 200:
                         content_length = response.headers.get("Content-Length")
                         if content_length:
-                            signal.add_log(f"HEAD获取文件大小成功: {url} -> {content_length}B")
+                            self._log(f"文件大小[HEAD成功]: {url} -> {content_length}B")
                             return int(content_length)
                     elif response.status_code == 405:
                         # 405 Method Not Allowed，改用GET请求
-                        signal.add_log(f"HEAD请求返回405，将切换为GET请求: {url}")
+                        self._log(f"文件大小[HEAD=405]，切换GET: {url}")
                         break
                     else:
-                        signal.add_log(f"HEAD请求返回{response.status_code}: {url}")
+                        self._log(f"文件大小[HEAD状态]: {response.status_code} {url}")
                 elif error:
-                    signal.add_log(f"HEAD请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {error}")
+                    self._log(f"文件大小[HEAD异常 {attempt + 1}/{max_retries}]: {url} -> {error}")
 
             except Exception as e:
-                signal.add_log(f"HEAD请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {e}")
+                self._log(f"文件大小[HEAD异常 {attempt + 1}/{max_retries}]: {url} -> {e}")
 
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delays[attempt])
@@ -747,19 +745,19 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                     if response.status_code == 200:
                         content_length = response.headers.get("Content-Length")
                         if content_length:
-                            signal.add_log(f"GET获取文件大小成功: {url} -> {content_length}B")
+                            self._log(f"文件大小[GET成功]: {url} -> {content_length}B")
                             return int(content_length)
                         else:
-                            signal.add_log(f"GET请求成功但无Content-Length头: {url}")
+                            self._log(f"文件大小[GET成功但无Content-Length]: {url}")
                     else:
-                        signal.add_log(f"GET请求返回{response.status_code}: {url}")
+                        self._log(f"文件大小[GET状态]: {response.status_code} {url}")
                 elif error:
-                    signal.add_log(f"GET请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {error}")
+                    self._log(f"文件大小[GET异常 {attempt + 1}/{max_retries}]: {url} -> {error}")
 
                 return None
 
             except Exception as e:
-                signal.add_log(f"GET请求异常(尝试{attempt + 1}/{max_retries}): {url} -> {e}")
+                self._log(f"文件大小[GET异常 {attempt + 1}/{max_retries}]: {url} -> {e}")
 
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delays[attempt])
@@ -787,7 +785,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             ]
             for aws_url in aws_urls:
                 if await check_url(aws_url):
-                    signal.add_log(f"DMM 使用 AWS 高清图: {aws_url}")
+                    self._log(f"图片[AWS高清图命中]: {aws_url}")
                     res.thumb = aws_url
                     break
         res.poster = res.thumb.replace("pl.jpg", "ps.jpg")
@@ -802,19 +800,14 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
                 if ps_size and pl_size:
                     if ps_size < pl_size * 0.5:
-                        signal.add_log(
-                            f"SOD工作室ps.jpg分辨率过低({ps_size}B) vs pl.jpg({pl_size}B)，"
-                            f"将使用裁剪后的图片而不是直接下载"
-                        )
+                        self._log(f"图片[SOD判定]: ps过低({ps_size}B) vs pl({pl_size}B)，改为裁剪模式")
                         res.image_download = "VR" in res.title
                     else:
-                        signal.add_log(
-                            f"检测到SOD工作室: {res.studio}，ps.jpg分辨率充足({ps_size}B)，将直接使用原始图片不进行裁剪"
-                        )
+                        self._log(f"图片[SOD判定]: {res.studio} ps分辨率充足({ps_size}B)，保持直接下载")
                 else:
-                    signal.add_log(f"检测到SOD工作室: {res.studio}，无法获取图片大小，将直接使用原始图片不进行裁剪")
+                    self._log(f"图片[SOD判定]: {res.studio} 无法获取 ps/pl 大小，保持直接下载")
             except Exception as e:
-                signal.add_log(f"SOD工作室图片大小比较失败: {e}，将直接使用原始图片不进行裁剪")
+                self._log(f"图片[SOD判定]失败: {e}，保持直接下载")
 
         if not res.publisher:
             res.publisher = res.studio

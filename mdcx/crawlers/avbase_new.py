@@ -13,6 +13,10 @@ SEARCH_FIRST_RESULT_ID_XPATH = "/html/body/div/div/main/div/div[2]/div[2]/div/di
 
 
 class AvbaseCrawler(BaseCrawler):
+    @staticmethod
+    def _log(message: str) -> None:
+        signal.add_log(f"🌐 [AVBASE] {message}")
+
     @classmethod
     @override
     def site(cls) -> Website:
@@ -142,7 +146,7 @@ class AvbaseCrawler(BaseCrawler):
 
         upgraded_thumb = await self._upgrade_dmm_image_url(ctx, res.thumb)
         if upgraded_thumb != res.thumb:
-            signal.add_log(f"AVBASE 封面图升级为高清源: {upgraded_thumb}")
+            self._log(f"封面图升级为高清源: {upgraded_thumb}")
             res.thumb = upgraded_thumb
         res.thumb, res.poster = self._normalize_thumb_poster(res.thumb, res.poster)
 
@@ -158,11 +162,11 @@ class AvbaseCrawler(BaseCrawler):
             if poster_size and thumb_size:
                 if poster_size < thumb_size * 0.5:
                     res.image_download = is_vr_title
-                    signal.add_log(f"AVBASE SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，改为裁剪模式")
+                    self._log(f"SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，改为裁剪模式")
                 else:
-                    signal.add_log(f"AVBASE SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，保持直接下载")
+                    self._log(f"SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，保持直接下载")
             else:
-                signal.add_log("AVBASE SOD 图片判定: 无法获取 ps/pl 大小，保持直接下载")
+                self._log("SOD 图片判定: 无法获取 ps/pl 大小，保持直接下载")
 
         if not res.publisher:
             res.publisher = res.studio
@@ -362,7 +366,7 @@ class AvbaseCrawler(BaseCrawler):
                 except Exception:
                     return aws_url
 
-        signal.add_log(f"AVBASE 高清图校验失败，保留原图: {image_url}")
+        self._log(f"高清图校验失败，保留原图: {image_url}")
         return image_url
 
     def _extract_sample_image_urls(self, sample_image_urls: list[Any]) -> list[str]:

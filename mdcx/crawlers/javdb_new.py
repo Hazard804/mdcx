@@ -3,7 +3,7 @@ import random
 import re
 import time
 from typing import override
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from parsel import Selector
 
@@ -147,6 +147,13 @@ class JavdbCrawler(BaseCrawler):
         if manager.config.javdb:
             return {"cookie": manager.config.javdb}
 
+    @staticmethod
+    def _with_locale_zh(url: str) -> str:
+        parsed = urlparse(url)
+        query_items = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k.lower() != "locale"]
+        query_items.append(("locale", "zh"))
+        return urlunparse(parsed._replace(query=urlencode(query_items, doseq=True)))
+
     async def _throttle_page_request(self, ctx, request_type: str, url: str) -> None:
         now = time.monotonic()
         if self._last_page_request_at > 0:
@@ -166,8 +173,11 @@ class JavdbCrawler(BaseCrawler):
     @override
     async def _fetch_detail(self, ctx, url: str, use_browser: bool | None = False) -> tuple[str | None, str]:
         async with self._page_request_lock:
-            await self._throttle_page_request(ctx, "详情", url)
-            return await super()._fetch_detail(ctx, url, use_browser)
+            detail_url = self._with_locale_zh(url)
+            if detail_url != url:
+                ctx.debug(f"详情页语言规范化: {url} -> {detail_url}")
+            await self._throttle_page_request(ctx, "详情", detail_url)
+            return await super()._fetch_detail(ctx, detail_url, use_browser)
 
     @override
     async def _generate_search_url(self, ctx) -> list[str]:
@@ -215,14 +225,14 @@ class JavdbCrawler(BaseCrawler):
         number = ctx.input.number
         for href, title, meta in info_list:
             if number.upper() in title.upper():
-                return [urljoin(self.base_url, href)]
+                return [self._with_locale_zh(urljoin(self.base_url, href))]
 
         # 模糊匹配
         clean_number = number.upper().replace(".", "").replace("-", "").replace(" ", "")
         for href, title, meta in info_list:
             clean_content = (title + meta).upper().replace("-", "").replace(".", "").replace(" ", "")
             if clean_number in clean_content:
-                return [urljoin(self.base_url, href)]
+                return [self._with_locale_zh(urljoin(self.base_url, href))]
 
         return None
 

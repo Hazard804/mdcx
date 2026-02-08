@@ -146,6 +146,10 @@ class AsyncWebClient:
         normalized = match.group(1)
         return normalized, normalized != cleaned
 
+    def _log_cf(self, message: str, host: str = "") -> None:
+        host_prefix = f"{host} " if host else ""
+        self._log(f"🛡️ [CF] {host_prefix}{message}")
+
     def _is_cf_challenge_response(self, response: Response) -> bool:
         status = response.status_code
         headers = {str(k): v for k, v in response.headers.items()}
@@ -217,10 +221,10 @@ class AsyncWebClient:
                     enable_cf_bypass=False,
                 )
                 if refresh_resp is None:
-                    self._log(f"⚠️ bypass 强刷失败 ({i + 1}/{self._cf_force_refresh_retries}): {refresh_err}")
+                    self._log_cf(f"⚠️ bypass 强刷失败 ({i + 1}/{self._cf_force_refresh_retries}): {refresh_err}")
                     continue
                 if refresh_resp.status_code >= 400:
-                    self._log(
+                    self._log_cf(
                         f"⚠️ bypass 强刷失败 ({i + 1}/{self._cf_force_refresh_retries}): HTTP {refresh_resp.status_code}"
                     )
                     continue
@@ -238,25 +242,25 @@ class AsyncWebClient:
                 enable_cf_bypass=False,
             )
             if response is None:
-                self._log(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {error}")
+                self._log_cf(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {error}")
                 continue
             if response.status_code >= 400:
                 err = f"HTTP {response.status_code}"
-                self._log(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {err}")
+                self._log_cf(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {err}")
                 continue
             try:
                 payload = response.json()
             except Exception as e:
                 err = f"JSON 解析失败: {e}"
-                self._log(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {err}")
+                self._log_cf(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {err}")
                 continue
             cookies, user_agent = self._extract_bypass_payload(payload)
             if cookies.get("cf_clearance"):
                 return cookies, user_agent, ""
             if cookies:
-                self._log(f"⚠️ bypass cookies 缺少 cf_clearance ({i + 1}/{self._cf_cookie_retries})")
+                self._log_cf(f"⚠️ bypass cookies 缺少 cf_clearance ({i + 1}/{self._cf_cookie_retries})")
             if i < self._cf_cookie_retries - 1:
-                self._log(f"⚠️ bypass cookies 为空，准备重试 ({i + 1}/{self._cf_cookie_retries})")
+                self._log_cf(f"⚠️ bypass cookies 为空，准备重试 ({i + 1}/{self._cf_cookie_retries})")
         return {}, "", "bypass 返回 cookies 无效或为空"
 
     async def _try_bypass_cloudflare(
@@ -291,8 +295,8 @@ class AsyncWebClient:
             error = ""
             for bypass_target in bypass_targets:
                 if should_force_refresh:
-                    self._log(f"🧨 {host} 使用强刷模式请求 bypass cookies: {bypass_target}")
-                self._log(f"🔐 {host} 向 bypass 请求 cookies: {bypass_target}")
+                    self._log_cf(f"🧨 使用强刷模式请求 bypass cookies: {bypass_target}", host)
+                self._log_cf(f"🔐 向 bypass 请求 cookies: {bypass_target}", host)
                 cookies, user_agent, error = await self._call_bypass_cookies(
                     bypass_target,
                     force_refresh=should_force_refresh,
@@ -307,7 +311,7 @@ class AsyncWebClient:
 
             if not should_force_refresh:
                 for bypass_target in bypass_targets:
-                    self._log(f"🧨 {host} bypass cookies 无效，强制刷新: {bypass_target}")
+                    self._log_cf(f"🧨 bypass cookies 无效，强制刷新: {bypass_target}", host)
                     cookies, user_agent, error = await self._call_bypass_cookies(
                         bypass_target,
                         force_refresh=True,
@@ -372,7 +376,7 @@ class AsyncWebClient:
             force_refresh_used = False
 
             if enable_cf_bypass and self._cf_bypass_enabled and host and host in self._cf_host_cookies:
-                self._log(f"🍪 {host} 使用缓存 bypass cookies")
+                self._log_cf("🍪 使用缓存 bypass cookies", host)
 
             for attempt in range(retry_count):
                 # 增强的重试策略: 对网络错误和特定状态码都进行重试
@@ -396,19 +400,17 @@ class AsyncWebClient:
                     )
 
                     if enable_cf_bypass and self._cf_bypass_enabled and host and self._is_cf_challenge_response(resp):
-                        self._log(f"🛑 检测到 Cloudflare 挑战页: {method} {url}")
+                        self._log_cf(f"🛑 检测到 Cloudflare 挑战页: {method} {url}", host)
                         self._cf_host_challenge_hits[host] = self._cf_host_challenge_hits.get(host, 0) + 1
                         if bypass_round >= self._cf_request_bypass_rounds:
-                            error_msg = (
-                                f"Cloudflare challenge 持续存在，bypass 已达上限 ({self._cf_request_bypass_rounds})"
-                            )
+                            error_msg = f"Cloudflare 挑战页持续存在，bypass 已达上限 ({self._cf_request_bypass_rounds})"
                             retry = False
                             self._cf_host_cookies.pop(host, None)
-                            self._log(f"🚫 {host} {error_msg}")
+                            self._log_cf(f"🚫 {error_msg}", host)
                         else:
                             current_force_refresh = bypass_round > 0 and not force_refresh_used
                             if current_force_refresh:
-                                self._log(f"🧨 {host} 再次命中挑战，尝试强制刷新 bypass cookies")
+                                self._log_cf("🧨 再次命中挑战，尝试强制刷新 bypass cookies", host)
                                 self._cf_host_cookies.pop(host, None)
 
                             bypass_cookies, bypass_user_agent, bypass_error = await self._try_bypass_cloudflare(
@@ -424,16 +426,16 @@ class AsyncWebClient:
                             if bypass_cookies:
                                 retry = attempt < retry_count - 1
                                 should_sleep_before_retry = force_refresh_used
-                                error_msg = "Cloudflare challenge"
+                                error_msg = "Cloudflare 挑战页"
                                 if bypass_user_agent and all(k.lower() != "user-agent" for k in prepared_headers):
                                     prepared_headers["User-Agent"] = bypass_user_agent
-                                self._log(
-                                    f"🛡️ {host} bypass 成功，准备重试 ({bypass_round}/{self._cf_request_bypass_rounds})"
+                                self._log_cf(
+                                    f"✅ bypass 成功，准备重试 ({bypass_round}/{self._cf_request_bypass_rounds})", host
                                 )
                             else:
-                                error_msg = f"Cloudflare challenge and bypass failed: {bypass_error}"
+                                error_msg = f"Cloudflare 挑战页且 bypass 失败: {bypass_error}"
                                 retry = attempt < retry_count - 1 and bypass_round < self._cf_request_bypass_rounds
-                                self._log(f"⚠️ {host} bypass 失败: {bypass_error}")
+                                self._log_cf(f"⚠️ bypass 失败: {bypass_error}", host)
 
                     # 检查响应状态
                     elif resp.status_code >= 300 and not (resp.status_code == 302 and resp.headers.get("Location")):
