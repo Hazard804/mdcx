@@ -96,6 +96,7 @@ def _crawl(sites: list[Website], input: CrawlerInput, output: str | None, proxy:
         proxy=proxy or (manager.config.proxy if manager.config.use_proxy else None),
         retry=retry,
         timeout=timeout,
+        cf_bypass_url=manager.config.cf_bypass_url,
         log_fn=lambda msg: print(f"[dim][AsyncWebClient] {msg}[/dim]"),
     )
 
@@ -224,6 +225,7 @@ async def _fetch_async(
         proxy=client_proxy,
         retry=client_retry,
         timeout=client_timeout,
+        cf_bypass_url=manager.config.cf_bypass_url,
         log_fn=lambda msg: console.print(f"[dim][AsyncWebClient] {msg}[/dim]"),
     )
 

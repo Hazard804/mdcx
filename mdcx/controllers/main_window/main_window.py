@@ -171,6 +171,8 @@ class MyMAinWindow(QMainWindow):
             "非日本代理：javdb、airav-cc、avsex（日本代理会报错）\n "
             "日本代理：seesaawiki、mgstage\n "
             "无需代理：avsex、hdouban、iqqtv、airav-wiki、love6、lulubar、fc2、fc2club、fc2hub\n\n"
+            "Cloudflare Bypass：在【设置】-【网络】-【CF Bypass】填写本地服务地址后生效，"
+            "例如 http://127.0.0.1:8000。\n\n"
             "▶️ 点击右上角 【开始检测】按钮以测试网络连通性。"
         )  # 检查网络界面显示提示信息
         signal_qt.add_log("🍯 你可以点击左下角的图标来 显示 / 隐藏 请求信息面板！")
@@ -1972,6 +1974,7 @@ class MyMAinWindow(QMainWindow):
 
             net_info = {
                 "github": ["https://raw.githubusercontent.com", ""],
+                "cf-bypass": [manager.config.cf_bypass_url.strip(), ""],
                 "airav_cc": ["https://airav.io", ""],
                 "avbase": ["https://www.avbase.net", ""],
                 "iqqtv": ["https://iqq5.xyz", ""],
@@ -2052,6 +2055,19 @@ class MyMAinWindow(QMainWindow):
             net_info["kin8"][0] += "/moviepages/3681/index.html"
 
             for name, each in net_info.items():
+                if name == "cf-bypass":
+                    if not each[0]:
+                        each[1] = "ℹ️ 未配置（仅遇到 CF 挑战页时才需要）"
+                    else:
+                        health_url = each[0].rstrip("/") + "/cookies?url=http://example.com"
+                        html_info, error = get_text_sync(health_url, use_proxy=False)
+                        if html_info is None:
+                            each[1] = "❌ 连接失败 请检查服务是否启动！ " + str(error)
+                        else:
+                            each[1] = "✅ 服务可用"
+                    signal_qt.show_net_info("   " + name.ljust(12) + each[1])
+                    continue
+
                 host_address = each[0].replace("https://", "").replace("http://", "").split("/")[0]
                 if name == "javdb":
                     res_javdb = self._check_javdb_cookie()

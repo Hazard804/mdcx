@@ -20111,7 +20111,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>280</y>
+                        <y>320</y>
                         <width>701</width>
                         <height>531</height>
                       </rect>
@@ -20135,15 +20135,21 @@
                         <item row="0" column="0">
                           <widget class="QLabel" name="label_45">
                             <property name="sizePolicy">
-                              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                                 <horstretch>0</horstretch>
                                 <verstretch>0</verstretch>
                               </sizepolicy>
                             </property>
                             <property name="minimumSize">
                               <size>
-                                <width>0</width>
+                                <width>130</width>
                                 <height>30</height>
+                              </size>
+                            </property>
+                            <property name="maximumSize">
+                              <size>
+                                <width>130</width>
+                                <height>16777215</height>
                               </size>
                             </property>
                             <property name="layoutDirection">
@@ -20151,7 +20157,7 @@
                             </property>
                             <property name="text">
                               <string>javdb：
-                                （登录状态）</string>
+（登录状态）</string>
                             </property>
                             <property name="alignment">
                               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -20227,15 +20233,21 @@
                         <item row="2" column="0">
                           <widget class="QLabel" name="label_425">
                             <property name="sizePolicy">
-                              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                                 <horstretch>0</horstretch>
                                 <verstretch>0</verstretch>
                               </sizepolicy>
                             </property>
                             <property name="minimumSize">
                               <size>
-                                <width>0</width>
+                                <width>130</width>
                                 <height>30</height>
+                              </size>
+                            </property>
+                            <property name="maximumSize">
+                              <size>
+                                <width>130</width>
+                                <height>16777215</height>
                               </size>
                             </property>
                             <property name="layoutDirection">
@@ -20243,7 +20255,7 @@
                             </property>
                             <property name="text">
                               <string>javbus：
-                                （登录状态）</string>
+（登录状态）</string>
                             </property>
                             <property name="alignment">
                               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -20252,6 +20264,12 @@
                         </item>
                         <item row="2" column="1">
                           <widget class="QPlainTextEdit" name="plainTextEdit_cookie_javbus">
+                            <property name="sizePolicy">
+                              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                              </sizepolicy>
+                            </property>
                             <property name="minimumSize">
                               <size>
                                 <width>400</width>
@@ -20268,10 +20286,6 @@
                             </property>
                             <property name="placeholderText">
                               <string>美国节点需要填写，其他节点一般不需要填写，除非提示需要填写。</string>
-                            </property>
-                            <property name="text" stdset="0">
-                              <string>javdb：
-                                （登录状态）</string>
                             </property>
                           </widget>
                         </item>
@@ -20416,7 +20430,7 @@
                         <x>30</x>
                         <y>20</y>
                         <width>701</width>
-                        <height>241</height>
+                        <height>281</height>
                       </rect>
                     </property>
                     <property name="styleSheet">
@@ -20431,11 +20445,11 @@
                           <x>20</x>
                           <y>30</y>
                           <width>661</width>
-                          <height>194</height>
+                          <height>234</height>
                         </rect>
                       </property>
                       <layout class="QGridLayout" name="gridLayout_9">
-                        <item row="2" column="1">
+                        <item row="5" column="1">
                           <widget class="QLabel" name="label_103">
                             <property name="sizePolicy">
                               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -20446,8 +20460,14 @@
                             <property name="styleSheet">
                               <string notr="true">color: rgb(8, 128, 128);</string>
                             </property>
+                            <property name="cursor">
+                              <cursorShape>ArrowCursor</cursorShape>
+                            </property>
+                            <property name="textInteractionFlags">
+                              <set>Qt::NoTextInteraction</set>
+                            </property>
                             <property name="text">
-                              <string>&lt;p&gt;支持 http(s), socks5(h) 代理. 示例: http://127.0.0.1:7897&lt;br&gt;需要用户名和密码时格式为: schema://username:password@host:port&lt;/p&gt;</string>
+                              <string>&lt;p&gt;支持 http(s), socks5(h) 代理. 示例: http://127.0.0.1:7897&lt;br&gt;需要用户名和密码时格式为: schema://username:password@host:port&lt;br&gt;Cloudflare Bypass 为空时表示关闭该功能&lt;/p&gt;</string>
                             </property>
                           </widget>
                         </item>
@@ -20665,6 +20685,31 @@
                             </property>
                           </widget>
                         </item>
+                        <item row="2" column="1">
+                          <widget class="QLineEdit" name="lineEdit_cf_bypass_url">
+                            <property name="sizePolicy">
+                              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                              </sizepolicy>
+                            </property>
+                            <property name="minimumSize">
+                              <size>
+                                <width>300</width>
+                                <height>30</height>
+                              </size>
+                            </property>
+                            <property name="styleSheet">
+                              <string notr="true"> font: &quot;Courier&quot;;
+                                border: 1px solid rgba(0,0,0, 50);
+                                border-radius: 15px;
+</string>
+                            </property>
+                            <property name="placeholderText">
+                              <string>例如: http://127.0.0.1:8000</string>
+                            </property>
+                          </widget>
+                        </item>
                         <item row="4" column="0">
                           <widget class="QLabel" name="label_65">
                             <property name="sizePolicy">
@@ -20718,6 +20763,34 @@
                             </property>
                           </widget>
                         </item>
+                        <item row="2" column="0">
+                          <widget class="QLabel" name="label_cf_bypass">
+                            <property name="sizePolicy">
+                              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                              </sizepolicy>
+                            </property>
+                            <property name="minimumSize">
+                              <size>
+                                <width>130</width>
+                                <height>0</height>
+                              </size>
+                            </property>
+                            <property name="layoutDirection">
+                              <enum>Qt::RightToLeft</enum>
+                            </property>
+                            <property name="frameShape">
+                              <enum>QFrame::NoFrame</enum>
+                            </property>
+                            <property name="text">
+                              <string>CF Bypass：</string>
+                            </property>
+                            <property name="alignment">
+                              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                            </property>
+                          </widget>
+                        </item>
                       </layout>
                     </widget>
                   </widget>
@@ -20725,7 +20798,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>1030</y>
+                        <y>1070</y>
                         <width>701</width>
                         <height>301</height>
                       </rect>
@@ -20911,7 +20984,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>830</y>
+                        <y>870</y>
                         <width>701</width>
                         <height>181</height>
                       </rect>

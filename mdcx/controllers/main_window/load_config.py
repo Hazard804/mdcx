@@ -945,6 +945,8 @@ def load_config(self: "MyMAinWindow"):
         self.Ui.checkBox_use_proxy.setChecked(manager.config.use_proxy)
         # 代理地址
         self.Ui.lineEdit_proxy.setText(manager.config.proxy)
+        # Cloudflare bypass 服务地址
+        self.Ui.lineEdit_cf_bypass_url.setText(manager.config.cf_bypass_url)
         # 超时时间
         self.Ui.horizontalSlider_timeout.setValue(int(manager.config.timeout))
         self.Ui.lcdNumber_timeout.display(int(manager.config.timeout))
