@@ -7,6 +7,7 @@ from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import aiofiles
 import httpx
@@ -62,24 +63,15 @@ class AsyncWebClient:
 
         self.cf_bypass_url = cf_bypass_url.strip().rstrip("/")
         self._cf_bypass_enabled = bool(self.cf_bypass_url)
-        self._cf_host_cookies: dict[str, dict[str, str]] = {}
-        self._cf_host_user_agents: dict[str, str] = {}
-        self._cf_cookie_user_agent_bindings: dict[str, dict[str, str]] = {}
-        self._cf_cookie_user_agent_binding_timestamps: dict[str, dict[str, float]] = {}
-        self._cf_cookie_binding_ttl = 3600.0
-        self._cf_cookie_binding_max_entries_per_host = 32
-        self._cf_cookie_binding_max_entries_total = 256
         self._cf_host_locks: dict[str, asyncio.Lock] = {}
         self._cf_host_retry_semaphores: dict[str, asyncio.Semaphore] = {}
         self._cf_locks_guard = asyncio.Lock()
-        self._cf_last_refresh_at: dict[str, float] = {}
+        self._cf_last_bypass_attempt_at: dict[str, float] = {}
         self._cf_host_challenge_hits: dict[str, int] = {}
-        self._cf_bypass_cooldown = 30.0
-        self._cf_recent_refresh_window = 10.0
-        self._cf_force_refresh_min_interval = 10.0
+        self._cf_bypass_min_interval = 2.0
         self._cf_bypass_timeout = 45.0
-        self._cf_cookie_retries = 2
-        self._cf_force_refresh_retries = 2
+        self._cf_bypass_retries = 2
+        self._cf_mirror_max_redirects = 8
         self._cf_request_bypass_rounds = 2
         self._cf_retry_max_concurrent_per_host = 2
         self._cf_retry_after_bypass_base_delay = 1.2
@@ -147,167 +139,12 @@ class AsyncWebClient:
     def _merge_cookies(
         self,
         cookies: dict[str, str] | None,
-        host: str,
         bypass_cookies: dict[str, str] | None = None,
     ) -> dict[str, str] | None:
         base = dict(cookies or {})
-        cached = self._cf_host_cookies.get(host)
-        if cached:
-            base.update(cached)
         if bypass_cookies:
             base.update(bypass_cookies)
         return base or None
-
-    def _build_cf_cookie_binding_key(self, cookies: dict[str, str] | None) -> str:
-        if not cookies:
-            return ""
-
-        cf_clearance = str(cookies.get("cf_clearance", "")).strip()
-        if cf_clearance:
-            return f"cf_clearance={cf_clearance}"
-
-        pairs = sorted((str(k), str(v)) for k, v in cookies.items() if k and v is not None)
-        if not pairs:
-            return ""
-        return "&".join(f"{k}={v}" for k, v in pairs)
-
-    def _remember_cf_cookie_user_agent(self, host: str, cookies: dict[str, str] | None, user_agent: str) -> None:
-        if not host:
-            return
-
-        normalized_user_agent = (user_agent or "").strip()
-        if not normalized_user_agent:
-            return
-
-        binding_key = self._build_cf_cookie_binding_key(cookies)
-        if not binding_key:
-            return
-
-        host_bindings = self._cf_cookie_user_agent_bindings.setdefault(host, {})
-        host_binding_timestamps = self._cf_cookie_user_agent_binding_timestamps.setdefault(host, {})
-        host_bindings[binding_key] = normalized_user_agent
-        host_binding_timestamps[binding_key] = time.monotonic()
-        self._prune_cf_cookie_user_agent_bindings_for_host(host)
-        self._prune_cf_cookie_user_agent_bindings_global()
-
-    def _prune_cf_cookie_user_agent_bindings_for_host(self, host: str) -> None:
-        if not host:
-            return
-
-        host_bindings = self._cf_cookie_user_agent_bindings.get(host)
-        if not host_bindings:
-            self._cf_cookie_user_agent_bindings.pop(host, None)
-            self._cf_cookie_user_agent_binding_timestamps.pop(host, None)
-            return
-
-        host_binding_timestamps = self._cf_cookie_user_agent_binding_timestamps.setdefault(host, {})
-        now = time.monotonic()
-        ttl = max(0.0, float(self._cf_cookie_binding_ttl))
-        removed_expired = 0
-        removed_overflow = 0
-
-        if ttl > 0:
-            for binding_key in list(host_bindings):
-                ts = host_binding_timestamps.get(binding_key)
-                if ts is None:
-                    host_binding_timestamps[binding_key] = now
-                    ts = now
-                if now - ts > ttl:
-                    host_bindings.pop(binding_key, None)
-                    host_binding_timestamps.pop(binding_key, None)
-                    removed_expired += 1
-
-        max_entries_per_host = max(int(self._cf_cookie_binding_max_entries_per_host), 1)
-        overflow = len(host_bindings) - max_entries_per_host
-        if overflow > 0:
-            ordered_keys = sorted(host_bindings, key=lambda key: host_binding_timestamps.get(key, 0.0))
-            for binding_key in ordered_keys[:overflow]:
-                host_bindings.pop(binding_key, None)
-                host_binding_timestamps.pop(binding_key, None)
-                removed_overflow += 1
-
-        if not host_bindings:
-            self._cf_cookie_user_agent_bindings.pop(host, None)
-            self._cf_cookie_user_agent_binding_timestamps.pop(host, None)
-
-        if removed_expired or removed_overflow:
-            self._log_cf(f"🧹 清理 cookie-UA 绑定: 过期 {removed_expired}，超限 {removed_overflow}", host)
-
-    def _prune_cf_cookie_user_agent_bindings_global(self) -> None:
-        max_entries_total = max(int(self._cf_cookie_binding_max_entries_total), 1)
-
-        all_entries: list[tuple[float, str, str]] = []
-        now = time.monotonic()
-        for host, host_bindings in self._cf_cookie_user_agent_bindings.items():
-            host_binding_timestamps = self._cf_cookie_user_agent_binding_timestamps.setdefault(host, {})
-            for binding_key in host_bindings:
-                ts = host_binding_timestamps.get(binding_key)
-                if ts is None:
-                    host_binding_timestamps[binding_key] = now
-                    ts = now
-                all_entries.append((ts, host, binding_key))
-
-        overflow = len(all_entries) - max_entries_total
-        if overflow <= 0:
-            return
-
-        all_entries.sort(key=lambda item: item[0])
-        removed = 0
-        touched_hosts: set[str] = set()
-        for _, host, binding_key in all_entries[:overflow]:
-            host_bindings = self._cf_cookie_user_agent_bindings.get(host)
-            host_binding_timestamps = self._cf_cookie_user_agent_binding_timestamps.get(host)
-            if not host_bindings or not host_binding_timestamps:
-                continue
-
-            if binding_key in host_bindings:
-                host_bindings.pop(binding_key, None)
-                host_binding_timestamps.pop(binding_key, None)
-                removed += 1
-                touched_hosts.add(host)
-
-            if not host_bindings:
-                self._cf_cookie_user_agent_bindings.pop(host, None)
-                self._cf_cookie_user_agent_binding_timestamps.pop(host, None)
-
-        if removed > 0:
-            self._log_cf(f"🧹 全局清理 cookie-UA 绑定: 移除 {removed} 条，涉及主机 {len(touched_hosts)}")
-
-    def _resolve_cf_cookie_user_agent(self, host: str, cookies: dict[str, str] | None) -> str:
-        if not host:
-            return ""
-
-        self._prune_cf_cookie_user_agent_bindings_for_host(host)
-
-        binding_key = self._build_cf_cookie_binding_key(cookies)
-        if not binding_key:
-            return ""
-
-        return self._cf_cookie_user_agent_bindings.get(host, {}).get(binding_key, "").strip()
-
-    def _clear_cf_host_binding(self, host: str) -> None:
-        if not host:
-            return
-        self._cf_host_cookies.pop(host, None)
-        self._cf_host_user_agents.pop(host, None)
-
-    def _apply_cf_host_binding(self, host: str, cookies: dict[str, str], user_agent: str) -> str:
-        resolved_user_agent = (user_agent or "").strip()
-        if not resolved_user_agent:
-            resolved_user_agent = self._resolve_cf_cookie_user_agent(host, cookies)
-            if resolved_user_agent:
-                self._log_cf("♻️ bypass 未返回 UA，复用已绑定 cookie-UA", host)
-
-        self._cf_host_cookies[host] = cookies
-        if resolved_user_agent:
-            self._cf_host_user_agents[host] = resolved_user_agent
-            self._remember_cf_cookie_user_agent(host, cookies, resolved_user_agent)
-        else:
-            self._cf_host_user_agents.pop(host, None)
-
-        self._cf_last_refresh_at[host] = time.monotonic()
-        self._cf_host_challenge_hits[host] = 0
-        return resolved_user_agent
 
     def _extract_header_case_insensitive(self, headers: dict[str, Any], key: str) -> str:
         key_lower = key.lower()
@@ -322,6 +159,141 @@ class AsyncWebClient:
             if str(k).lower() == key_lower:
                 headers.pop(k, None)
         headers[key] = value
+
+    def _pop_header_case_insensitive(self, headers: dict[str, str], key: str) -> str:
+        key_lower = key.lower()
+        for k in list(headers):
+            if str(k).lower() == key_lower:
+                return headers.pop(k, "")
+        return ""
+
+    def _build_cookie_header(self, cookies: dict[str, str] | None) -> str:
+        if not cookies:
+            return ""
+        pairs = [f"{str(k)}={str(v)}" for k, v in cookies.items() if k]
+        return "; ".join(pairs)
+
+    def _parse_cookie_header(self, cookie_header: str) -> dict[str, str]:
+        parsed: dict[str, str] = {}
+        for item in (cookie_header or "").split(";"):
+            part = item.strip()
+            if not part or "=" not in part:
+                continue
+            name, value = part.split("=", 1)
+            parsed[name.strip()] = value.strip()
+        return parsed
+
+    def _merge_url_params(self, url: str, params: dict[str, Any] | list[tuple[str, Any]] | None) -> str:
+        if not params:
+            return url
+
+        split_result = urlsplit(url)
+        existing_items = parse_qsl(split_result.query, keep_blank_values=True)
+        new_items = list(httpx.QueryParams(params).multi_items())
+        merged_query = urlencode(existing_items + new_items, doseq=True)
+        return urlunsplit(
+            (
+                split_result.scheme,
+                split_result.netloc,
+                split_result.path,
+                merged_query,
+                split_result.fragment,
+            )
+        )
+
+    def _build_mirror_url(self, target_url: str) -> str:
+        split_result = urlsplit(target_url)
+        raw_path = split_result.path or "/"
+        path = re.sub(r"/{2,}", "/", raw_path)
+        mirror_url = f"{self.cf_bypass_url}{path}"
+        if split_result.query:
+            mirror_url = f"{mirror_url}?{split_result.query}"
+        return mirror_url
+
+    def _is_redirect_response(self, response: Response) -> bool:
+        if response.status_code not in (301, 302, 303, 307, 308):
+            return False
+        headers = {str(k): str(v) for k, v in response.headers.items()}
+        return bool(self._extract_header_case_insensitive(headers, "location").strip())
+
+    def _is_retryable_status_code(self, status_code: int) -> bool:
+        return status_code in (
+            500,  # Internal Server Error
+            502,  # Bad Gateway
+            503,  # Service Unavailable
+            403,  # Forbidden
+            408,  # Request Timeout
+            429,  # Too Many Requests
+            504,  # Gateway Timeout
+        )
+
+    def _extract_http_status_from_bypass_error(self, error: str, *, prefix: str) -> int | None:
+        if not error:
+            return None
+        matched = re.match(rf"^{re.escape(prefix)}\s+(\d{{3}})\b", error.strip())
+        if not matched:
+            return None
+        try:
+            return int(matched.group(1))
+        except Exception:
+            return None
+
+    def _extract_terminal_bypass_status(self, error: str) -> int | None:
+        if not error:
+            return None
+
+        terminal_match = re.search(r"终态 HTTP (\d{3})", error)
+        if terminal_match:
+            try:
+                return int(terminal_match.group(1))
+            except Exception:
+                return None
+
+        mirror_status = self._extract_http_status_from_bypass_error(error, prefix="mirror HTTP")
+        if mirror_status is not None:
+            return mirror_status
+
+        return self._extract_http_status_from_bypass_error(error, prefix="HTTP")
+
+    def _bind_response_effective_url(self, response: Response, final_url: str) -> None:
+        normalized = (final_url or "").strip()
+        if not normalized:
+            return
+        try:
+            response.url = normalized
+        except Exception:
+            pass
+        try:
+            response.headers["x-mdcx-final-url"] = normalized
+        except Exception:
+            pass
+
+    def _prepare_mirror_headers(
+        self,
+        *,
+        headers: dict[str, str] | None,
+        target_host: str,
+        cookies: dict[str, str] | None,
+        use_proxy: bool,
+    ) -> dict[str, str]:
+        mirror_headers = dict(headers or {})
+        self._pop_header_case_insensitive(mirror_headers, "host")
+        self._set_header_case_insensitive(mirror_headers, "x-hostname", target_host)
+        if use_proxy and self.proxy:
+            self._set_header_case_insensitive(mirror_headers, "x-proxy", self.proxy)
+
+        header_cookie_map = self._parse_cookie_header(self._extract_header_case_insensitive(mirror_headers, "cookie"))
+        merged_cookie_map = dict(cookies or {})
+        merged_cookie_map.update(header_cookie_map)
+        merged_cookie_header = self._build_cookie_header(merged_cookie_map)
+        if merged_cookie_header:
+            self._set_header_case_insensitive(mirror_headers, "Cookie", merged_cookie_header)
+        elif header_cookie_map:
+            self._set_header_case_insensitive(mirror_headers, "Cookie", self._build_cookie_header(header_cookie_map))
+        else:
+            self._pop_header_case_insensitive(mirror_headers, "cookie")
+
+        return mirror_headers
 
     def _sanitize_url(self, url: str) -> tuple[str, bool]:
         cleaned = (url or "").strip()
@@ -370,188 +342,229 @@ class AsyncWebClient:
             return True
         return False
 
-    def _extract_bypass_payload(self, payload: Any) -> tuple[dict[str, str], str]:
-        if not isinstance(payload, dict):
-            return {}, ""
+    async def _call_bypass_mirror(
+        self,
+        *,
+        method: HttpMethod,
+        target_url: str,
+        headers: dict[str, str] | None,
+        cookies: dict[str, str] | None,
+        use_proxy: bool,
+        data: dict[str, str] | list[tuple] | str | BytesIO | bytes | None = None,
+        json_data: dict[str, Any] | None = None,
+        timeout: float | httpx.Timeout | None = None,
+        allow_redirects: bool = True,
+    ) -> tuple[Response | None, str]:
+        if not self._cf_bypass_enabled:
+            return None, "未配置 bypass 地址"
 
-        candidates: list[dict[str, Any]] = [payload]
-        for key in ("data", "result", "payload"):
-            nested = payload.get(key)
-            if isinstance(nested, dict):
-                candidates.append(nested)
+        current_url = target_url
+        current_method = str(method).upper()
+        current_data = data
+        current_json_data = json_data
 
-        cookies: dict[str, str] = {}
-        for item in candidates:
-            raw_cookies = item.get("cookies")
-            if not isinstance(raw_cookies, dict):
-                continue
-            cookies = {str(k): str(v) for k, v in raw_cookies.items() if k and v is not None}
-            if cookies:
+        for redirect_index in range(self._cf_mirror_max_redirects + 1):
+            try:
+                target = httpx.URL(current_url)
+                target_host = target.host or ""
+            except Exception as exc:
+                return None, f"mirror 目标 URL 解析失败: {exc}"
+
+            if not target_host:
+                return None, "mirror 目标 URL 缺少 host"
+
+            mirror_url = self._build_mirror_url(current_url)
+            mirror_headers = self._prepare_mirror_headers(
+                headers=headers,
+                target_host=target_host,
+                cookies=cookies,
+                use_proxy=use_proxy,
+            )
+            try:
+                limiter = self.limiters.get("127.0.0.1")
+                await limiter.acquire()
+                response = await self.curl_session.request(
+                    current_method,
+                    mirror_url,
+                    proxy=None,
+                    headers=mirror_headers,
+                    data=current_data,
+                    json=current_json_data,
+                    timeout=timeout or self._cf_bypass_timeout,
+                    stream=False,
+                    allow_redirects=False,
+                )
+                error = ""
+            except Timeout:
+                response = None
+                error = "mirror 请求超时"
+            except ConnectionError as exc:
+                response = None
+                error = f"mirror 连接错误: {exc}"
+            except RequestException as exc:
+                response = None
+                error = f"mirror 请求异常: {exc}"
+            except Exception as exc:
+                response = None
+                error = f"mirror 未知错误: {exc}"
+            if response is None:
+                return None, error
+
+            self._bind_response_effective_url(response, current_url)
+            response.headers["x-mdcx-bypass-mode"] = "mirror"
+
+            if self._is_cf_challenge_response(response):
+                return None, "mirror 返回 Cloudflare 挑战页"
+
+            if response.status_code >= 400:
+                return None, f"mirror HTTP {response.status_code}"
+
+            if not allow_redirects or not self._is_redirect_response(response):
+                return response, ""
+
+            response_headers = {str(k): str(v) for k, v in response.headers.items()}
+            location = self._extract_header_case_insensitive(response_headers, "location").strip()
+            if not location:
+                return response, ""
+
+            next_url = urljoin(current_url, location)
+            if not next_url:
+                return None, "mirror 重定向 Location 为空"
+            self._log_cf(f"➡️ mirror 跟随重定向: {current_url} -> {next_url}", target_host)
+
+            if current_method not in ("GET", "HEAD") and response.status_code in (301, 302, 303):
+                current_method = "GET"
+                current_data = None
+                current_json_data = None
+
+            current_url = next_url
+            if redirect_index >= self._cf_mirror_max_redirects:
                 break
 
-        user_agent = ""
-        for item in candidates:
-            for key in ("user_agent", "userAgent", "ua", "browser_user_agent", "browserUserAgent"):
-                ua_value = item.get(key)
-                if isinstance(ua_value, str) and ua_value.strip():
-                    user_agent = ua_value.strip()
-                    break
-            if user_agent:
-                break
+        return None, f"mirror 重定向超过上限 ({self._cf_mirror_max_redirects})"
 
-            for key in ("headers", "request_headers", "requestHeaders"):
-                raw_headers = item.get(key)
-                if not isinstance(raw_headers, dict):
-                    continue
-                header_user_agent = self._extract_header_case_insensitive(raw_headers, "user-agent").strip()
-                if header_user_agent:
-                    user_agent = header_user_agent
-                    break
-            if user_agent:
-                break
-
-        return cookies, user_agent
-
-    async def _call_bypass_cookies(
+    async def _call_bypass_html(
         self,
         target_url: str,
         *,
-        force_refresh: bool,
         use_proxy: bool,
-    ) -> tuple[dict[str, str], str, str]:
+    ) -> tuple[Response | None, str]:
         if not self._cf_bypass_enabled:
-            return {}, "", "未配置 bypass 地址"
+            return None, "未配置 bypass 地址"
 
-        params = {"url": target_url}
-        if force_refresh:
-            refresh_url = f"{self.cf_bypass_url}/cache/refresh"
-            for i in range(self._cf_force_refresh_retries):
-                refresh_resp, refresh_err = await self.request(
-                    "POST",
-                    refresh_url,
-                    use_proxy=use_proxy,
-                    allow_redirects=True,
-                    timeout=self._cf_bypass_timeout,
-                    params=params,
-                    enable_cf_bypass=False,
-                )
-                if refresh_resp is None:
-                    self._log_cf(f"⚠️ bypass 强刷失败 ({i + 1}/{self._cf_force_refresh_retries}): {refresh_err}")
-                    continue
-                if refresh_resp.status_code >= 400:
-                    self._log_cf(
-                        f"⚠️ bypass 强刷失败 ({i + 1}/{self._cf_force_refresh_retries}): HTTP {refresh_resp.status_code}"
-                    )
-                    continue
-                break
+        response, error = await self.request(
+            "GET",
+            f"{self.cf_bypass_url}/html",
+            use_proxy=use_proxy,
+            allow_redirects=True,
+            timeout=self._cf_bypass_timeout,
+            params={"url": target_url},
+            enable_cf_bypass=False,
+        )
 
-        bypass_url = f"{self.cf_bypass_url}/cookies"
-        for i in range(self._cf_cookie_retries):
-            response, error = await self.request(
-                "GET",
-                bypass_url,
-                use_proxy=use_proxy,
-                allow_redirects=True,
-                timeout=self._cf_bypass_timeout,
-                params=params,
-                enable_cf_bypass=False,
-            )
-            if response is None:
-                self._log_cf(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {error}")
-                continue
-            if response.status_code >= 400:
-                err = f"HTTP {response.status_code}"
-                self._log_cf(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {err}")
-                continue
-            try:
-                payload = response.json()
-            except Exception as e:
-                err = f"JSON 解析失败: {e}"
-                self._log_cf(f"⚠️ bypass cookies 获取失败 ({i + 1}/{self._cf_cookie_retries}): {err}")
-                continue
-            cookies, user_agent = self._extract_bypass_payload(payload)
-            if cookies.get("cf_clearance"):
-                return cookies, user_agent, ""
-            if cookies:
-                self._log_cf(f"⚠️ bypass cookies 缺少 cf_clearance ({i + 1}/{self._cf_cookie_retries})")
-            if i < self._cf_cookie_retries - 1:
-                self._log_cf(f"⚠️ bypass cookies 为空，准备重试 ({i + 1}/{self._cf_cookie_retries})")
-        return {}, "", "bypass 返回 cookies 无效或为空"
+        if response is None:
+            return None, error
+
+        if response.status_code >= 400:
+            return None, f"HTTP {response.status_code}"
+
+        if not response.content:
+            return None, "bypass 返回空 HTML"
+
+        response_headers = {str(k): str(v) for k, v in response.headers.items()}
+        final_url = (
+            self._extract_header_case_insensitive(response_headers, "x-cf-bypasser-final-url").strip() or target_url
+        )
+        self._bind_response_effective_url(response, final_url)
+        response.headers["x-mdcx-bypass-mode"] = "html"
+        return response, ""
 
     async def _try_bypass_cloudflare(
         self,
         *,
         host: str,
+        method: HttpMethod,
         target_url: str,
+        headers: dict[str, str] | None,
+        cookies: dict[str, str] | None,
+        data: dict[str, str] | list[tuple] | str | BytesIO | bytes | None,
+        json_data: dict[str, Any] | None,
+        timeout: float | httpx.Timeout | None,
+        allow_redirects: bool,
         use_proxy: bool,
-        force_refresh: bool = False,
-    ) -> tuple[dict[str, str], str, str]:
+    ) -> tuple[Response | None, str]:
         lock = await self._get_cf_host_lock(host)
         async with lock:
-            now = time.monotonic()
-            last = self._cf_last_refresh_at.get(host, 0)
-            cached_cookies = self._cf_host_cookies.get(host)
-            cached_user_agent = self._cf_host_user_agents.get(host, "")
+            while True:
+                now = time.monotonic()
+                last_attempt = self._cf_last_bypass_attempt_at.get(host, 0.0)
+                if last_attempt <= 0:
+                    break
 
-            # 单飞复用: 在并发场景下，后续请求复用刚刷新出来的 cookies，避免风暴
-            if cached_cookies and not force_refresh and last > 0 and (now - last) <= self._cf_recent_refresh_window:
-                self._log_cf("♻️ 复用最近刷新的 bypass cookies", host)
-                return dict(cached_cookies), cached_user_agent, ""
+                elapsed = now - last_attempt
+                if elapsed >= self._cf_bypass_min_interval:
+                    break
 
-            challenge_hits = self._cf_host_challenge_hits.get(host, 0)
-            auto_force_refresh = (last > 0 and (now - last >= self._cf_bypass_cooldown)) or challenge_hits >= 2
-            should_force_refresh = force_refresh or auto_force_refresh
+                wait_seconds = self._cf_bypass_min_interval - elapsed
+                if wait_seconds >= 0.2:
+                    self._log_cf(f"🕒 bypass 冷却中 {wait_seconds:.2f}s，等待后继续", host)
+                await asyncio.sleep(wait_seconds)
 
-            # 防止强刷风暴: 距离最近一次刷新过近时，优先复用缓存 cookies
-            if (
-                should_force_refresh
-                and cached_cookies
-                and last > 0
-                and (now - last) <= self._cf_force_refresh_min_interval
-            ):
-                self._log_cf("🕒 距离上次刷新过近，跳过强刷并复用缓存 cookies", host)
-                return dict(cached_cookies), cached_user_agent, ""
-
-            bypass_targets: list[str] = []
-            try:
-                u = httpx.URL(target_url)
-                if u.host:
-                    origin = f"{u.scheme}://{u.host}"
-                    if u.port and u.port not in (80, 443):
-                        origin += f":{u.port}"
-                    bypass_targets.append(origin)
-            except Exception:
-                pass
-            bypass_targets.append(target_url)
-            bypass_targets = list(dict.fromkeys(bypass_targets))
-
+            self._cf_last_bypass_attempt_at[host] = time.monotonic()
             error = ""
-            for bypass_target in bypass_targets:
-                if should_force_refresh:
-                    self._log_cf(f"🧨 使用强刷模式请求 bypass cookies: {bypass_target}", host)
-                self._log_cf(f"🔐 向 bypass 请求 cookies: {bypass_target}", host)
-                cookies, user_agent, error = await self._call_bypass_cookies(
-                    bypass_target,
-                    force_refresh=should_force_refresh,
+            for i in range(self._cf_bypass_retries):
+                if i == 0:
+                    self._log_cf(f"🔐 尝试 mirror bypass: {target_url}", host)
+                else:
+                    self._log_cf(f"🔁 mirror bypass 重试 ({i + 1}/{self._cf_bypass_retries})", host)
+
+                can_retry = True
+                bypass_response, mirror_error = await self._call_bypass_mirror(
+                    method=method,
+                    target_url=target_url,
+                    headers=headers,
+                    cookies=cookies,
                     use_proxy=use_proxy,
+                    data=data,
+                    json_data=json_data,
+                    timeout=timeout,
+                    allow_redirects=allow_redirects,
                 )
-                if cookies:
-                    resolved_user_agent = self._apply_cf_host_binding(host, cookies, user_agent)
-                    return cookies, resolved_user_agent, ""
+                if bypass_response is not None:
+                    self._cf_host_challenge_hits[host] = 0
+                    return bypass_response, ""
 
-            if not should_force_refresh:
-                for bypass_target in bypass_targets:
-                    self._log_cf(f"🧨 bypass cookies 无效，强制刷新: {bypass_target}", host)
-                    cookies, user_agent, error = await self._call_bypass_cookies(
-                        bypass_target,
-                        force_refresh=True,
-                        use_proxy=use_proxy,
-                    )
-                    if cookies:
-                        resolved_user_agent = self._apply_cf_host_binding(host, cookies, user_agent)
-                        return cookies, resolved_user_agent, ""
+                mirror_status = self._extract_http_status_from_bypass_error(mirror_error, prefix="mirror HTTP")
+                skip_html_fallback = mirror_status is not None and not self._is_retryable_status_code(mirror_status)
+                if skip_html_fallback:
+                    error = f"mirror 返回终态 HTTP {mirror_status}，跳过 /html 回退"
+                    can_retry = False
+                    self._log_cf(f"⚠️ {error}", host)
+                elif str(method).upper() == "GET":
+                    self._log_cf(f"↩️ mirror 失败，回退 /html: {mirror_error}", host)
+                    bypass_response, html_error = await self._call_bypass_html(target_url, use_proxy=use_proxy)
+                    if bypass_response is not None:
+                        self._cf_host_challenge_hits[host] = 0
+                        bypass_headers = {str(k): str(v) for k, v in bypass_response.headers.items()}
+                        final_url = self._extract_header_case_insensitive(bypass_headers, "x-cf-bypasser-final-url")
+                        if final_url and final_url.strip() and final_url.strip() != target_url:
+                            self._log_cf(f"🌐 /html 最终地址: {final_url}", host)
+                        return bypass_response, ""
+                    error = f"mirror: {mirror_error}; html: {html_error}"
+                else:
+                    error = f"mirror 失败且 {str(method).upper()} 不支持 /html 兜底: {mirror_error}"
+                    if mirror_status is not None and not self._is_retryable_status_code(mirror_status):
+                        can_retry = False
 
-            return {}, "", error
+                if not can_retry:
+                    break
+
+                if i < self._cf_bypass_retries - 1:
+                    sleep_seconds = self._calc_retry_sleep_seconds(i, after_cf_bypass=True)
+                    self._log_cf(f"⚠️ bypass 获取失败，{sleep_seconds:.2f}s 后重试: {error}", host)
+                    await asyncio.sleep(sleep_seconds)
+
+            return None, error or "bypass HTML 获取失败"
 
     async def request(
         self,
@@ -593,33 +606,11 @@ class AsyncWebClient:
             u = httpx.URL(url)
             host = u.host or ""
             prepared_headers = self._prepare_headers(url, dict(headers or {}))
-            host_bound_cookies = self._cf_host_cookies.get(host) if host else None
-            if host and not host_bound_cookies and self._cf_host_user_agents.get(host):
-                self._log_cf("⚠️ 检测到无 cookie 的 UA 绑定，已清理", host)
-                self._cf_host_user_agents.pop(host, None)
-
-            bound_user_agent = self._resolve_cf_cookie_user_agent(host, host_bound_cookies) if host else ""
-            if not bound_user_agent and host and host_bound_cookies:
-                fallback_bound_user_agent = self._cf_host_user_agents.get(host, "").strip()
-                if fallback_bound_user_agent:
-                    bound_user_agent = fallback_bound_user_agent
-                    self._remember_cf_cookie_user_agent(host, host_bound_cookies, bound_user_agent)
-
-            if bound_user_agent and host_bound_cookies:
-                request_user_agent = self._extract_header_case_insensitive(prepared_headers, "user-agent")
-                if request_user_agent.strip() and request_user_agent.strip() != bound_user_agent:
-                    self._log_cf("🧩 使用 bypass 绑定 UA 覆盖请求头 UA", host)
-                self._set_header_case_insensitive(prepared_headers, "User-Agent", bound_user_agent)
-
             limiter = self.limiters.get(u.host)
             retry_count = self.retry
             error_msg = ""
             bypass_round = 0
-            force_refresh_used = False
             host_retry_semaphore = await self._get_cf_host_retry_semaphore(host) if host else None
-
-            if enable_cf_bypass and self._cf_bypass_enabled and host and host in self._cf_host_cookies:
-                self._log_cf("🍪 使用缓存 bypass cookies", host)
 
             for attempt in range(retry_count):
                 # 增强的重试策略: 对网络错误和特定状态码都进行重试
@@ -629,7 +620,7 @@ class AsyncWebClient:
                 try:
                     await limiter.acquire()
                     req_headers = dict(prepared_headers)
-                    req_cookies = self._merge_cookies(cookies, host)
+                    req_cookies = self._merge_cookies(cookies)
                     if host_retry_semaphore is not None:
                         async with host_retry_semaphore:
                             resp: Response = await self.curl_session.request(
@@ -666,54 +657,64 @@ class AsyncWebClient:
                         if bypass_round >= self._cf_request_bypass_rounds:
                             error_msg = f"Cloudflare 挑战页持续存在，bypass 已达上限 ({self._cf_request_bypass_rounds})"
                             retry = False
-                            self._clear_cf_host_binding(host)
                             self._log_cf(f"🚫 {error_msg}", host)
                         else:
-                            current_force_refresh = bypass_round > 0 and not force_refresh_used
-                            if current_force_refresh:
-                                self._log_cf("🧨 再次命中挑战，尝试强制刷新 bypass cookies", host)
-                                self._clear_cf_host_binding(host)
-
-                            bypass_cookies, bypass_user_agent, bypass_error = await self._try_bypass_cloudflare(
+                            target_url = self._merge_url_params(url, params)
+                            bypass_response, bypass_error = await self._try_bypass_cloudflare(
                                 host=host,
-                                target_url=url,
+                                method=method,
+                                target_url=target_url,
+                                headers=req_headers,
+                                cookies=req_cookies,
+                                data=data,
+                                json_data=json_data,
+                                timeout=timeout,
+                                allow_redirects=allow_redirects,
                                 use_proxy=False,
-                                force_refresh=current_force_refresh,
                             )
                             bypass_round += 1
-                            if current_force_refresh:
-                                force_refresh_used = True
 
-                            if bypass_cookies:
-                                retry = attempt < retry_count - 1
-                                should_sleep_before_retry = True
-                                sleep_after_cf_bypass = True
-                                error_msg = "Cloudflare 挑战页"
-                                if bypass_user_agent:
-                                    self._set_header_case_insensitive(prepared_headers, "User-Agent", bypass_user_agent)
-                                    self._log_cf("🧩 已应用 bypass 返回的 User-Agent", host)
-                                else:
-                                    self._log_cf("⚠️ bypass 未返回 User-Agent，仅使用 cookies 重试", host)
-                                self._log_cf(
-                                    f"✅ bypass 成功，准备重试 ({bypass_round}/{self._cf_request_bypass_rounds})", host
+                            if bypass_response is not None:
+                                bypass_mode = self._extract_header_case_insensitive(
+                                    {str(k): str(v) for k, v in bypass_response.headers.items()},
+                                    "x-mdcx-bypass-mode",
                                 )
+                                if bypass_response.status_code >= 300 and not (
+                                    bypass_response.status_code == 302
+                                    and self._extract_header_case_insensitive(
+                                        {str(k): str(v) for k, v in bypass_response.headers.items()}, "location"
+                                    )
+                                ):
+                                    error_msg = (
+                                        f"HTTP {bypass_response.status_code} (bypass:{bypass_mode or 'unknown'})"
+                                    )
+                                    retry = attempt < retry_count - 1 and self._is_retryable_status_code(
+                                        bypass_response.status_code
+                                    )
+                                    self._log_cf(
+                                        f"⚠️ bypass 返回非成功状态: {error_msg}，将{'重试' if retry else '停止重试'}",
+                                        host,
+                                    )
+                                else:
+                                    self._log_cf(
+                                        f"✅ bypass 成功（模式: {bypass_mode or 'unknown'}），直接使用 bypass 响应",
+                                        host,
+                                    )
+                                    return bypass_response, ""
                             else:
                                 error_msg = f"Cloudflare 挑战页且 bypass 失败: {bypass_error}"
-                                retry = attempt < retry_count - 1 and bypass_round < self._cf_request_bypass_rounds
-                                self._log_cf(f"⚠️ bypass 失败: {bypass_error}", host)
+                                terminal_status = self._extract_terminal_bypass_status(bypass_error)
+                                if terminal_status is not None and not self._is_retryable_status_code(terminal_status):
+                                    retry = False
+                                    self._log_cf(f"🧱 bypass 命中终态 HTTP {terminal_status}，停止重试", host)
+                                else:
+                                    retry = attempt < retry_count - 1 and bypass_round < self._cf_request_bypass_rounds
+                                    self._log_cf(f"⚠️ bypass 失败: {bypass_error}", host)
 
                     # 检查响应状态
                     elif resp.status_code >= 300 and not (resp.status_code == 302 and resp.headers.get("Location")):
                         error_msg = f"HTTP {resp.status_code}"
-                        retry = resp.status_code in (
-                            500,  # Internal Server Error
-                            502,  # Bad Gateway
-                            503,  # Service Unavailable
-                            403,  # Forbidden
-                            408,  # Request Timeout
-                            429,  # Too Many Requests
-                            504,  # Gateway Timeout
-                        )
+                        retry = self._is_retryable_status_code(resp.status_code)
                     else:
                         self._log(f"✅ {method} {url} 成功")
                         if host:

@@ -2,11 +2,13 @@
 import asyncio
 import re
 import threading
+import time
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, overload
+from typing import Any, Literal, overload
 
 import aiofiles.os
+import httpx
 from lxml import etree
 from PIL import Image
 from ping3 import ping
@@ -18,7 +20,6 @@ from ..models.log_buffer import LogBuffer
 from ..signals import signal
 from ..utils import executor
 from ..utils.file import check_pic_async
-from .web_sync import get_json_sync
 
 
 @overload
@@ -394,16 +395,49 @@ def ping_host(host_address: str) -> str:
 def check_version() -> int | None:
     if manager.config.update_check:
         url = GITHUB_RELEASES_API_LATEST
-        res_json, error = get_json_sync(url)
-        if error == "任务已取消":
-            return None
-        if res_json is not None:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "mdcx-update-check",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+        timeout = max(float(manager.config.timeout), 5.0)
+        configured_proxy = manager.config.proxy.strip() if manager.config.use_proxy and manager.config.proxy else ""
+        request_proxies = [configured_proxy] if configured_proxy else []
+        request_proxies.append("")
+
+        last_error = ""
+        for proxy in dict.fromkeys(request_proxies):
             try:
-                latest_version = res_json["tag_name"]
-                latest_version = int(latest_version)
+                client_kwargs: dict[str, Any] = {"timeout": timeout, "follow_redirects": True}
+                if proxy:
+                    client_kwargs["proxy"] = proxy
+                with httpx.Client(**client_kwargs) as client:
+                    response = client.get(url, headers=headers)
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+            if response.status_code != 200:
+                if response.status_code == 403 and response.headers.get("x-ratelimit-remaining") == "0":
+                    reset_raw = response.headers.get("x-ratelimit-reset", "")
+                    if reset_raw.isdigit():
+                        reset_at = time.strftime("%H:%M:%S", time.localtime(int(reset_raw)))
+                        last_error = f"GitHub API 限流（403，剩余 0，预计重置 {reset_at}）"
+                    else:
+                        last_error = "GitHub API 限流（403，剩余 0）"
+                else:
+                    last_error = f"HTTP {response.status_code}"
+                continue
+
+            try:
+                latest_version = int(str(response.json()["tag_name"]).strip())
                 return latest_version
             except Exception:
-                signal.add_log(f"❌ 获取最新版本失败！{res_json}")
+                signal.add_log(f"❌ 获取最新版本失败！{response.text}")
+                return None
+
+        if last_error:
+            signal.add_log(f"❌ 获取最新版本失败！{last_error}")
     return None
 
 

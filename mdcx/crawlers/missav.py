@@ -294,6 +294,18 @@ class MissavCrawler(BaseCrawler):
         "api",
         "cdn-cgi",
     }
+    SOFT_404_TITLE_MARKERS = {
+        "missav | 免費高清av在線看",
+        "missav | 免费高清av在线看",
+        "missav | free jav online streaming",
+        "missav | 無料エロ動画見放題",
+    }
+    SOFT_404_TEXT_MARKERS = {
+        "找不到頁面",
+        "找不到页面",
+        "page not found",
+        "not found",
+    }
 
     @staticmethod
     def _log(message: str) -> None:
@@ -389,6 +401,26 @@ class MissavCrawler(BaseCrawler):
         if path_parts:
             return path_parts[-1].lower()
         return ""
+
+    @classmethod
+    def _is_soft_404_page(cls, html: Selector) -> bool:
+        og_title = (
+            extract_text(html, "//meta[@property='og:title']/@content", "normalize-space(//title)").strip().lower()
+        )
+        og_image = extract_text(html, "//meta[@property='og:image']/@content").strip().lower()
+
+        h1_texts = [text.strip().lower() for text in html.xpath("//h1//text()").getall() if text and text.strip()]
+        p_texts = [text.strip().lower() for text in html.xpath("//p//text()").getall() if text and text.strip()]
+        text_blob = " ".join(h1_texts + p_texts)
+
+        has_404_code = bool(re.search(r"(^|\s)404(\s|$)", text_blob))
+        has_not_found_text = any(marker.lower() in text_blob for marker in cls.SOFT_404_TEXT_MARKERS)
+        is_generic_title = any(marker in og_title for marker in cls.SOFT_404_TITLE_MARKERS)
+        is_logo_thumb = "logo-square.png" in og_image
+
+        if has_not_found_text and has_404_code:
+            return True
+        return is_generic_title and is_logo_thumb and has_404_code
 
     def _build_direct_detail_url(self, number: str) -> str:
         raw_number = (number or "").strip()
@@ -546,6 +578,9 @@ class MissavCrawler(BaseCrawler):
 
     @override
     async def _parse_detail_page(self, ctx, html: Selector, detail_url: str) -> CrawlerData | None:
+        if self._is_soft_404_page(html):
+            raise CralwerException(f"MissAV 详情页不存在或已下架: {detail_url}")
+
         canonical_url = extract_text(html, "//meta[@property='og:url']/@content")
         final_detail_url = canonical_url or detail_url
         data = await self.parser.parse(ctx, html, external_id=self._extract_external_id(final_detail_url))
