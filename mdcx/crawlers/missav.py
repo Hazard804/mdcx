@@ -5,7 +5,7 @@ from urllib.parse import quote, urljoin, urlparse
 from parsel import Selector
 
 from ..config.models import Website
-from ..number import is_uncensored
+from ..number import get_file_number, is_uncensored
 from ..signals import signal
 from .base import BaseCrawler, CralwerException, CrawlerData, DetailPageParser, extract_all_texts, extract_text
 
@@ -400,15 +400,38 @@ class MissavCrawler(BaseCrawler):
         return f"{self.base_url}/search/{quote(raw_number)}"
 
     @classmethod
+    def _normalize_number_for_uncensored_judge(cls, number: str) -> str:
+        raw_number = (number or "").strip()
+        if not raw_number:
+            return ""
+
+        try:
+            normalized = get_file_number(raw_number, [])
+        except Exception:
+            normalized = raw_number
+
+        normalized = (normalized or "").strip().lower().replace("_", "-")
+        if not normalized:
+            return ""
+
+        parsed = cls._parse_code_parts(normalized)
+        if parsed:
+            prefix, digits = parsed
+            return f"{prefix}-{cls._normalize_digits_for_number(digits)}"
+
+        if match := re.match(r"^(\d{6}[-_]\d{3,4})", normalized):
+            return match.group(1)
+        return normalized
+
+    @classmethod
     def _should_use_uncensored_search(cls, number: str, mosaic: str = "") -> bool:
-        number = (number or "").strip()
-        if not number:
+        _ = mosaic
+        normalized_number = cls._normalize_number_for_uncensored_judge(number)
+        if not normalized_number:
             return False
-        if any(x in (mosaic or "") for x in ("无码", "無碼", "無修正")):
+        if is_uncensored(normalized_number):
             return True
-        if is_uncensored(number):
-            return True
-        return bool(cls.UNCENSORED_DATE_PATTERN.fullmatch(number))
+        return bool(cls.UNCENSORED_DATE_PATTERN.fullmatch(normalized_number))
 
     @classmethod
     def _is_search_mode_url(cls, url: str) -> bool:
