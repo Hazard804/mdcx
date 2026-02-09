@@ -396,6 +396,7 @@ def save_config(self: "MyMAinWindow"):
         (self.Ui.checkBox_theme_videos, DownloadableFile.THEME_VIDEOS),
         (self.Ui.checkBox_ignore_pic_fail, DownloadableFile.IGNORE_PIC_FAIL),
         (self.Ui.checkBox_ignore_youma, DownloadableFile.IGNORE_YOUMA),
+        (self.Ui.checkBox_youma_use_poster, DownloadableFile.YOUMA_USE_POSTER),
         (self.Ui.checkBox_ignore_wuma, DownloadableFile.IGNORE_WUMA),
         (self.Ui.checkBox_ignore_fc2, DownloadableFile.IGNORE_FC2),
         (self.Ui.checkBox_ignore_guochan, DownloadableFile.IGNORE_GUOCHAN),

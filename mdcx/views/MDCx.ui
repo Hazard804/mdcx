@@ -8908,6 +8908,45 @@
                           </layout>
                         </item>
                         <item>
+                          <layout class="QHBoxLayout" name="horizontalLayout_youma_use_poster">
+                            <item>
+                              <widget class="QCheckBox" name="checkBox_youma_use_poster">
+                                <property name="sizePolicy">
+                                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                    <horstretch>0</horstretch>
+                                    <verstretch>0</verstretch>
+                                  </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                  <size>
+                                    <width>30</width>
+                                    <height>0</height>
+                                  </size>
+                                </property>
+                                <property name="text">
+                                  <string>有码优先使用 Poster，不按 SOD/VR 判定</string>
+                                </property>
+                              </widget>
+                            </item>
+                            <item>
+                              <widget class="QLabel" name="label_youma_use_poster">
+                                <property name="sizePolicy">
+                                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                    <horstretch>0</horstretch>
+                                    <verstretch>0</verstretch>
+                                  </sizepolicy>
+                                </property>
+                                <property name="styleSheet">
+                                  <string notr="true">color: rgb(8, 128, 128);</string>
+                                </property>
+                                <property name="text">
+                                  <string> 有码封面默认直下 Poster（ps.jpg），失败后仍会回退裁剪</string>
+                                </property>
+                              </widget>
+                            </item>
+                          </layout>
+                        </item>
+                        <item>
                           <layout class="QHBoxLayout" name="horizontalLayout_87">
                             <item>
                               <widget class="QCheckBox" name="checkBox_ignore_wuma">

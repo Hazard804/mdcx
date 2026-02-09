@@ -715,6 +715,14 @@ async def poster_download(
             LogBuffer.log().write(f"\n 🍀 Poster done! (copy thumb)({get_used_time(start_time)}s)")
             return True
 
+    if (
+        result.mosaic in ["有码", "有碼"]
+        and DownloadableFile.YOUMA_USE_POSTER in download_files
+        and DownloadableFile.IGNORE_YOUMA not in download_files
+    ):
+        result.image_download = True
+        LogBuffer.log().write("\n 🖼 有码封面策略: 已启用「有码优先使用 Poster」，不走 SOD/VR 裁剪判定")
+
     # 获取高清 poster
     await _get_big_poster(result, other)
 
