@@ -43,6 +43,7 @@ class AsyncWebClient:
         retry: int = 3,
         timeout: float,
         cf_bypass_url: str = "",
+        cf_bypass_proxy: str | None = None,
         log_fn: Callable[[str], None] | None = None,
         limiters: AsyncWebLimiters | None = None,
         loop=None,
@@ -62,8 +63,10 @@ class AsyncWebClient:
         self.limiters = limiters if limiters is not None else AsyncWebLimiters()
 
         self.cf_bypass_url = cf_bypass_url.strip().rstrip("/")
+        self.cf_bypass_proxy = (cf_bypass_proxy or "").strip()
         self._cf_bypass_enabled = bool(self.cf_bypass_url)
         self._cf_host_locks: dict[str, asyncio.Lock] = {}
+        self._cf_force_refresh_locks: dict[str, asyncio.Lock] = {}
         self._cf_host_retry_semaphores: dict[str, asyncio.Semaphore] = {}
         self._cf_locks_guard = asyncio.Lock()
         self._cf_last_bypass_attempt_at: dict[str, float] = {}
@@ -117,6 +120,10 @@ class AsyncWebClient:
     async def _get_cf_host_lock(self, host: str) -> asyncio.Lock:
         async with self._cf_locks_guard:
             return self._cf_host_locks.setdefault(host, asyncio.Lock())
+
+    async def _get_cf_force_refresh_lock(self, host: str) -> asyncio.Lock:
+        async with self._cf_locks_guard:
+            return self._cf_force_refresh_locks.setdefault(host, asyncio.Lock())
 
     async def _get_cf_host_retry_semaphore(self, host: str) -> asyncio.Semaphore:
         async with self._cf_locks_guard:
@@ -255,6 +262,12 @@ class AsyncWebClient:
 
         return self._extract_http_status_from_bypass_error(error, prefix="HTTP")
 
+    def _is_mirror_cf_challenge_error(self, error: str) -> bool:
+        if not error:
+            return False
+        normalized = error.strip()
+        return normalized.startswith("mirror 返回 Cloudflare 挑战页") or "Cloudflare 挑战页" in normalized
+
     def _bind_response_effective_url(self, response: Response, final_url: str) -> None:
         normalized = (final_url or "").strip()
         if not normalized:
@@ -268,6 +281,11 @@ class AsyncWebClient:
         except Exception:
             pass
 
+    def _resolve_cf_bypass_proxy(self, *, use_proxy: bool) -> str:
+        if not use_proxy:
+            return ""
+        return (self.cf_bypass_proxy or "").strip()
+
     def _prepare_mirror_headers(
         self,
         *,
@@ -275,12 +293,18 @@ class AsyncWebClient:
         target_host: str,
         cookies: dict[str, str] | None,
         use_proxy: bool,
+        bypass_cache: bool = False,
     ) -> dict[str, str]:
         mirror_headers = dict(headers or {})
         self._pop_header_case_insensitive(mirror_headers, "host")
         self._set_header_case_insensitive(mirror_headers, "x-hostname", target_host)
-        if use_proxy and self.proxy:
-            self._set_header_case_insensitive(mirror_headers, "x-proxy", self.proxy)
+        self._pop_header_case_insensitive(mirror_headers, "x-proxy")
+        self._pop_header_case_insensitive(mirror_headers, "x-bypass-cache")
+        bypass_proxy = self._resolve_cf_bypass_proxy(use_proxy=use_proxy)
+        if bypass_proxy:
+            self._set_header_case_insensitive(mirror_headers, "x-proxy", bypass_proxy)
+        if bypass_cache:
+            self._set_header_case_insensitive(mirror_headers, "x-bypass-cache", "true")
 
         header_cookie_map = self._parse_cookie_header(self._extract_header_case_insensitive(mirror_headers, "cookie"))
         merged_cookie_map = dict(cookies or {})
@@ -350,6 +374,7 @@ class AsyncWebClient:
         headers: dict[str, str] | None,
         cookies: dict[str, str] | None,
         use_proxy: bool,
+        bypass_cache: bool = False,
         data: dict[str, str] | list[tuple] | str | BytesIO | bytes | None = None,
         json_data: dict[str, Any] | None = None,
         timeout: float | httpx.Timeout | None = None,
@@ -373,12 +398,18 @@ class AsyncWebClient:
             if not target_host:
                 return None, "mirror 目标 URL 缺少 host"
 
+            if redirect_index == 0 and self._resolve_cf_bypass_proxy(use_proxy=use_proxy):
+                self._log_cf("🌐 mirror bypass 将使用独立代理", target_host)
+            if redirect_index == 0 and bypass_cache:
+                self._log_cf("♻️ mirror bypass 将强制刷新 cookies", target_host)
+
             mirror_url = self._build_mirror_url(current_url)
             mirror_headers = self._prepare_mirror_headers(
                 headers=headers,
                 target_host=target_host,
                 cookies=cookies,
                 use_proxy=use_proxy,
+                bypass_cache=bypass_cache,
             )
             try:
                 limiter = self.limiters.get("127.0.0.1")
@@ -448,17 +479,27 @@ class AsyncWebClient:
         target_url: str,
         *,
         use_proxy: bool,
+        bypass_cache: bool = False,
     ) -> tuple[Response | None, str]:
         if not self._cf_bypass_enabled:
             return None, "未配置 bypass 地址"
 
+        params: dict[str, Any] = {"url": target_url}
+        bypass_proxy = self._resolve_cf_bypass_proxy(use_proxy=use_proxy)
+        if bypass_proxy:
+            params["proxy"] = bypass_proxy
+            self._log_cf("🌐 /html bypass 将使用独立代理")
+        if bypass_cache:
+            params["bypassCookieCache"] = "true"
+            self._log_cf("♻️ /html bypass 将强制刷新 cookies")
+
         response, error = await self.request(
             "GET",
             f"{self.cf_bypass_url}/html",
-            use_proxy=use_proxy,
+            use_proxy=False,
             allow_redirects=True,
             timeout=self._cf_bypass_timeout,
-            params={"url": target_url},
+            params=params,
             enable_cf_bypass=False,
         )
 
@@ -517,14 +558,17 @@ class AsyncWebClient:
                     self._log_cf(f"🔐 尝试 mirror bypass: {target_url}", host)
                 else:
                     self._log_cf(f"🔁 mirror bypass 重试 ({i + 1}/{self._cf_bypass_retries})", host)
+                force_bypass_cache = i > 0
 
                 can_retry = True
+                html_bypass_cache = force_bypass_cache
                 bypass_response, mirror_error = await self._call_bypass_mirror(
                     method=method,
                     target_url=target_url,
                     headers=headers,
                     cookies=cookies,
                     use_proxy=use_proxy,
+                    bypass_cache=force_bypass_cache,
                     data=data,
                     json_data=json_data,
                     timeout=timeout,
@@ -534,6 +578,27 @@ class AsyncWebClient:
                     self._cf_host_challenge_hits[host] = 0
                     return bypass_response, ""
 
+                if self._is_mirror_cf_challenge_error(mirror_error) and not force_bypass_cache:
+                    refresh_lock = await self._get_cf_force_refresh_lock(host)
+                    async with refresh_lock:
+                        self._log_cf("♻️ mirror 命中挑战页，判定缓存可能失效，强制刷新后重试 mirror", host)
+                        bypass_response, mirror_error = await self._call_bypass_mirror(
+                            method=method,
+                            target_url=target_url,
+                            headers=headers,
+                            cookies=cookies,
+                            use_proxy=use_proxy,
+                            bypass_cache=True,
+                            data=data,
+                            json_data=json_data,
+                            timeout=timeout,
+                            allow_redirects=allow_redirects,
+                        )
+                    if bypass_response is not None:
+                        self._cf_host_challenge_hits[host] = 0
+                        return bypass_response, ""
+                    html_bypass_cache = False
+
                 mirror_status = self._extract_http_status_from_bypass_error(mirror_error, prefix="mirror HTTP")
                 skip_html_fallback = mirror_status is not None and not self._is_retryable_status_code(mirror_status)
                 if skip_html_fallback:
@@ -541,8 +606,13 @@ class AsyncWebClient:
                     can_retry = False
                     self._log_cf(f"⚠️ {error}", host)
                 elif str(method).upper() == "GET":
-                    self._log_cf(f"↩️ mirror 失败，回退 /html: {mirror_error}", host)
-                    bypass_response, html_error = await self._call_bypass_html(target_url, use_proxy=use_proxy)
+                    if html_bypass_cache:
+                        self._log_cf(f"↩️ mirror 失败（强刷已启用），回退 /html: {mirror_error}", host)
+                    else:
+                        self._log_cf(f"↩️ mirror 失败，回退 /html: {mirror_error}", host)
+                    bypass_response, html_error = await self._call_bypass_html(
+                        target_url, use_proxy=use_proxy, bypass_cache=html_bypass_cache
+                    )
                     if bypass_response is not None:
                         self._cf_host_challenge_hits[host] = 0
                         bypass_headers = {str(k): str(v) for k, v in bypass_response.headers.items()}
@@ -670,7 +740,7 @@ class AsyncWebClient:
                                 json_data=json_data,
                                 timeout=timeout,
                                 allow_redirects=allow_redirects,
-                                use_proxy=False,
+                                use_proxy=bool((self.cf_bypass_proxy or "").strip()),
                             )
                             bypass_round += 1
 

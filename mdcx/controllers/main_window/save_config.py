@@ -627,6 +627,7 @@ def save_config(self: "MyMAinWindow"):
     proxy = self.Ui.lineEdit_proxy.text()  # 代理地址
     manager.config.proxy = proxy
     manager.config.cf_bypass_url = self.Ui.lineEdit_cf_bypass_url.text().strip()  # Cloudflare bypass 地址
+    manager.config.cf_bypass_proxy = self.Ui.lineEdit_cf_bypass_proxy.text().strip()  # Cloudflare bypass 独立代理
     manager.config.timeout = self.Ui.horizontalSlider_timeout.value()  # 超时时间
     manager.config.retry = self.Ui.horizontalSlider_retry.value()  # 重试次数
 

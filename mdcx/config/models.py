@@ -615,6 +615,7 @@ class Config(BaseModel):
     use_proxy: bool = Field(default=False, title="代理类型")
     proxy: str = Field(default="http://127.0.0.1:7890", title="代理地址")
     cf_bypass_url: str = Field(default="", title="Cloudflare Bypass地址")
+    cf_bypass_proxy: str = Field(default="", title="Cloudflare Bypass代理地址")
     timeout: int = Field(default=10, title="超时")
     retry: int = Field(default=3, title="重试")
     theporndb_api_token: str = Field(default="", title="Theporndb API令牌")
@@ -758,6 +759,11 @@ class Config(BaseModel):
             if r and all(schema not in r for schema in ["http://", "https://"]):
                 r = "http://" + r
             d["cf_bypass_url"] = r
+        if isinstance(r := d.get("cf_bypass_proxy"), str):
+            r = r.strip()
+            if r and all(schema not in r for schema in ["http://", "https://", "socks4://", "socks5://", "socks5h://"]):
+                r = "http://" + r
+            d["cf_bypass_proxy"] = r
         if isinstance(r := d.get("nfo_tag_actor_contains"), str):
             d["nfo_tag_actor_contains"] = str_to_list(r, "|")
         if isinstance(r := d.get("use_database"), int):

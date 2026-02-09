@@ -32,6 +32,7 @@ class Computed:
             retry=config.retry,
             timeout=config.timeout,
             cf_bypass_url=config.cf_bypass_url,
+            cf_bypass_proxy=config.cf_bypass_proxy,
             log_fn=signal.add_log,
         )
 

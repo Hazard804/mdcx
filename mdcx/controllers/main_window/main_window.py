@@ -7,6 +7,7 @@ import traceback
 import webbrowser
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
+from urllib.parse import quote_plus
 
 from PyQt5.QtCore import QEvent, QPoint, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QCursor, QHoverEvent, QIcon, QKeySequence
@@ -2061,6 +2062,10 @@ class MyMAinWindow(QMainWindow):
                         each[1] = "ℹ️ 未配置（仅遇到 CF 挑战页时才需要）"
                     else:
                         health_url = each[0].rstrip("/") + "/cookies?url=http://example.com"
+                        bypass_proxy = manager.config.cf_bypass_proxy.strip()
+                        if bypass_proxy:
+                            signal_qt.show_net_info("   🔧 使用 CF Bypass 独立代理进行连通性检测")
+                            health_url += "&proxy=" + quote_plus(bypass_proxy)
                         html_info, error = get_text_sync(health_url, use_proxy=False)
                         if html_info is None:
                             each[1] = "❌ 连接失败 请检查服务是否启动！ " + str(error)

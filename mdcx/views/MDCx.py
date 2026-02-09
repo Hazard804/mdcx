@@ -41,8 +41,7 @@ class Ui_MDCx(object):
         self.label_number = QtWidgets.QLabel(self.page_main)
         self.label_number.setGeometry(QtCore.QRect(80, 70, 161, 40))
         self.label_number.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.label_number.setStyleSheet("border:0px solid rgba(0, 0, 0, 80);\n"
-"                color:#336699")
+        self.label_number.setStyleSheet("border:0px solid rgba(0, 0, 0, 80);\n                color:#336699")
         self.label_number.setFrameShape(QtWidgets.QFrame.Box)
         self.label_number.setLineWidth(0)
         self.label_number.setText("")
@@ -66,8 +65,7 @@ class Ui_MDCx(object):
         self.label_actor = QtWidgets.QLabel(self.page_main)
         self.label_actor.setGeometry(QtCore.QRect(300, 70, 161, 40))
         self.label_actor.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.label_actor.setStyleSheet("border:0px solid rgba(0, 0, 0, 80);\n"
-"                color:#336699")
+        self.label_actor.setStyleSheet("border:0px solid rgba(0, 0, 0, 80);\n                color:#336699")
         self.label_actor.setFrameShape(QtWidgets.QFrame.Box)
         self.label_actor.setLineWidth(0)
         self.label_actor.setText("")
@@ -81,7 +79,7 @@ class Ui_MDCx(object):
         self.label_outline.setText("")
         self.label_outline.setTextFormat(QtCore.Qt.PlainText)
         self.label_outline.setScaledContents(False)
-        self.label_outline.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_outline.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_outline.setWordWrap(False)
         self.label_outline.setObjectName("label_outline")
         self.label_18 = QtWidgets.QLabel(self.page_main)
@@ -178,7 +176,7 @@ class Ui_MDCx(object):
         self.label_result.setAutoFillBackground(False)
         self.label_result.setFrameShape(QtWidgets.QFrame.Box)
         self.label_result.setLineWidth(0)
-        self.label_result.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_result.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_result.setObjectName("label_result")
         self.label_22 = QtWidgets.QLabel(self.page_main)
         self.label_22.setGeometry(QtCore.QRect(310, 530, 50, 40))
@@ -272,7 +270,9 @@ class Ui_MDCx(object):
         self.treeWidget_number.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.treeWidget_number.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
         self.treeWidget_number.setAutoScroll(True)
-        self.treeWidget_number.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked|QtWidgets.QAbstractItemView.EditKeyPressed)
+        self.treeWidget_number.setEditTriggers(
+            QtWidgets.QAbstractItemView.DoubleClicked | QtWidgets.QAbstractItemView.EditKeyPressed
+        )
         self.treeWidget_number.setTabKeyNavigation(False)
         self.treeWidget_number.setProperty("showDropIndicator", True)
         self.treeWidget_number.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
@@ -315,7 +315,7 @@ class Ui_MDCx(object):
         self.label_source.setFrameShape(QtWidgets.QFrame.Box)
         self.label_source.setLineWidth(0)
         self.label_source.setText("")
-        self.label_source.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_source.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_source.setObjectName("label_source")
         self.pushButton_select_media_folder = QtWidgets.QPushButton(self.page_main)
         self.pushButton_select_media_folder.setGeometry(QtCore.QRect(565, 13, 101, 40))
@@ -328,7 +328,7 @@ class Ui_MDCx(object):
         self.label_poster_size.setLineWidth(0)
         self.label_poster_size.setText("")
         self.label_poster_size.setScaledContents(False)
-        self.label_poster_size.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_poster_size.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_poster_size.setWordWrap(True)
         self.label_poster_size.setObjectName("label_poster_size")
         self.label_thumb_size = QtWidgets.QLabel(self.page_main)
@@ -340,7 +340,7 @@ class Ui_MDCx(object):
         self.label_thumb_size.setStyleSheet("color: rgba(0, 0, 0, 200);")
         self.label_thumb_size.setLineWidth(0)
         self.label_thumb_size.setText("")
-        self.label_thumb_size.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_thumb_size.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_thumb_size.setObjectName("label_thumb_size")
         self.pushButton_play = QtWidgets.QPushButton(self.page_main)
         self.pushButton_play.setGeometry(QtCore.QRect(507, 110, 40, 40))
@@ -546,38 +546,38 @@ class Ui_MDCx(object):
         self.pushButton_select_file.setObjectName("pushButton_select_file")
         self.lineEdit_appoint_url = QtWidgets.QLineEdit(self.groupBox_7)
         self.lineEdit_appoint_url.setGeometry(QtCore.QRect(140, 100, 351, 30))
-        self.lineEdit_appoint_url.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                      border-radius: 15px;\n"
-"")
+        self.lineEdit_appoint_url.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n                      border-radius: 15px;\n"
+        )
         self.lineEdit_appoint_url.setObjectName("lineEdit_appoint_url")
         self.label_10 = QtWidgets.QLabel(self.groupBox_7)
         self.label_10.setGeometry(QtCore.QRect(60, 100, 80, 30))
-        self.label_10.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_10.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_10.setObjectName("label_10")
         self.pushButton_start_single_file = QtWidgets.QPushButton(self.groupBox_7)
         self.pushButton_start_single_file.setGeometry(QtCore.QRect(140, 210, 351, 40))
         self.pushButton_start_single_file.setObjectName("pushButton_start_single_file")
         self.label_3 = QtWidgets.QLabel(self.groupBox_7)
         self.label_3.setGeometry(QtCore.QRect(60, 40, 80, 30))
-        self.label_3.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_3.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_3.setObjectName("label_3")
         self.label = QtWidgets.QLabel(self.groupBox_7)
         self.label.setGeometry(QtCore.QRect(60, 160, 611, 31))
         self.label.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label.setObjectName("label")
         self.lineEdit_single_file_path = QtWidgets.QLineEdit(self.groupBox_7)
         self.lineEdit_single_file_path.setGeometry(QtCore.QRect(140, 40, 351, 30))
-        self.lineEdit_single_file_path.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                      border-radius: 15px;\n"
-"")
+        self.lineEdit_single_file_path.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n                      border-radius: 15px;\n"
+        )
         self.lineEdit_single_file_path.setObjectName("lineEdit_single_file_path")
         self.pushButton_select_file_clear_info = QtWidgets.QPushButton(self.groupBox_7)
         self.pushButton_select_file_clear_info.setGeometry(QtCore.QRect(510, 100, 151, 40))
         self.pushButton_select_file_clear_info.setObjectName("pushButton_select_file_clear_info")
         self.groupBox_13 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_gongju)
         self.groupBox_13.setGeometry(QtCore.QRect(30, 760, 701, 141))
-        self.groupBox_13.setStyleSheet("font:\"Courier\";")
+        self.groupBox_13.setStyleSheet('font:"Courier";')
         self.groupBox_13.setObjectName("groupBox_13")
         self.pushButton_select_thumb = QtWidgets.QPushButton(self.groupBox_13)
         self.pushButton_select_thumb.setGeometry(QtCore.QRect(140, 80, 351, 40))
@@ -605,9 +605,9 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_actors_name.sizePolicy().hasHeightForWidth())
         self.lineEdit_actors_name.setSizePolicy(sizePolicy)
         self.lineEdit_actors_name.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_actors_name.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_actors_name.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n                                border-radius: 15px;\n"
+        )
         self.lineEdit_actors_name.setObjectName("lineEdit_actors_name")
         self.horizontalLayout_61.addWidget(self.lineEdit_actors_name)
         self.gridLayout_18.addLayout(self.horizontalLayout_61, 1, 1, 1, 1)
@@ -619,7 +619,7 @@ class Ui_MDCx(object):
         self.label_53.setSizePolicy(sizePolicy)
         self.label_53.setMinimumSize(QtCore.QSize(100, 0))
         self.label_53.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_53.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_53.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_53.setObjectName("label_53")
         self.gridLayout_18.addWidget(self.label_53, 1, 0, 1, 1)
         self.horizontalLayout_59 = QtWidgets.QHBoxLayout()
@@ -631,9 +631,9 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_local_library_path.sizePolicy().hasHeightForWidth())
         self.lineEdit_local_library_path.setSizePolicy(sizePolicy)
         self.lineEdit_local_library_path.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_local_library_path.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_local_library_path.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n                                border-radius: 15px;\n"
+        )
         self.lineEdit_local_library_path.setObjectName("lineEdit_local_library_path")
         self.horizontalLayout_59.addWidget(self.lineEdit_local_library_path)
         self.gridLayout_18.addLayout(self.horizontalLayout_59, 0, 1, 1, 1)
@@ -645,7 +645,7 @@ class Ui_MDCx(object):
         self.label_72.setSizePolicy(sizePolicy)
         self.label_72.setMinimumSize(QtCore.QSize(0, 0))
         self.label_72.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_72.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_72.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_72.setObjectName("label_72")
         self.gridLayout_18.addWidget(self.label_72, 0, 0, 1, 1)
         self.pushButton_find_missing_number = QtWidgets.QPushButton(self.groupBox_19)
@@ -671,18 +671,18 @@ class Ui_MDCx(object):
         self.pushButton_move_mp4.setObjectName("pushButton_move_mp4")
         self.label_41 = QtWidgets.QLabel(self.groupBox_6)
         self.label_41.setGeometry(QtCore.QRect(70, 30, 80, 30))
-        self.label_41.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_41.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_41.setObjectName("label_41")
         self.lineEdit_escape_dir_move = QtWidgets.QLineEdit(self.groupBox_6)
         self.lineEdit_escape_dir_move.setGeometry(QtCore.QRect(140, 30, 351, 30))
-        self.lineEdit_escape_dir_move.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                      border-radius: 15px;\n"
-"")
+        self.lineEdit_escape_dir_move.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n                      border-radius: 15px;\n"
+        )
         self.lineEdit_escape_dir_move.setObjectName("lineEdit_escape_dir_move")
         self.label_8 = QtWidgets.QLabel(self.groupBox_6)
         self.label_8.setGeometry(QtCore.QRect(50, 70, 591, 31))
         self.label_8.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_8.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_8.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_8.setObjectName("label_8")
         self.groupBox_21 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_gongju)
         self.groupBox_21.setGeometry(QtCore.QRect(30, 920, 701, 311))
@@ -702,9 +702,9 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_localdisk_path.sizePolicy().hasHeightForWidth())
         self.lineEdit_localdisk_path.setSizePolicy(sizePolicy)
         self.lineEdit_localdisk_path.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_localdisk_path.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_localdisk_path.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n                                border-radius: 15px;\n"
+        )
         self.lineEdit_localdisk_path.setObjectName("lineEdit_localdisk_path")
         self.horizontalLayout_116.addWidget(self.lineEdit_localdisk_path)
         self.gridLayout_56.addLayout(self.horizontalLayout_116, 1, 1, 1, 1)
@@ -716,7 +716,7 @@ class Ui_MDCx(object):
         self.label_338.setSizePolicy(sizePolicy)
         self.label_338.setMinimumSize(QtCore.QSize(100, 0))
         self.label_338.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_338.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_338.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_338.setObjectName("label_338")
         self.gridLayout_56.addWidget(self.label_338, 1, 0, 1, 1)
         self.horizontalLayout_117 = QtWidgets.QHBoxLayout()
@@ -728,9 +728,9 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_netdisk_path.sizePolicy().hasHeightForWidth())
         self.lineEdit_netdisk_path.setSizePolicy(sizePolicy)
         self.lineEdit_netdisk_path.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_netdisk_path.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_netdisk_path.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n                                border-radius: 15px;\n"
+        )
         self.lineEdit_netdisk_path.setObjectName("lineEdit_netdisk_path")
         self.horizontalLayout_117.addWidget(self.lineEdit_netdisk_path)
         self.gridLayout_56.addLayout(self.horizontalLayout_117, 0, 1, 1, 1)
@@ -742,7 +742,7 @@ class Ui_MDCx(object):
         self.label_339.setSizePolicy(sizePolicy)
         self.label_339.setMinimumSize(QtCore.QSize(0, 0))
         self.label_339.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_339.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_339.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_339.setObjectName("label_339")
         self.gridLayout_56.addWidget(self.label_339, 0, 0, 1, 1)
         self.pushButton_creat_symlink = QtWidgets.QPushButton(self.groupBox_21)
@@ -760,7 +760,7 @@ class Ui_MDCx(object):
         self.label_340.setSizePolicy(sizePolicy)
         self.label_340.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_340.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_340.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_340.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_340.setObjectName("label_340")
         self.pushButton_select_localdisk_path = QtWidgets.QPushButton(self.groupBox_21)
         self.pushButton_select_localdisk_path.setGeometry(QtCore.QRect(510, 90, 151, 40))
@@ -789,7 +789,7 @@ class Ui_MDCx(object):
         self.label_341.setMinimumSize(QtCore.QSize(0, 0))
         self.label_341.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_341.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_341.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_341.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_341.setObjectName("label_341")
         self.verticalLayout_6.addWidget(self.label_341)
         self.checkBox_create_link = QtWidgets.QCheckBox(self.groupBox_21)
@@ -867,10 +867,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_movie_softlink_path.sizePolicy().hasHeightForWidth())
         self.lineEdit_movie_softlink_path.setSizePolicy(sizePolicy)
         self.lineEdit_movie_softlink_path.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_movie_softlink_path.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_movie_softlink_path.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_movie_softlink_path.setObjectName("lineEdit_movie_softlink_path")
         self.horizontalLayout_134.addWidget(self.lineEdit_movie_softlink_path)
         self.pushButton_select_softlink_folder = QtWidgets.QPushButton(self.gridLayoutWidget_7)
@@ -900,7 +902,7 @@ class Ui_MDCx(object):
         self.label_49.setSizePolicy(sizePolicy)
         self.label_49.setMinimumSize(QtCore.QSize(0, 0))
         self.label_49.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_49.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_49.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_49.setObjectName("label_49")
         self.gridLayout_7.addWidget(self.label_49, 0, 0, 1, 1)
         self.horizontalLayout_45 = QtWidgets.QHBoxLayout()
@@ -912,10 +914,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_escape_dir.sizePolicy().hasHeightForWidth())
         self.lineEdit_escape_dir.setSizePolicy(sizePolicy)
         self.lineEdit_escape_dir.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_escape_dir.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_escape_dir.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_escape_dir.setObjectName("lineEdit_escape_dir")
         self.horizontalLayout_45.addWidget(self.lineEdit_escape_dir)
         self.checkBox_no_escape_dir = QtWidgets.QCheckBox(self.gridLayoutWidget_7)
@@ -959,7 +963,7 @@ class Ui_MDCx(object):
         self.label_47.setMinimumSize(QtCore.QSize(0, 0))
         self.label_47.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_47.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_47.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_47.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_47.setObjectName("label_47")
         self.gridLayout_7.addWidget(self.label_47, 5, 0, 1, 1)
         self.horizontalLayout_11 = QtWidgets.QHBoxLayout()
@@ -971,9 +975,9 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_movie_path.sizePolicy().hasHeightForWidth())
         self.lineEdit_movie_path.setSizePolicy(sizePolicy)
         self.lineEdit_movie_path.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_movie_path.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_movie_path.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n                                    border-radius: 15px;\n"
+        )
         self.lineEdit_movie_path.setObjectName("lineEdit_movie_path")
         self.horizontalLayout_11.addWidget(self.lineEdit_movie_path)
         self.pushButton_select_media_folder_setting_page = QtWidgets.QPushButton(self.gridLayoutWidget_7)
@@ -994,7 +998,7 @@ class Ui_MDCx(object):
         self.label_48.setSizePolicy(sizePolicy)
         self.label_48.setMinimumSize(QtCore.QSize(130, 0))
         self.label_48.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_48.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_48.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_48.setObjectName("label_48")
         self.gridLayout_7.addWidget(self.label_48, 9, 0, 1, 1)
         self.label_57 = QtWidgets.QLabel(self.gridLayoutWidget_7)
@@ -1015,10 +1019,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_fail.sizePolicy().hasHeightForWidth())
         self.lineEdit_fail.setSizePolicy(sizePolicy)
         self.lineEdit_fail.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_fail.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_fail.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_fail.setObjectName("lineEdit_fail")
         self.horizontalLayout_32.addWidget(self.lineEdit_fail)
         self.pushButton_select_failed_folder = QtWidgets.QPushButton(self.gridLayoutWidget_7)
@@ -1040,7 +1046,7 @@ class Ui_MDCx(object):
         self.label_382.setMinimumSize(QtCore.QSize(0, 0))
         self.label_382.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_382.setText("")
-        self.label_382.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_382.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_382.setObjectName("label_382")
         self.gridLayout_7.addWidget(self.label_382, 3, 0, 1, 1)
         self.label_46 = QtWidgets.QLabel(self.gridLayoutWidget_7)
@@ -1051,7 +1057,7 @@ class Ui_MDCx(object):
         self.label_46.setSizePolicy(sizePolicy)
         self.label_46.setMinimumSize(QtCore.QSize(0, 0))
         self.label_46.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_46.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_46.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_46.setObjectName("label_46")
         self.gridLayout_7.addWidget(self.label_46, 7, 0, 1, 1)
         self.horizontalLayout_31 = QtWidgets.QHBoxLayout()
@@ -1063,10 +1069,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_success.sizePolicy().hasHeightForWidth())
         self.lineEdit_success.setSizePolicy(sizePolicy)
         self.lineEdit_success.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_success.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_success.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_success.setObjectName("lineEdit_success")
         self.horizontalLayout_31.addWidget(self.lineEdit_success)
         self.pushButton_select_sucess_folder = QtWidgets.QPushButton(self.gridLayoutWidget_7)
@@ -1116,7 +1124,7 @@ class Ui_MDCx(object):
         self.label_336.setMinimumSize(QtCore.QSize(0, 0))
         self.label_336.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_336.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_336.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_336.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_336.setObjectName("label_336")
         self.gridLayout_19.addWidget(self.label_336, 4, 0, 1, 1)
         self.label_337 = QtWidgets.QLabel(self.gridLayoutWidget_19)
@@ -1166,10 +1174,12 @@ class Ui_MDCx(object):
         self.lineEdit_escape_size.setSizePolicy(sizePolicy)
         self.lineEdit_escape_size.setMinimumSize(QtCore.QSize(0, 30))
         self.lineEdit_escape_size.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_escape_size.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_escape_size.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_escape_size.setObjectName("lineEdit_escape_size")
         self.horizontalLayout_44.addWidget(self.lineEdit_escape_size)
         self.checkBox_no_escape_file = QtWidgets.QCheckBox(self.gridLayoutWidget_19)
@@ -1191,7 +1201,7 @@ class Ui_MDCx(object):
         self.label_346.setMinimumSize(QtCore.QSize(130, 0))
         self.label_346.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_346.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_346.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_346.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_346.setObjectName("label_346")
         self.gridLayout_19.addWidget(self.label_346, 0, 0, 1, 1)
         self.lineEdit_escape_string = QtWidgets.QLineEdit(self.gridLayoutWidget_19)
@@ -1202,10 +1212,12 @@ class Ui_MDCx(object):
         self.lineEdit_escape_string.setSizePolicy(sizePolicy)
         self.lineEdit_escape_string.setMinimumSize(QtCore.QSize(0, 30))
         self.lineEdit_escape_string.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_escape_string.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_escape_string.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_escape_string.setObjectName("lineEdit_escape_string")
         self.gridLayout_19.addWidget(self.lineEdit_escape_string, 6, 1, 1, 1)
         self.label_88 = QtWidgets.QLabel(self.gridLayoutWidget_19)
@@ -1256,7 +1268,7 @@ class Ui_MDCx(object):
         self.label_83.setMinimumSize(QtCore.QSize(130, 0))
         self.label_83.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_83.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_83.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_83.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_83.setObjectName("label_83")
         self.gridLayout_19.addWidget(self.label_83, 6, 0, 1, 1)
         self.label_93 = QtWidgets.QLabel(self.gridLayoutWidget_19)
@@ -1268,7 +1280,7 @@ class Ui_MDCx(object):
         self.label_93.setMinimumSize(QtCore.QSize(0, 0))
         self.label_93.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_93.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_93.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_93.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_93.setObjectName("label_93")
         self.gridLayout_19.addWidget(self.label_93, 2, 0, 1, 1)
         self.groupBox_61 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_guaxiaomulu)
@@ -1291,10 +1303,12 @@ class Ui_MDCx(object):
         self.lineEdit_clean_file_ext.setSizePolicy(sizePolicy)
         self.lineEdit_clean_file_ext.setMinimumSize(QtCore.QSize(0, 30))
         self.lineEdit_clean_file_ext.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_clean_file_ext.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_clean_file_ext.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_clean_file_ext.setObjectName("lineEdit_clean_file_ext")
         self.horizontalLayout_80.addWidget(self.lineEdit_clean_file_ext)
         self.checkBox_clean_file_ext = QtWidgets.QCheckBox(self.gridLayoutWidget_34)
@@ -1316,7 +1330,7 @@ class Ui_MDCx(object):
         self.label_177.setMinimumSize(QtCore.QSize(130, 0))
         self.label_177.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_177.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_177.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_177.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_177.setObjectName("label_177")
         self.gridLayout_52.addWidget(self.label_177, 1, 0, 1, 1)
         self.label_184 = QtWidgets.QLabel(self.gridLayoutWidget_34)
@@ -1328,7 +1342,7 @@ class Ui_MDCx(object):
         self.label_184.setMinimumSize(QtCore.QSize(0, 0))
         self.label_184.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_184.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_184.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_184.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_184.setObjectName("label_184")
         self.gridLayout_52.addWidget(self.label_184, 3, 0, 1, 1)
         self.horizontalLayout_84 = QtWidgets.QHBoxLayout()
@@ -1341,10 +1355,12 @@ class Ui_MDCx(object):
         self.lineEdit_clean_excluded_file_ext.setSizePolicy(sizePolicy)
         self.lineEdit_clean_excluded_file_ext.setMinimumSize(QtCore.QSize(0, 30))
         self.lineEdit_clean_excluded_file_ext.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_clean_excluded_file_ext.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_clean_excluded_file_ext.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_clean_excluded_file_ext.setObjectName("lineEdit_clean_excluded_file_ext")
         self.horizontalLayout_84.addWidget(self.lineEdit_clean_excluded_file_ext)
         self.checkBox_clean_excluded_file_ext = QtWidgets.QCheckBox(self.gridLayoutWidget_34)
@@ -1366,7 +1382,7 @@ class Ui_MDCx(object):
         self.label_178.setMinimumSize(QtCore.QSize(0, 0))
         self.label_178.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_178.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_178.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_178.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_178.setObjectName("label_178")
         self.gridLayout_52.addWidget(self.label_178, 2, 0, 1, 1)
         self.label_262 = QtWidgets.QLabel(self.gridLayoutWidget_34)
@@ -1392,10 +1408,12 @@ class Ui_MDCx(object):
         self.lineEdit_clean_file_contains.setSizePolicy(sizePolicy)
         self.lineEdit_clean_file_contains.setMinimumSize(QtCore.QSize(0, 30))
         self.lineEdit_clean_file_contains.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_clean_file_contains.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_clean_file_contains.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_clean_file_contains.setObjectName("lineEdit_clean_file_contains")
         self.horizontalLayout_81.addWidget(self.lineEdit_clean_file_contains)
         self.checkBox_clean_file_contains = QtWidgets.QCheckBox(self.gridLayoutWidget_34)
@@ -1426,7 +1444,7 @@ class Ui_MDCx(object):
         self.label_261.setMinimumSize(QtCore.QSize(0, 0))
         self.label_261.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_261.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_261.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_261.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_261.setObjectName("label_261")
         self.gridLayout_52.addWidget(self.label_261, 7, 0, 1, 1)
         self.label_270 = QtWidgets.QLabel(self.gridLayoutWidget_34)
@@ -1453,10 +1471,12 @@ class Ui_MDCx(object):
         self.lineEdit_clean_excluded_file_contains.setSizePolicy(sizePolicy)
         self.lineEdit_clean_excluded_file_contains.setMinimumSize(QtCore.QSize(0, 30))
         self.lineEdit_clean_excluded_file_contains.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_clean_excluded_file_contains.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_clean_excluded_file_contains.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_clean_excluded_file_contains.setObjectName("lineEdit_clean_excluded_file_contains")
         self.horizontalLayout_79.addWidget(self.lineEdit_clean_excluded_file_contains)
         self.checkBox_clean_excluded_file_contains = QtWidgets.QCheckBox(self.gridLayoutWidget_34)
@@ -1478,7 +1498,7 @@ class Ui_MDCx(object):
         self.label_202.setMinimumSize(QtCore.QSize(130, 0))
         self.label_202.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_202.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_202.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_202.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_202.setObjectName("label_202")
         self.gridLayout_52.addWidget(self.label_202, 6, 0, 1, 1)
         self.label_263 = QtWidgets.QLabel(self.gridLayoutWidget_34)
@@ -1490,7 +1510,7 @@ class Ui_MDCx(object):
         self.label_263.setMinimumSize(QtCore.QSize(0, 0))
         self.label_263.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_263.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_263.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_263.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_263.setObjectName("label_263")
         self.gridLayout_52.addWidget(self.label_263, 4, 0, 1, 1)
         self.label_162 = QtWidgets.QLabel(self.gridLayoutWidget_34)
@@ -1512,10 +1532,12 @@ class Ui_MDCx(object):
         self.lineEdit_clean_file_size.setSizePolicy(sizePolicy)
         self.lineEdit_clean_file_size.setMinimumSize(QtCore.QSize(0, 30))
         self.lineEdit_clean_file_size.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_clean_file_size.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_clean_file_size.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_clean_file_size.setObjectName("lineEdit_clean_file_size")
         self.horizontalLayout_83.addWidget(self.lineEdit_clean_file_size)
         self.checkBox_clean_file_size = QtWidgets.QCheckBox(self.gridLayoutWidget_34)
@@ -1538,10 +1560,12 @@ class Ui_MDCx(object):
         self.lineEdit_clean_file_name.setSizePolicy(sizePolicy)
         self.lineEdit_clean_file_name.setMinimumSize(QtCore.QSize(0, 30))
         self.lineEdit_clean_file_name.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_clean_file_name.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_clean_file_name.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_clean_file_name.setObjectName("lineEdit_clean_file_name")
         self.horizontalLayout_65.addWidget(self.lineEdit_clean_file_name)
         self.checkBox_clean_file_name = QtWidgets.QCheckBox(self.gridLayoutWidget_34)
@@ -1619,10 +1643,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_movie_type.sizePolicy().hasHeightForWidth())
         self.lineEdit_movie_type.setSizePolicy(sizePolicy)
         self.lineEdit_movie_type.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_movie_type.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_movie_type.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_movie_type.setObjectName("lineEdit_movie_type")
         self.gridLayout_16.addWidget(self.lineEdit_movie_type, 0, 1, 1, 1)
         self.label_78 = QtWidgets.QLabel(self.gridLayoutWidget_16)
@@ -1633,7 +1659,7 @@ class Ui_MDCx(object):
         self.label_78.setSizePolicy(sizePolicy)
         self.label_78.setMinimumSize(QtCore.QSize(0, 30))
         self.label_78.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_78.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_78.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_78.setObjectName("label_78")
         self.gridLayout_16.addWidget(self.label_78, 1, 0, 1, 1)
         self.lineEdit_sub_type = QtWidgets.QLineEdit(self.gridLayoutWidget_16)
@@ -1643,10 +1669,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_sub_type.sizePolicy().hasHeightForWidth())
         self.lineEdit_sub_type.setSizePolicy(sizePolicy)
         self.lineEdit_sub_type.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_sub_type.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_sub_type.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_sub_type.setObjectName("lineEdit_sub_type")
         self.gridLayout_16.addWidget(self.lineEdit_sub_type, 1, 1, 1, 1)
         self.label_50 = QtWidgets.QLabel(self.gridLayoutWidget_16)
@@ -1657,7 +1685,7 @@ class Ui_MDCx(object):
         self.label_50.setSizePolicy(sizePolicy)
         self.label_50.setMinimumSize(QtCore.QSize(130, 0))
         self.label_50.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_50.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_50.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_50.setObjectName("label_50")
         self.gridLayout_16.addWidget(self.label_50, 0, 0, 1, 1)
         self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_guaxiaomulu)
@@ -1712,7 +1740,7 @@ class Ui_MDCx(object):
         self.label_231.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_231.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_231.setText("")
-        self.label_231.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_231.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_231.setObjectName("label_231")
         self.gridLayout_2.addWidget(self.label_231, 5, 0, 1, 1)
         self.horizontalLayout_122 = QtWidgets.QHBoxLayout()
@@ -1738,11 +1766,13 @@ class Ui_MDCx(object):
         self.pushButton_tips_read_mode.setMouseTracking(True)
         self.pushButton_tips_read_mode.setToolTipDuration(500000)
         self.pushButton_tips_read_mode.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.pushButton_tips_read_mode.setStyleSheet("QPushButton{border-color: rgba(255, 255, 255,\n"
-"                                    0);\n"
-"                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
-"                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
-"                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}")
+        self.pushButton_tips_read_mode.setStyleSheet(
+            "QPushButton{border-color: rgba(255, 255, 255,\n"
+            "                                    0);\n"
+            "                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
+            "                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
+            "                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}"
+        )
         self.pushButton_tips_read_mode.setText("")
         icon = QtGui.QIcon.fromTheme("system-help")
         self.pushButton_tips_read_mode.setIcon(icon)
@@ -1800,7 +1830,7 @@ class Ui_MDCx(object):
         self.label_252.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_252.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_252.setText("")
-        self.label_252.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_252.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_252.setObjectName("label_252")
         self.horizontalLayout_85.addWidget(self.label_252)
         self.horizontalLayout_50 = QtWidgets.QHBoxLayout()
@@ -1887,11 +1917,13 @@ class Ui_MDCx(object):
         self.pushButton_tips_update_mode.setMouseTracking(True)
         self.pushButton_tips_update_mode.setToolTipDuration(500000)
         self.pushButton_tips_update_mode.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.pushButton_tips_update_mode.setStyleSheet("QPushButton{border-color: rgba(255, 255, 255,\n"
-"                                    0);\n"
-"                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
-"                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
-"                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}")
+        self.pushButton_tips_update_mode.setStyleSheet(
+            "QPushButton{border-color: rgba(255, 255, 255,\n"
+            "                                    0);\n"
+            "                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
+            "                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
+            "                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}"
+        )
         self.pushButton_tips_update_mode.setText("")
         icon = QtGui.QIcon.fromTheme("system-help")
         self.pushButton_tips_update_mode.setIcon(icon)
@@ -1944,11 +1976,13 @@ class Ui_MDCx(object):
         self.pushButton_tips_sort_mode.setMouseTracking(True)
         self.pushButton_tips_sort_mode.setToolTipDuration(500000)
         self.pushButton_tips_sort_mode.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.pushButton_tips_sort_mode.setStyleSheet("QPushButton{border-color: rgba(255, 255, 255,\n"
-"                                    0);\n"
-"                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
-"                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
-"                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}")
+        self.pushButton_tips_sort_mode.setStyleSheet(
+            "QPushButton{border-color: rgba(255, 255, 255,\n"
+            "                                    0);\n"
+            "                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
+            "                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
+            "                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}"
+        )
         self.pushButton_tips_sort_mode.setText("")
         icon = QtGui.QIcon.fromTheme("system-help")
         self.pushButton_tips_sort_mode.setIcon(icon)
@@ -1991,7 +2025,7 @@ class Ui_MDCx(object):
         self.label_344.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_344.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_344.setText("")
-        self.label_344.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_344.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_344.setObjectName("label_344")
         self.gridLayout_2.addWidget(self.label_344, 2, 0, 1, 1)
         self.horizontalLayout_126 = QtWidgets.QHBoxLayout()
@@ -2017,11 +2051,13 @@ class Ui_MDCx(object):
         self.pushButton_tips_normal_mode.setMouseTracking(True)
         self.pushButton_tips_normal_mode.setToolTipDuration(500000)
         self.pushButton_tips_normal_mode.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.pushButton_tips_normal_mode.setStyleSheet("QPushButton{border-color: rgba(255, 255, 255,\n"
-"                                    0);\n"
-"                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
-"                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
-"                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}")
+        self.pushButton_tips_normal_mode.setStyleSheet(
+            "QPushButton{border-color: rgba(255, 255, 255,\n"
+            "                                    0);\n"
+            "                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
+            "                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
+            "                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}"
+        )
         self.pushButton_tips_normal_mode.setText("")
         icon = QtGui.QIcon.fromTheme("system-help")
         self.pushButton_tips_normal_mode.setIcon(icon)
@@ -2177,7 +2213,7 @@ class Ui_MDCx(object):
         self.label_219.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_219.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_219.setText("")
-        self.label_219.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_219.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_219.setObjectName("label_219")
         self.gridLayout_5.addWidget(self.label_219, 6, 0, 1, 1)
         self.horizontalLayout_51 = QtWidgets.QHBoxLayout()
@@ -2191,7 +2227,7 @@ class Ui_MDCx(object):
         self.label_218.setMinimumSize(QtCore.QSize(80, 0))
         self.label_218.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_218.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_218.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_218.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_218.setObjectName("label_218")
         self.horizontalLayout_51.addWidget(self.label_218)
         self.lineEdit_update_d_folder = QtWidgets.QLineEdit(self.gridLayoutWidget_5)
@@ -2201,10 +2237,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_update_d_folder.sizePolicy().hasHeightForWidth())
         self.lineEdit_update_d_folder.setSizePolicy(sizePolicy)
         self.lineEdit_update_d_folder.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_update_d_folder.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_update_d_folder.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_update_d_folder.setObjectName("lineEdit_update_d_folder")
         self.horizontalLayout_51.addWidget(self.lineEdit_update_d_folder)
         self.gridLayout_5.addLayout(self.horizontalLayout_51, 6, 1, 1, 1)
@@ -2237,7 +2275,7 @@ class Ui_MDCx(object):
         self.label_278.setMinimumSize(QtCore.QSize(80, 0))
         self.label_278.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_278.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_278.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_278.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_278.setObjectName("label_278")
         self.horizontalLayout_156.addWidget(self.label_278)
         self.lineEdit_update_c_filetemplate = QtWidgets.QLineEdit(self.gridLayoutWidget_5)
@@ -2247,10 +2285,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_update_c_filetemplate.sizePolicy().hasHeightForWidth())
         self.lineEdit_update_c_filetemplate.setSizePolicy(sizePolicy)
         self.lineEdit_update_c_filetemplate.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_update_c_filetemplate.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_update_c_filetemplate.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_update_c_filetemplate.setObjectName("lineEdit_update_c_filetemplate")
         self.horizontalLayout_156.addWidget(self.lineEdit_update_c_filetemplate)
         self.gridLayout_5.addLayout(self.horizontalLayout_156, 2, 1, 1, 1)
@@ -2264,7 +2304,7 @@ class Ui_MDCx(object):
         self.label_220.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_220.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_220.setText("")
-        self.label_220.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_220.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_220.setObjectName("label_220")
         self.gridLayout_5.addWidget(self.label_220, 3, 0, 1, 1)
         self.horizontalLayout_48 = QtWidgets.QHBoxLayout()
@@ -2278,7 +2318,7 @@ class Ui_MDCx(object):
         self.label_210.setMinimumSize(QtCore.QSize(80, 0))
         self.label_210.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_210.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_210.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_210.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_210.setObjectName("label_210")
         self.horizontalLayout_48.addWidget(self.label_210)
         self.lineEdit_update_b_folder = QtWidgets.QLineEdit(self.gridLayoutWidget_5)
@@ -2288,10 +2328,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_update_b_folder.sizePolicy().hasHeightForWidth())
         self.lineEdit_update_b_folder.setSizePolicy(sizePolicy)
         self.lineEdit_update_b_folder.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_update_b_folder.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_update_b_folder.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_update_b_folder.setObjectName("lineEdit_update_b_folder")
         self.horizontalLayout_48.addWidget(self.lineEdit_update_b_folder)
         self.gridLayout_5.addLayout(self.horizontalLayout_48, 3, 1, 1, 1)
@@ -2343,7 +2385,7 @@ class Ui_MDCx(object):
         self.label_221.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_221.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_221.setText("")
-        self.label_221.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_221.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_221.setObjectName("label_221")
         self.gridLayout_5.addWidget(self.label_221, 4, 0, 1, 1)
         self.horizontalLayout_60 = QtWidgets.QHBoxLayout()
@@ -2364,10 +2406,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_update_a_folder.sizePolicy().hasHeightForWidth())
         self.lineEdit_update_a_folder.setSizePolicy(sizePolicy)
         self.lineEdit_update_a_folder.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_update_a_folder.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"                                  ")
+        self.lineEdit_update_a_folder.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            "                                  "
+        )
         self.lineEdit_update_a_folder.setObjectName("lineEdit_update_a_folder")
         self.horizontalLayout_60.addWidget(self.lineEdit_update_a_folder)
         self.gridLayout_5.addLayout(self.horizontalLayout_60, 4, 1, 1, 1)
@@ -2382,7 +2426,7 @@ class Ui_MDCx(object):
         self.label_294.setMinimumSize(QtCore.QSize(80, 0))
         self.label_294.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_294.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_294.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_294.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_294.setObjectName("label_294")
         self.horizontalLayout_157.addWidget(self.label_294)
         self.lineEdit_update_titletemplate = QtWidgets.QLineEdit(self.gridLayoutWidget_5)
@@ -2392,10 +2436,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_update_titletemplate.sizePolicy().hasHeightForWidth())
         self.lineEdit_update_titletemplate.setSizePolicy(sizePolicy)
         self.lineEdit_update_titletemplate.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_update_titletemplate.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_update_titletemplate.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_update_titletemplate.setObjectName("lineEdit_update_titletemplate")
         self.horizontalLayout_157.addWidget(self.lineEdit_update_titletemplate)
         self.gridLayout_5.addLayout(self.horizontalLayout_157, 8, 1, 1, 1)
@@ -2416,7 +2462,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_21.sizePolicy().hasHeightForWidth())
         self.label_21.setSizePolicy(sizePolicy)
         self.label_21.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_21.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_21.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_21.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_21.setObjectName("label_21")
         self.label_304 = QtWidgets.QLabel(self.groupBox_5)
@@ -2430,7 +2476,7 @@ class Ui_MDCx(object):
         self.label_304.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_304.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_304.setText("")
-        self.label_304.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_304.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_304.setObjectName("label_304")
         self.groupBox_18 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_guaxiaomoshi)
         self.groupBox_18.setGeometry(QtCore.QRect(30, 1410, 701, 111))
@@ -2475,7 +2521,7 @@ class Ui_MDCx(object):
         self.gridLayout_13.addWidget(self.radioButton_succ_rename_off, 1, 0, 1, 1)
         self.groupBox_53 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_guaxiaomoshi)
         self.groupBox_53.setGeometry(QtCore.QRect(30, 20, 701, 221))
-        self.groupBox_53.setStyleSheet("font:\"Courier\";")
+        self.groupBox_53.setStyleSheet('font:"Courier";')
         self.groupBox_53.setObjectName("groupBox_53")
         self.gridLayoutWidget_15 = QtWidgets.QWidget(self.groupBox_53)
         self.gridLayoutWidget_15.setGeometry(QtCore.QRect(50, 30, 631, 181))
@@ -2703,11 +2749,13 @@ class Ui_MDCx(object):
         self.pushButton_tips_soft.setMouseTracking(True)
         self.pushButton_tips_soft.setToolTipDuration(500000)
         self.pushButton_tips_soft.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.pushButton_tips_soft.setStyleSheet("QPushButton{border-color: rgba(255, 255, 255,\n"
-"                                    0);\n"
-"                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
-"                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
-"                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}")
+        self.pushButton_tips_soft.setStyleSheet(
+            "QPushButton{border-color: rgba(255, 255, 255,\n"
+            "                                    0);\n"
+            "                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
+            "                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
+            "                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}"
+        )
         self.pushButton_tips_soft.setText("")
         icon = QtGui.QIcon.fromTheme("system-help")
         self.pushButton_tips_soft.setIcon(icon)
@@ -2748,11 +2796,13 @@ class Ui_MDCx(object):
         self.pushButton_tips_hard.setMouseTracking(True)
         self.pushButton_tips_hard.setToolTipDuration(500000)
         self.pushButton_tips_hard.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.pushButton_tips_hard.setStyleSheet("QPushButton{border-color: rgba(255, 255, 255,\n"
-"                                    0);\n"
-"                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
-"                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
-"                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}")
+        self.pushButton_tips_hard.setStyleSheet(
+            "QPushButton{border-color: rgba(255, 255, 255,\n"
+            "                                    0);\n"
+            "                                    background-color: rgba(255, 255, 255, 0);border-radius:10px;}\n"
+            "                                    QPushButton:hover{background-color: rgba(255, 255, 255, 20);}\n"
+            "                                    QPushButton:pressed{ background-color: rgba(255, 255, 255, 10);}"
+        )
         self.pushButton_tips_hard.setText("")
         icon = QtGui.QIcon.fromTheme("system-help")
         self.pushButton_tips_hard.setIcon(icon)
@@ -2807,10 +2857,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_website_oumei.sizePolicy().hasHeightForWidth())
         self.lineEdit_website_oumei.setSizePolicy(sizePolicy)
         self.lineEdit_website_oumei.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_website_oumei.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_website_oumei.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_website_oumei.setObjectName("lineEdit_website_oumei")
         self.gridLayout_36.addWidget(self.lineEdit_website_oumei, 8, 1, 1, 1)
         self.label_151 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -2822,7 +2874,7 @@ class Ui_MDCx(object):
         self.label_151.setMinimumSize(QtCore.QSize(0, 30))
         self.label_151.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_151.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_151.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_151.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_151.setObjectName("label_151")
         self.gridLayout_36.addWidget(self.label_151, 2, 0, 1, 1)
         self.label_316 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -2834,7 +2886,7 @@ class Ui_MDCx(object):
         self.label_316.setMinimumSize(QtCore.QSize(0, 30))
         self.label_316.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_316.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_316.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_316.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_316.setObjectName("label_316")
         self.gridLayout_36.addWidget(self.label_316, 12, 0, 1, 1)
         self.lineEdit_website_fc2 = QtWidgets.QLineEdit(self.layoutWidget_6)
@@ -2844,10 +2896,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_website_fc2.sizePolicy().hasHeightForWidth())
         self.lineEdit_website_fc2.setSizePolicy(sizePolicy)
         self.lineEdit_website_fc2.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_website_fc2.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_website_fc2.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_website_fc2.setObjectName("lineEdit_website_fc2")
         self.gridLayout_36.addWidget(self.lineEdit_website_fc2, 6, 1, 1, 1)
         self.label_322 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -2859,7 +2913,7 @@ class Ui_MDCx(object):
         self.label_322.setMinimumSize(QtCore.QSize(0, 30))
         self.label_322.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_322.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_322.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_322.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_322.setObjectName("label_322")
         self.gridLayout_36.addWidget(self.label_322, 13, 0, 1, 1)
         self.label_232 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -2906,10 +2960,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_website_wuma.sizePolicy().hasHeightForWidth())
         self.lineEdit_website_wuma.setSizePolicy(sizePolicy)
         self.lineEdit_website_wuma.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_website_wuma.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_website_wuma.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_website_wuma.setObjectName("lineEdit_website_wuma")
         self.gridLayout_36.addWidget(self.lineEdit_website_wuma, 2, 1, 1, 1)
         self.lineEdit_website_suren = QtWidgets.QLineEdit(self.layoutWidget_6)
@@ -2919,10 +2975,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_website_suren.sizePolicy().hasHeightForWidth())
         self.lineEdit_website_suren.setSizePolicy(sizePolicy)
         self.lineEdit_website_suren.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_website_suren.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_website_suren.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_website_suren.setObjectName("lineEdit_website_suren")
         self.gridLayout_36.addWidget(self.lineEdit_website_suren, 4, 1, 1, 1)
         self.label_149 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -2934,7 +2992,7 @@ class Ui_MDCx(object):
         self.label_149.setMinimumSize(QtCore.QSize(0, 30))
         self.label_149.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_149.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_149.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_149.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_149.setObjectName("label_149")
         self.gridLayout_36.addWidget(self.label_149, 8, 0, 1, 1)
         self.label_155 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -2984,7 +3042,7 @@ class Ui_MDCx(object):
         self.label_152.setMinimumSize(QtCore.QSize(0, 30))
         self.label_152.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_152.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_152.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_152.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_152.setObjectName("label_152")
         self.gridLayout_36.addWidget(self.label_152, 4, 0, 1, 1)
         self.lineEdit_website_youma = QtWidgets.QLineEdit(self.layoutWidget_6)
@@ -2994,10 +3052,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_website_youma.sizePolicy().hasHeightForWidth())
         self.lineEdit_website_youma.setSizePolicy(sizePolicy)
         self.lineEdit_website_youma.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_website_youma.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_website_youma.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_website_youma.setObjectName("lineEdit_website_youma")
         self.gridLayout_36.addWidget(self.lineEdit_website_youma, 0, 1, 1, 1)
         self.label_153 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -3009,7 +3069,7 @@ class Ui_MDCx(object):
         self.label_153.setMinimumSize(QtCore.QSize(120, 30))
         self.label_153.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_153.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_153.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_153.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_153.setObjectName("label_153")
         self.gridLayout_36.addWidget(self.label_153, 0, 0, 1, 1)
         self.label_148 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -3020,7 +3080,7 @@ class Ui_MDCx(object):
         self.label_148.setSizePolicy(sizePolicy)
         self.label_148.setMinimumSize(QtCore.QSize(0, 30))
         self.label_148.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_148.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_148.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_148.setObjectName("label_148")
         self.gridLayout_36.addWidget(self.label_148, 6, 0, 1, 1)
         self.lineEdit_website_guochan = QtWidgets.QLineEdit(self.layoutWidget_6)
@@ -3030,10 +3090,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_website_guochan.sizePolicy().hasHeightForWidth())
         self.lineEdit_website_guochan.setSizePolicy(sizePolicy)
         self.lineEdit_website_guochan.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_website_guochan.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_website_guochan.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_website_guochan.setObjectName("lineEdit_website_guochan")
         self.gridLayout_36.addWidget(self.lineEdit_website_guochan, 10, 1, 1, 1)
         self.label_217 = QtWidgets.QLabel(self.layoutWidget_6)
@@ -3045,7 +3107,7 @@ class Ui_MDCx(object):
         self.label_217.setMinimumSize(QtCore.QSize(0, 30))
         self.label_217.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_217.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_217.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_217.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_217.setObjectName("label_217")
         self.gridLayout_36.addWidget(self.label_217, 10, 0, 1, 1)
         self.groupBox_35 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_guaxiaowangzhan)
@@ -3066,10 +3128,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_actors_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_actors_website.setSizePolicy(sizePolicy)
         self.lineEdit_actors_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_actors_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_actors_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_actors_website.setObjectName("lineEdit_actors_website")
         self.gridLayout_41.addWidget(self.lineEdit_actors_website, 4, 1, 1, 1)
         self.label_114 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3081,7 +3145,7 @@ class Ui_MDCx(object):
         self.label_114.setMinimumSize(QtCore.QSize(120, 30))
         self.label_114.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_114.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_114.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_114.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_114.setObjectName("label_114")
         self.gridLayout_41.addWidget(self.label_114, 0, 0, 1, 1)
         self.lineEdit_title_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3091,10 +3155,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_title_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_title_website.setSizePolicy(sizePolicy)
         self.lineEdit_title_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_title_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_title_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_title_website.setObjectName("lineEdit_title_website")
         self.gridLayout_41.addWidget(self.lineEdit_title_website, 0, 1, 1, 1)
         self.lineEdit_outline_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3104,10 +3170,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_outline_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_outline_website.setSizePolicy(sizePolicy)
         self.lineEdit_outline_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_outline_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_outline_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_outline_website.setObjectName("lineEdit_outline_website")
         self.gridLayout_41.addWidget(self.lineEdit_outline_website, 2, 1, 1, 1)
         self.lineEdit_poster_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3117,10 +3185,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_poster_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_poster_website.setSizePolicy(sizePolicy)
         self.lineEdit_poster_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_poster_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_poster_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_poster_website.setObjectName("lineEdit_poster_website")
         self.gridLayout_41.addWidget(self.lineEdit_poster_website, 7, 1, 1, 1)
         self.label_227 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3132,7 +3202,7 @@ class Ui_MDCx(object):
         self.label_227.setMinimumSize(QtCore.QSize(120, 30))
         self.label_227.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_227.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_227.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_227.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_227.setObjectName("label_227")
         self.gridLayout_41.addWidget(self.label_227, 14, 0, 1, 1)
         self.label_182 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3144,7 +3214,7 @@ class Ui_MDCx(object):
         self.label_182.setMinimumSize(QtCore.QSize(120, 30))
         self.label_182.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_182.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_182.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_182.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_182.setObjectName("label_182")
         self.gridLayout_41.addWidget(self.label_182, 11, 0, 1, 1)
         self.lineEdit_extrafanart_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3154,10 +3224,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_extrafanart_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_extrafanart_website.setSizePolicy(sizePolicy)
         self.lineEdit_extrafanart_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_extrafanart_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_extrafanart_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_extrafanart_website.setObjectName("lineEdit_extrafanart_website")
         self.gridLayout_41.addWidget(self.lineEdit_extrafanart_website, 8, 1, 1, 1)
         self.lineEdit_score_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3167,10 +3239,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_score_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_score_website.setSizePolicy(sizePolicy)
         self.lineEdit_score_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_score_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_score_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_score_website.setObjectName("lineEdit_score_website")
         self.gridLayout_41.addWidget(self.lineEdit_score_website, 13, 1, 1, 1)
         self.label_129 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3182,7 +3256,7 @@ class Ui_MDCx(object):
         self.label_129.setMinimumSize(QtCore.QSize(120, 30))
         self.label_129.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_129.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_129.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_129.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_129.setObjectName("label_129")
         self.gridLayout_41.addWidget(self.label_129, 1, 0, 1, 1)
         self.label_406 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3194,7 +3268,7 @@ class Ui_MDCx(object):
         self.label_406.setMinimumSize(QtCore.QSize(120, 30))
         self.label_406.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_406.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_406.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_406.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_406.setObjectName("label_406")
         self.gridLayout_41.addWidget(self.label_406, 2, 0, 1, 1)
         self.lineEdit_originaltitle_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3204,10 +3278,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_originaltitle_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_originaltitle_website.setSizePolicy(sizePolicy)
         self.lineEdit_originaltitle_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_originaltitle_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_originaltitle_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_originaltitle_website.setObjectName("lineEdit_originaltitle_website")
         self.gridLayout_41.addWidget(self.lineEdit_originaltitle_website, 1, 1, 1, 1)
         self.label_191 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3219,7 +3295,7 @@ class Ui_MDCx(object):
         self.label_191.setMinimumSize(QtCore.QSize(120, 30))
         self.label_191.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_191.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_191.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_191.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_191.setObjectName("label_191")
         self.gridLayout_41.addWidget(self.label_191, 6, 0, 1, 1)
         self.label_183 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3231,7 +3307,7 @@ class Ui_MDCx(object):
         self.label_183.setMinimumSize(QtCore.QSize(120, 30))
         self.label_183.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_183.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_183.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_183.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_183.setObjectName("label_183")
         self.gridLayout_41.addWidget(self.label_183, 13, 0, 1, 1)
         self.label_144 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3243,7 +3319,7 @@ class Ui_MDCx(object):
         self.label_144.setMinimumSize(QtCore.QSize(120, 30))
         self.label_144.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_144.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_144.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_144.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_144.setObjectName("label_144")
         self.gridLayout_41.addWidget(self.label_144, 10, 0, 1, 1)
         self.lineEdit_runtime_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3253,10 +3329,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_runtime_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_runtime_website.setSizePolicy(sizePolicy)
         self.lineEdit_runtime_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_runtime_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_runtime_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_runtime_website.setObjectName("lineEdit_runtime_website")
         self.gridLayout_41.addWidget(self.lineEdit_runtime_website, 12, 1, 1, 1)
         self.lineEdit_wanted_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3266,10 +3344,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_wanted_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_wanted_website.setSizePolicy(sizePolicy)
         self.lineEdit_wanted_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_wanted_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_wanted_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_wanted_website.setObjectName("lineEdit_wanted_website")
         self.gridLayout_41.addWidget(self.lineEdit_wanted_website, 18, 1, 1, 1)
         self.lineEdit_studio_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3279,10 +3359,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_studio_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_studio_website.setSizePolicy(sizePolicy)
         self.lineEdit_studio_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_studio_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_studio_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_studio_website.setObjectName("lineEdit_studio_website")
         self.gridLayout_41.addWidget(self.lineEdit_studio_website, 16, 1, 1, 1)
         self.label_211 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3294,7 +3376,7 @@ class Ui_MDCx(object):
         self.label_211.setMinimumSize(QtCore.QSize(120, 30))
         self.label_211.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_211.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_211.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_211.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_211.setObjectName("label_211")
         self.gridLayout_41.addWidget(self.label_211, 16, 0, 1, 1)
         self.lineEdit_tags_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3304,10 +3386,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_tags_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_tags_website.setSizePolicy(sizePolicy)
         self.lineEdit_tags_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_tags_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_tags_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_tags_website.setObjectName("lineEdit_tags_website")
         self.gridLayout_41.addWidget(self.lineEdit_tags_website, 10, 1, 1, 1)
         self.label_180 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3319,7 +3403,7 @@ class Ui_MDCx(object):
         self.label_180.setMinimumSize(QtCore.QSize(120, 30))
         self.label_180.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_180.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_180.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_180.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_180.setObjectName("label_180")
         self.gridLayout_41.addWidget(self.label_180, 8, 0, 1, 1)
         self.label_307 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3331,7 +3415,7 @@ class Ui_MDCx(object):
         self.label_307.setMinimumSize(QtCore.QSize(120, 30))
         self.label_307.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_307.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_307.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_307.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_307.setObjectName("label_307")
         self.gridLayout_41.addWidget(self.label_307, 18, 0, 1, 1)
         self.label_222 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3343,7 +3427,7 @@ class Ui_MDCx(object):
         self.label_222.setMinimumSize(QtCore.QSize(120, 30))
         self.label_222.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_222.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_222.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_222.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_222.setObjectName("label_222")
         self.gridLayout_41.addWidget(self.label_222, 17, 0, 1, 1)
         self.lineEdit_originalplot_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3353,10 +3437,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_originalplot_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_originalplot_website.setSizePolicy(sizePolicy)
         self.lineEdit_originalplot_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_originalplot_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_originalplot_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_originalplot_website.setObjectName("lineEdit_originalplot_website")
         self.gridLayout_41.addWidget(self.lineEdit_originalplot_website, 3, 1, 1, 1)
         self.label_142 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3368,7 +3454,7 @@ class Ui_MDCx(object):
         self.label_142.setMinimumSize(QtCore.QSize(120, 30))
         self.label_142.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_142.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_142.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_142.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_142.setObjectName("label_142")
         self.gridLayout_41.addWidget(self.label_142, 3, 0, 1, 1)
         self.lineEdit_publisher_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3378,10 +3464,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_publisher_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_publisher_website.setSizePolicy(sizePolicy)
         self.lineEdit_publisher_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_publisher_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_publisher_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_publisher_website.setObjectName("lineEdit_publisher_website")
         self.gridLayout_41.addWidget(self.lineEdit_publisher_website, 17, 1, 1, 1)
         self.lineEdit_directors_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3391,10 +3479,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_directors_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_directors_website.setSizePolicy(sizePolicy)
         self.lineEdit_directors_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_directors_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_directors_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_directors_website.setObjectName("lineEdit_directors_website")
         self.gridLayout_41.addWidget(self.lineEdit_directors_website, 14, 1, 1, 1)
         self.label_229 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3406,7 +3496,7 @@ class Ui_MDCx(object):
         self.label_229.setMinimumSize(QtCore.QSize(120, 30))
         self.label_229.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_229.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_229.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_229.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_229.setObjectName("label_229")
         self.gridLayout_41.addWidget(self.label_229, 7, 0, 1, 1)
         self.lineEdit_thumb_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3416,10 +3506,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_thumb_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_thumb_website.setSizePolicy(sizePolicy)
         self.lineEdit_thumb_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_thumb_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_thumb_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_thumb_website.setObjectName("lineEdit_thumb_website")
         self.gridLayout_41.addWidget(self.lineEdit_thumb_website, 6, 1, 1, 1)
         self.label_143 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3431,7 +3523,7 @@ class Ui_MDCx(object):
         self.label_143.setMinimumSize(QtCore.QSize(120, 30))
         self.label_143.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_143.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_143.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_143.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_143.setObjectName("label_143")
         self.gridLayout_41.addWidget(self.label_143, 4, 0, 1, 1)
         self.lineEdit_release_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3441,10 +3533,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_release_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_release_website.setSizePolicy(sizePolicy)
         self.lineEdit_release_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_release_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_release_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_release_website.setObjectName("lineEdit_release_website")
         self.gridLayout_41.addWidget(self.lineEdit_release_website, 11, 1, 1, 1)
         self.label_181 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3456,7 +3550,7 @@ class Ui_MDCx(object):
         self.label_181.setMinimumSize(QtCore.QSize(120, 30))
         self.label_181.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_181.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_181.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_181.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_181.setObjectName("label_181")
         self.gridLayout_41.addWidget(self.label_181, 12, 0, 1, 1)
         self.label_206 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3468,7 +3562,7 @@ class Ui_MDCx(object):
         self.label_206.setMinimumSize(QtCore.QSize(120, 30))
         self.label_206.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_206.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_206.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_206.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_206.setObjectName("label_206")
         self.gridLayout_41.addWidget(self.label_206, 9, 0, 1, 1)
         self.label_201 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3480,7 +3574,7 @@ class Ui_MDCx(object):
         self.label_201.setMinimumSize(QtCore.QSize(120, 30))
         self.label_201.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_201.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_201.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_201.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_201.setObjectName("label_201")
         self.gridLayout_41.addWidget(self.label_201, 15, 0, 1, 1)
         self.lineEdit_series_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3490,10 +3584,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_series_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_series_website.setSizePolicy(sizePolicy)
         self.lineEdit_series_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_series_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_series_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_series_website.setObjectName("lineEdit_series_website")
         self.gridLayout_41.addWidget(self.lineEdit_series_website, 15, 1, 1, 1)
         self.lineEdit_trailer_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3503,10 +3599,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_trailer_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_trailer_website.setSizePolicy(sizePolicy)
         self.lineEdit_trailer_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_trailer_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_trailer_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_trailer_website.setObjectName("lineEdit_trailer_website")
         self.gridLayout_41.addWidget(self.lineEdit_trailer_website, 9, 1, 1, 1)
         self.lineEdit_all_actors_website = QtWidgets.QLineEdit(self.layoutWidget_14)
@@ -3516,10 +3614,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_all_actors_website.sizePolicy().hasHeightForWidth())
         self.lineEdit_all_actors_website.setSizePolicy(sizePolicy)
         self.lineEdit_all_actors_website.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_all_actors_website.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_all_actors_website.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_all_actors_website.setObjectName("lineEdit_all_actors_website")
         self.gridLayout_41.addWidget(self.lineEdit_all_actors_website, 5, 1, 1, 1)
         self.label_179 = QtWidgets.QLabel(self.layoutWidget_14)
@@ -3531,7 +3631,7 @@ class Ui_MDCx(object):
         self.label_179.setMinimumSize(QtCore.QSize(120, 30))
         self.label_179.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_179.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_179.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_179.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_179.setObjectName("label_179")
         self.gridLayout_41.addWidget(self.label_179, 5, 0, 1, 1)
         self.label_325 = QtWidgets.QLabel(self.groupBox_35)
@@ -3585,7 +3685,7 @@ class Ui_MDCx(object):
         self.label_317.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_317.setStyleSheet("color: rgb(8, 128, 128);")
         self.label_317.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_317.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_317.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_317.setWordWrap(False)
         self.label_317.setObjectName("label_317")
         self.gridLayout_28.addWidget(self.label_317, 4, 1, 1, 1)
@@ -3682,10 +3782,9 @@ class Ui_MDCx(object):
         self.label_315.setSizePolicy(sizePolicy)
         self.label_315.setMinimumSize(QtCore.QSize(0, 20))
         self.label_315.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_315.setStyleSheet("color: rgb(255, 38, 0);\n"
-"")
+        self.label_315.setStyleSheet("color: rgb(255, 38, 0);\n")
         self.label_315.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_315.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_315.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_315.setWordWrap(False)
         self.label_315.setObjectName("label_315")
         self.gridLayout_28.addWidget(self.label_315, 2, 1, 1, 1)
@@ -3717,12 +3816,14 @@ class Ui_MDCx(object):
         self.label_300.setSizePolicy(sizePolicy)
         self.label_300.setMinimumSize(QtCore.QSize(130, 0))
         self.label_300.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_300.setStyleSheet("color: rgb(255, 38, 0);\n"
-"                              font: 13pt;\n"
-"                              font-weight:bold\n"
-"")
+        self.label_300.setStyleSheet(
+            "color: rgb(255, 38, 0);\n"
+            "                              font: 13pt;\n"
+            "                              font-weight:bold\n"
+            ""
+        )
         self.label_300.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_300.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_300.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_300.setWordWrap(False)
         self.label_300.setObjectName("label_300")
         self.horizontalLayout_107.addWidget(self.label_300)
@@ -3929,7 +4030,7 @@ class Ui_MDCx(object):
         self.label_85.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_85.setStyleSheet("color: rgb(8, 128, 128);")
         self.label_85.setScaledContents(False)
-        self.label_85.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_85.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_85.setWordWrap(False)
         self.label_85.setIndent(0)
         self.label_85.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
@@ -3944,10 +4045,9 @@ class Ui_MDCx(object):
         self.label_310.setSizePolicy(sizePolicy)
         self.label_310.setMinimumSize(QtCore.QSize(130, 0))
         self.label_310.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_310.setStyleSheet("color: rgb(255, 38, 0);\n"
-"                          font-weight:bold")
+        self.label_310.setStyleSheet("color: rgb(255, 38, 0);\n                          font-weight:bold")
         self.label_310.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_310.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_310.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_310.setWordWrap(True)
         self.label_310.setObjectName("label_310")
         self.groupBox_33 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_xiazai)
@@ -3992,13 +4092,13 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_79.sizePolicy().hasHeightForWidth())
         self.label_79.setSizePolicy(sizePolicy)
         self.label_79.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_79.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_79.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_79.setWordWrap(True)
         self.label_79.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_79.setObjectName("label_79")
         self.groupBox_51 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_xiazai)
         self.groupBox_51.setGeometry(QtCore.QRect(30, 1560, 701, 211))
-        self.groupBox_51.setStyleSheet("font:\"Courier\";")
+        self.groupBox_51.setStyleSheet('font:"Courier";')
         self.groupBox_51.setObjectName("groupBox_51")
         self.label_87 = QtWidgets.QLabel(self.groupBox_51)
         self.label_87.setGeometry(QtCore.QRect(60, 70, 641, 71))
@@ -4008,7 +4108,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_87.sizePolicy().hasHeightForWidth())
         self.label_87.setSizePolicy(sizePolicy)
         self.label_87.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_87.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_87.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_87.setWordWrap(True)
         self.label_87.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_87.setObjectName("label_87")
@@ -4054,10 +4154,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_extrafanart_dir.sizePolicy().hasHeightForWidth())
         self.lineEdit_extrafanart_dir.setSizePolicy(sizePolicy)
         self.lineEdit_extrafanart_dir.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_extrafanart_dir.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_extrafanart_dir.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_extrafanart_dir.setObjectName("lineEdit_extrafanart_dir")
         self.horizontalLayout_24.addWidget(self.lineEdit_extrafanart_dir)
         self.label_59 = QtWidgets.QLabel(self.groupBox_34)
@@ -4068,7 +4170,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_59.sizePolicy().hasHeightForWidth())
         self.label_59.setSizePolicy(sizePolicy)
         self.label_59.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_59.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_59.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_59.setWordWrap(True)
         self.label_59.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_59.setObjectName("label_59")
@@ -4135,10 +4237,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_google_used.sizePolicy().hasHeightForWidth())
         self.lineEdit_google_used.setSizePolicy(sizePolicy)
         self.lineEdit_google_used.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_google_used.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_google_used.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_google_used.setObjectName("lineEdit_google_used")
         self.label_311 = QtWidgets.QLabel(self.groupBox_52)
         self.label_311.setGeometry(QtCore.QRect(110, 310, 231, 30))
@@ -4149,7 +4253,7 @@ class Ui_MDCx(object):
         self.label_311.setSizePolicy(sizePolicy)
         self.label_311.setMinimumSize(QtCore.QSize(130, 30))
         self.label_311.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_311.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_311.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_311.setObjectName("label_311")
         self.lineEdit_google_exclude = QtWidgets.QLineEdit(self.groupBox_52)
         self.lineEdit_google_exclude.setGeometry(QtCore.QRect(110, 340, 571, 30))
@@ -4159,10 +4263,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_google_exclude.sizePolicy().hasHeightForWidth())
         self.lineEdit_google_exclude.setSizePolicy(sizePolicy)
         self.lineEdit_google_exclude.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_google_exclude.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_google_exclude.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_google_exclude.setObjectName("lineEdit_google_exclude")
         self.label_343 = QtWidgets.QLabel(self.groupBox_52)
         self.label_343.setGeometry(QtCore.QRect(110, 280, 441, 31))
@@ -4249,7 +4355,7 @@ class Ui_MDCx(object):
         self.horizontalLayout_130.addWidget(self.label_398)
         self.groupBox_66 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_xiazai)
         self.groupBox_66.setGeometry(QtCore.QRect(30, 1060, 701, 201))
-        self.groupBox_66.setStyleSheet("font:\"Courier\";")
+        self.groupBox_66.setStyleSheet('font:"Courier";')
         self.groupBox_66.setObjectName("groupBox_66")
         self.label_333 = QtWidgets.QLabel(self.groupBox_66)
         self.label_333.setGeometry(QtCore.QRect(60, 70, 641, 41))
@@ -4259,7 +4365,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_333.sizePolicy().hasHeightForWidth())
         self.label_333.setSizePolicy(sizePolicy)
         self.label_333.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_333.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_333.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_333.setWordWrap(True)
         self.label_333.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_333.setObjectName("label_333")
@@ -4301,7 +4407,7 @@ class Ui_MDCx(object):
         self.scrollAreaWidgetContents_mingming.setObjectName("scrollAreaWidgetContents_mingming")
         self.groupBox_8 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_mingming)
         self.groupBox_8.setGeometry(QtCore.QRect(30, 20, 701, 611))
-        self.groupBox_8.setStyleSheet("font:\"Courier\";")
+        self.groupBox_8.setStyleSheet('font:"Courier";')
         self.groupBox_8.setObjectName("groupBox_8")
         self.gridLayoutWidget_8 = QtWidgets.QWidget(self.groupBox_8)
         self.gridLayoutWidget_8.setGeometry(QtCore.QRect(20, 30, 661, 561))
@@ -4311,18 +4417,22 @@ class Ui_MDCx(object):
         self.gridLayout_8.setObjectName("gridLayout_8")
         self.lineEdit_prevent_char = QtWidgets.QLineEdit(self.gridLayoutWidget_8)
         self.lineEdit_prevent_char.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_prevent_char.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_prevent_char.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_prevent_char.setObjectName("lineEdit_prevent_char")
         self.gridLayout_8.addWidget(self.lineEdit_prevent_char, 6, 1, 1, 1)
         self.lineEdit_media_name = QtWidgets.QLineEdit(self.gridLayoutWidget_8)
         self.lineEdit_media_name.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_media_name.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_media_name.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_media_name.setObjectName("lineEdit_media_name")
         self.gridLayout_8.addWidget(self.lineEdit_media_name, 4, 1, 1, 1)
         self.label_66 = QtWidgets.QLabel(self.gridLayoutWidget_8)
@@ -4332,9 +4442,9 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_66.sizePolicy().hasHeightForWidth())
         self.label_66.setSizePolicy(sizePolicy)
         self.label_66.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_66.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_66.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_66.setWordWrap(True)
-        self.label_66.setTextInteractionFlags(QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
+        self.label_66.setTextInteractionFlags(QtCore.Qt.TextSelectableByKeyboard | QtCore.Qt.TextSelectableByMouse)
         self.label_66.setObjectName("label_66")
         self.gridLayout_8.addWidget(self.label_66, 1, 1, 1, 1)
         self.label_63 = QtWidgets.QLabel(self.gridLayoutWidget_8)
@@ -4345,15 +4455,17 @@ class Ui_MDCx(object):
         self.label_63.setSizePolicy(sizePolicy)
         self.label_63.setMinimumSize(QtCore.QSize(0, 0))
         self.label_63.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_63.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_63.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_63.setObjectName("label_63")
         self.gridLayout_8.addWidget(self.label_63, 2, 0, 1, 1)
         self.lineEdit_dir_name = QtWidgets.QLineEdit(self.gridLayoutWidget_8)
         self.lineEdit_dir_name.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_dir_name.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_dir_name.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_dir_name.setObjectName("lineEdit_dir_name")
         self.gridLayout_8.addWidget(self.lineEdit_dir_name, 0, 1, 1, 1)
         self.label_43 = QtWidgets.QLabel(self.gridLayoutWidget_8)
@@ -4364,7 +4476,7 @@ class Ui_MDCx(object):
         self.label_43.setSizePolicy(sizePolicy)
         self.label_43.setMinimumSize(QtCore.QSize(130, 0))
         self.label_43.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_43.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_43.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_43.setObjectName("label_43")
         self.gridLayout_8.addWidget(self.label_43, 0, 0, 1, 1)
         self.label_240 = QtWidgets.QLabel(self.gridLayoutWidget_8)
@@ -4375,7 +4487,7 @@ class Ui_MDCx(object):
         self.label_240.setSizePolicy(sizePolicy)
         self.label_240.setMinimumSize(QtCore.QSize(0, 0))
         self.label_240.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_240.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_240.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_240.setObjectName("label_240")
         self.gridLayout_8.addWidget(self.label_240, 6, 0, 1, 1)
         self.label_68 = QtWidgets.QLabel(self.gridLayoutWidget_8)
@@ -4395,7 +4507,7 @@ class Ui_MDCx(object):
         self.label_67.setSizePolicy(sizePolicy)
         self.label_67.setMinimumSize(QtCore.QSize(0, 0))
         self.label_67.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_67.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_67.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_67.setObjectName("label_67")
         self.gridLayout_8.addWidget(self.label_67, 4, 0, 1, 1)
         self.label_61 = QtWidgets.QLabel(self.gridLayoutWidget_8)
@@ -4418,10 +4530,12 @@ class Ui_MDCx(object):
         self.gridLayout_8.addWidget(self.label_239, 7, 1, 1, 1)
         self.lineEdit_local_name = QtWidgets.QLineEdit(self.gridLayoutWidget_8)
         self.lineEdit_local_name.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_local_name.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_local_name.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_local_name.setObjectName("lineEdit_local_name")
         self.gridLayout_8.addWidget(self.lineEdit_local_name, 2, 1, 1, 1)
         self.label_147 = QtWidgets.QLabel(self.gridLayoutWidget_8)
@@ -4433,7 +4547,7 @@ class Ui_MDCx(object):
         self.label_147.setMinimumSize(QtCore.QSize(0, 0))
         self.label_147.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_147.setText("")
-        self.label_147.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_147.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_147.setObjectName("label_147")
         self.gridLayout_8.addWidget(self.label_147, 1, 0, 1, 1)
         self.groupBox_38 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_mingming)
@@ -4521,7 +4635,7 @@ class Ui_MDCx(object):
         self.label_350.setSizePolicy(sizePolicy)
         self.label_350.setMinimumSize(QtCore.QSize(130, 30))
         self.label_350.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_350.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_350.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_350.setObjectName("label_350")
         self.checkBox_cd_part_01 = QtWidgets.QCheckBox(self.groupBox_38)
         self.checkBox_cd_part_01.setGeometry(QtCore.QRect(160, 270, 211, 30))
@@ -4550,7 +4664,7 @@ class Ui_MDCx(object):
         self.label_408.setSizePolicy(sizePolicy)
         self.label_408.setMinimumSize(QtCore.QSize(130, 30))
         self.label_408.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_408.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_408.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_408.setObjectName("label_408")
         self.checkBox_cd_part_space = QtWidgets.QCheckBox(self.groupBox_38)
         self.checkBox_cd_part_space.setGeometry(QtCore.QRect(320, 350, 110, 30))
@@ -4608,15 +4722,17 @@ class Ui_MDCx(object):
         self.label_430.setObjectName("label_430")
         self.groupBox_77 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_mingming)
         self.groupBox_77.setGeometry(QtCore.QRect(30, 1080, 701, 351))
-        self.groupBox_77.setStyleSheet("font:\"Courier\";")
+        self.groupBox_77.setStyleSheet('font:"Courier";')
         self.groupBox_77.setObjectName("groupBox_77")
         self.lineEdit_file_name_max = QtWidgets.QLineEdit(self.groupBox_77)
         self.lineEdit_file_name_max.setGeometry(QtCore.QRect(157, 128, 521, 30))
         self.lineEdit_file_name_max.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_file_name_max.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_file_name_max.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_file_name_max.setObjectName("lineEdit_file_name_max")
         self.label_171 = QtWidgets.QLabel(self.groupBox_77)
         self.label_171.setGeometry(QtCore.QRect(21, 36, 130, 16))
@@ -4627,7 +4743,7 @@ class Ui_MDCx(object):
         self.label_171.setSizePolicy(sizePolicy)
         self.label_171.setMinimumSize(QtCore.QSize(130, 0))
         self.label_171.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_171.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_171.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_171.setObjectName("label_171")
         self.label_167 = QtWidgets.QLabel(self.groupBox_77)
         self.label_167.setGeometry(QtCore.QRect(45, 227, 106, 16))
@@ -4638,7 +4754,7 @@ class Ui_MDCx(object):
         self.label_167.setSizePolicy(sizePolicy)
         self.label_167.setMinimumSize(QtCore.QSize(0, 0))
         self.label_167.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_167.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_167.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_167.setObjectName("label_167")
         self.label_169 = QtWidgets.QLabel(self.groupBox_77)
         self.label_169.setGeometry(QtCore.QRect(157, 77, 523, 40))
@@ -4660,7 +4776,7 @@ class Ui_MDCx(object):
         self.label_170.setSizePolicy(sizePolicy)
         self.label_170.setMinimumSize(QtCore.QSize(0, 0))
         self.label_170.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_170.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_170.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_170.setObjectName("label_170")
         self.label_172 = QtWidgets.QLabel(self.groupBox_77)
         self.label_172.setGeometry(QtCore.QRect(157, 169, 523, 40))
@@ -4685,26 +4801,32 @@ class Ui_MDCx(object):
         self.lineEdit_folder_name_max = QtWidgets.QLineEdit(self.groupBox_77)
         self.lineEdit_folder_name_max.setGeometry(QtCore.QRect(157, 36, 521, 30))
         self.lineEdit_folder_name_max.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_folder_name_max.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_folder_name_max.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_folder_name_max.setObjectName("lineEdit_folder_name_max")
         self.lineEdit_actor_name_max = QtWidgets.QLineEdit(self.groupBox_77)
         self.lineEdit_actor_name_max.setGeometry(QtCore.QRect(157, 220, 521, 30))
         self.lineEdit_actor_name_max.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_actor_name_max.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_actor_name_max.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_actor_name_max.setObjectName("lineEdit_actor_name_max")
         self.lineEdit_actor_name_more = QtWidgets.QLineEdit(self.groupBox_77)
         self.lineEdit_actor_name_more.setGeometry(QtCore.QRect(157, 302, 211, 30))
         self.lineEdit_actor_name_more.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_actor_name_more.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_actor_name_more.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_actor_name_more.setObjectName("lineEdit_actor_name_more")
         self.label_288 = QtWidgets.QLabel(self.groupBox_77)
         self.label_288.setGeometry(QtCore.QRect(21, 370, 130, 30))
@@ -4716,7 +4838,7 @@ class Ui_MDCx(object):
         self.label_288.setMinimumSize(QtCore.QSize(130, 30))
         self.label_288.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_288.setText("")
-        self.label_288.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_288.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_288.setObjectName("label_288")
         self.label_287 = QtWidgets.QLabel(self.groupBox_77)
         self.label_287.setGeometry(QtCore.QRect(21, 82, 130, 30))
@@ -4728,7 +4850,7 @@ class Ui_MDCx(object):
         self.label_287.setMinimumSize(QtCore.QSize(130, 30))
         self.label_287.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_287.setText("")
-        self.label_287.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_287.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_287.setObjectName("label_287")
         self.label_289 = QtWidgets.QLabel(self.groupBox_77)
         self.label_289.setGeometry(QtCore.QRect(21, 174, 130, 30))
@@ -4740,7 +4862,7 @@ class Ui_MDCx(object):
         self.label_289.setMinimumSize(QtCore.QSize(130, 30))
         self.label_289.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_289.setText("")
-        self.label_289.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_289.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_289.setObjectName("label_289")
         self.label_290 = QtWidgets.QLabel(self.groupBox_77)
         self.label_290.setGeometry(QtCore.QRect(21, 261, 130, 30))
@@ -4752,7 +4874,7 @@ class Ui_MDCx(object):
         self.label_290.setMinimumSize(QtCore.QSize(130, 30))
         self.label_290.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_290.setText("")
-        self.label_290.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_290.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_290.setObjectName("label_290")
         self.groupBox_46 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_mingming)
         self.groupBox_46.setGeometry(QtCore.QRect(30, 1450, 701, 431))
@@ -4769,15 +4891,17 @@ class Ui_MDCx(object):
         self.label_285.setMinimumSize(QtCore.QSize(130, 0))
         self.label_285.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_285.setText("")
-        self.label_285.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_285.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_285.setObjectName("label_285")
         self.lineEdit_youma_style = QtWidgets.QLineEdit(self.groupBox_46)
         self.lineEdit_youma_style.setGeometry(QtCore.QRect(157, 352, 450, 30))
         self.lineEdit_youma_style.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_youma_style.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_youma_style.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_youma_style.setObjectName("lineEdit_youma_style")
         self.label_281 = QtWidgets.QLabel(self.groupBox_46)
         self.label_281.setGeometry(QtCore.QRect(21, 201, 130, 16))
@@ -4789,7 +4913,7 @@ class Ui_MDCx(object):
         self.label_281.setMinimumSize(QtCore.QSize(130, 0))
         self.label_281.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_281.setText("")
-        self.label_281.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_281.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_281.setObjectName("label_281")
         self.label_189 = QtWidgets.QLabel(self.groupBox_46)
         self.label_189.setGeometry(QtCore.QRect(21, 247, 130, 16))
@@ -4800,7 +4924,7 @@ class Ui_MDCx(object):
         self.label_189.setSizePolicy(sizePolicy)
         self.label_189.setMinimumSize(QtCore.QSize(130, 0))
         self.label_189.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_189.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_189.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_189.setObjectName("label_189")
         self.label_117 = QtWidgets.QLabel(self.groupBox_46)
         self.label_117.setGeometry(QtCore.QRect(157, 189, 523, 40))
@@ -4810,7 +4934,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_117.sizePolicy().hasHeightForWidth())
         self.label_117.setSizePolicy(sizePolicy)
         self.label_117.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_117.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_117.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_117.setWordWrap(True)
         self.label_117.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_117.setObjectName("label_117")
@@ -4824,15 +4948,17 @@ class Ui_MDCx(object):
         self.label_282.setMinimumSize(QtCore.QSize(130, 0))
         self.label_282.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_282.setText("")
-        self.label_282.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_282.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_282.setObjectName("label_282")
         self.lineEdit_wuma_style = QtWidgets.QLineEdit(self.groupBox_46)
         self.lineEdit_wuma_style.setGeometry(QtCore.QRect(157, 240, 450, 30))
         self.lineEdit_wuma_style.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_wuma_style.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_wuma_style.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_wuma_style.setObjectName("lineEdit_wuma_style")
         self.label_175 = QtWidgets.QLabel(self.groupBox_46)
         self.label_175.setGeometry(QtCore.QRect(21, 155, 130, 16))
@@ -4843,15 +4969,17 @@ class Ui_MDCx(object):
         self.label_175.setSizePolicy(sizePolicy)
         self.label_175.setMinimumSize(QtCore.QSize(130, 0))
         self.label_175.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_175.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_175.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_175.setObjectName("label_175")
         self.lineEdit_umr_style = QtWidgets.QLineEdit(self.groupBox_46)
         self.lineEdit_umr_style.setGeometry(QtCore.QRect(157, 36, 450, 30))
         self.lineEdit_umr_style.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_umr_style.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_umr_style.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_umr_style.setObjectName("lineEdit_umr_style")
         self.label_284 = QtWidgets.QLabel(self.groupBox_46)
         self.label_284.setGeometry(QtCore.QRect(21, 401, 130, 16))
@@ -4863,7 +4991,7 @@ class Ui_MDCx(object):
         self.label_284.setMinimumSize(QtCore.QSize(130, 0))
         self.label_284.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_284.setText("")
-        self.label_284.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_284.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_284.setObjectName("label_284")
         self.label_190 = QtWidgets.QLabel(self.groupBox_46)
         self.label_190.setGeometry(QtCore.QRect(21, 359, 130, 16))
@@ -4874,7 +5002,7 @@ class Ui_MDCx(object):
         self.label_190.setSizePolicy(sizePolicy)
         self.label_190.setMinimumSize(QtCore.QSize(130, 0))
         self.label_190.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_190.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_190.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_190.setObjectName("label_190")
         self.label_137 = QtWidgets.QLabel(self.groupBox_46)
         self.label_137.setGeometry(QtCore.QRect(157, 281, 523, 60))
@@ -4884,7 +5012,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_137.sizePolicy().hasHeightForWidth())
         self.label_137.setSizePolicy(sizePolicy)
         self.label_137.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_137.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_137.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_137.setWordWrap(True)
         self.label_137.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_137.setObjectName("label_137")
@@ -4896,7 +5024,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_116.sizePolicy().hasHeightForWidth())
         self.label_116.setSizePolicy(sizePolicy)
         self.label_116.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_116.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_116.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_116.setWordWrap(True)
         self.label_116.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_116.setObjectName("label_116")
@@ -4910,7 +5038,7 @@ class Ui_MDCx(object):
         self.label_283.setMinimumSize(QtCore.QSize(130, 0))
         self.label_283.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_283.setText("")
-        self.label_283.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_283.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_283.setObjectName("label_283")
         self.label_174 = QtWidgets.QLabel(self.groupBox_46)
         self.label_174.setGeometry(QtCore.QRect(21, 43, 130, 16))
@@ -4921,15 +5049,17 @@ class Ui_MDCx(object):
         self.label_174.setSizePolicy(sizePolicy)
         self.label_174.setMinimumSize(QtCore.QSize(130, 0))
         self.label_174.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_174.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_174.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_174.setObjectName("label_174")
         self.lineEdit_leak_style = QtWidgets.QLineEdit(self.groupBox_46)
         self.lineEdit_leak_style.setGeometry(QtCore.QRect(157, 148, 450, 30))
         self.lineEdit_leak_style.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_leak_style.setStyleSheet(" font: \"Courier\";\n"
-"                          border: 1px solid rgba(0,0,0, 50);\n"
-"                          border-radius: 15px;\n"
-"")
+        self.lineEdit_leak_style.setStyleSheet(
+            ' font: "Courier";\n'
+            "                          border: 1px solid rgba(0,0,0, 50);\n"
+            "                          border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_leak_style.setObjectName("lineEdit_leak_style")
         self.label_145 = QtWidgets.QLabel(self.groupBox_46)
         self.label_145.setGeometry(QtCore.QRect(157, 393, 511, 32))
@@ -4950,7 +5080,7 @@ class Ui_MDCx(object):
         self.label_286.setMinimumSize(QtCore.QSize(130, 0))
         self.label_286.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_286.setText("")
-        self.label_286.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_286.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_286.setObjectName("label_286")
         self.groupBox_37 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_mingming)
         self.groupBox_37.setGeometry(QtCore.QRect(30, 2360, 701, 121))
@@ -5059,7 +5189,7 @@ class Ui_MDCx(object):
         self.label_407.setSizePolicy(sizePolicy)
         self.label_407.setMinimumSize(QtCore.QSize(130, 30))
         self.label_407.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_407.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_407.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_407.setObjectName("label_407")
         self.gridLayout_26.addWidget(self.label_407, 2, 0, 1, 1)
         self.label_146 = QtWidgets.QLabel(self.gridLayoutWidget_26)
@@ -5082,10 +5212,12 @@ class Ui_MDCx(object):
         self.gridLayout_26.addWidget(self.checkBox_number_del_num, 1, 1, 1, 1)
         self.lineEdit_actor_no_name = QtWidgets.QLineEdit(self.gridLayoutWidget_26)
         self.lineEdit_actor_no_name.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_actor_no_name.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_actor_no_name.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_actor_no_name.setObjectName("lineEdit_actor_no_name")
         self.gridLayout_26.addWidget(self.lineEdit_actor_no_name, 6, 1, 1, 1)
         self.checkBox_actor_del_char = QtWidgets.QCheckBox(self.gridLayoutWidget_26)
@@ -5105,7 +5237,7 @@ class Ui_MDCx(object):
         self.label_319.setSizePolicy(sizePolicy)
         self.label_319.setMinimumSize(QtCore.QSize(130, 30))
         self.label_319.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_319.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_319.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_319.setObjectName("label_319")
         self.gridLayout_26.addWidget(self.label_319, 1, 0, 1, 1)
         self.label_197 = QtWidgets.QLabel(self.gridLayoutWidget_26)
@@ -5116,7 +5248,7 @@ class Ui_MDCx(object):
         self.label_197.setSizePolicy(sizePolicy)
         self.label_197.setMinimumSize(QtCore.QSize(130, 0))
         self.label_197.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_197.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_197.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_197.setObjectName("label_197")
         self.gridLayout_26.addWidget(self.label_197, 4, 0, 1, 1)
         self.checkBox_title_del_actor = QtWidgets.QCheckBox(self.gridLayoutWidget_26)
@@ -5124,10 +5256,12 @@ class Ui_MDCx(object):
         self.gridLayout_26.addWidget(self.checkBox_title_del_actor, 0, 1, 1, 1)
         self.lineEdit_release_rule = QtWidgets.QLineEdit(self.gridLayoutWidget_26)
         self.lineEdit_release_rule.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_release_rule.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_release_rule.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_release_rule.setObjectName("lineEdit_release_rule")
         self.gridLayout_26.addWidget(self.lineEdit_release_rule, 8, 1, 1, 1)
         self.label_276 = QtWidgets.QLabel(self.gridLayoutWidget_26)
@@ -5138,7 +5272,7 @@ class Ui_MDCx(object):
         self.label_276.setSizePolicy(sizePolicy)
         self.label_276.setMinimumSize(QtCore.QSize(130, 0))
         self.label_276.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_276.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_276.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_276.setObjectName("label_276")
         self.gridLayout_26.addWidget(self.label_276, 8, 0, 1, 1)
         self.label_302 = QtWidgets.QLabel(self.gridLayoutWidget_26)
@@ -5152,10 +5286,12 @@ class Ui_MDCx(object):
         self.gridLayout_26.addWidget(self.label_302, 9, 1, 1, 1)
         self.lineEdit_suffix_sort = QtWidgets.QLineEdit(self.gridLayoutWidget_26)
         self.lineEdit_suffix_sort.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_suffix_sort.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_suffix_sort.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_suffix_sort.setObjectName("lineEdit_suffix_sort")
         self.gridLayout_26.addWidget(self.lineEdit_suffix_sort, 4, 1, 1, 1)
         self.label_100 = QtWidgets.QLabel(self.gridLayoutWidget_26)
@@ -5175,7 +5311,7 @@ class Ui_MDCx(object):
         self.label_320.setSizePolicy(sizePolicy)
         self.label_320.setMinimumSize(QtCore.QSize(130, 30))
         self.label_320.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_320.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_320.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_320.setObjectName("label_320")
         self.gridLayout_26.addWidget(self.label_320, 0, 0, 1, 1)
         self.label_173 = QtWidgets.QLabel(self.gridLayoutWidget_26)
@@ -5186,7 +5322,7 @@ class Ui_MDCx(object):
         self.label_173.setSizePolicy(sizePolicy)
         self.label_173.setMinimumSize(QtCore.QSize(130, 0))
         self.label_173.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_173.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_173.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_173.setObjectName("label_173")
         self.gridLayout_26.addWidget(self.label_173, 6, 0, 1, 1)
         self.checkBox_actor_fc2_seller = QtWidgets.QCheckBox(self.gridLayoutWidget_26)
@@ -5288,7 +5424,7 @@ class Ui_MDCx(object):
         self.label_332.setSizePolicy(sizePolicy)
         self.label_332.setMinimumSize(QtCore.QSize(130, 0))
         self.label_332.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_332.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_332.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_332.setObjectName("label_332")
         self.groupBox_67 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_mingming)
         self.groupBox_67.setGeometry(QtCore.QRect(30, 2880, 701, 271))
@@ -5304,7 +5440,7 @@ class Ui_MDCx(object):
         self.label_353.setSizePolicy(sizePolicy)
         self.label_353.setMinimumSize(QtCore.QSize(130, 30))
         self.label_353.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_353.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_353.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_353.setObjectName("label_353")
         self.label_352 = QtWidgets.QLabel(self.groupBox_67)
         self.label_352.setGeometry(QtCore.QRect(50, 60, 621, 131))
@@ -5314,7 +5450,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_352.sizePolicy().hasHeightForWidth())
         self.label_352.setSizePolicy(sizePolicy)
         self.label_352.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_352.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_352.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_352.setOpenExternalLinks(True)
         self.label_352.setObjectName("label_352")
         self.label_351 = QtWidgets.QLabel(self.groupBox_67)
@@ -5335,7 +5471,7 @@ class Ui_MDCx(object):
         self.label_354.setSizePolicy(sizePolicy)
         self.label_354.setMinimumSize(QtCore.QSize(130, 30))
         self.label_354.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_354.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_354.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_354.setObjectName("label_354")
         self.scrollArea_7.setWidget(self.scrollAreaWidgetContents_mingming)
         self.tabWidget.addTab(self.tab_3, "")
@@ -5371,7 +5507,7 @@ class Ui_MDCx(object):
         self.label_81.setSizePolicy(sizePolicy)
         self.label_81.setMinimumSize(QtCore.QSize(130, 30))
         self.label_81.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_81.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_81.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_81.setObjectName("label_81")
         self.gridLayout_32.addWidget(self.label_81, 0, 0, 1, 1)
         self.label_60 = QtWidgets.QLabel(self.layoutWidget_2)
@@ -5418,10 +5554,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_deepl_key.sizePolicy().hasHeightForWidth())
         self.lineEdit_deepl_key.setSizePolicy(sizePolicy)
         self.lineEdit_deepl_key.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_deepl_key.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_deepl_key.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_deepl_key.setObjectName("lineEdit_deepl_key")
         self.gridLayout_32.addWidget(self.lineEdit_deepl_key, 2, 1, 1, 1)
         self.label_80 = QtWidgets.QLabel(self.layoutWidget_2)
@@ -5433,7 +5571,7 @@ class Ui_MDCx(object):
         self.label_80.setMinimumSize(QtCore.QSize(130, 30))
         self.label_80.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_80.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_80.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_80.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_80.setObjectName("label_80")
         self.gridLayout_32.addWidget(self.label_80, 2, 0, 1, 1)
         self.label_811 = QtWidgets.QLabel(self.layoutWidget_2)
@@ -5444,7 +5582,7 @@ class Ui_MDCx(object):
         self.label_811.setSizePolicy(sizePolicy)
         self.label_811.setMinimumSize(QtCore.QSize(130, 30))
         self.label_811.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_811.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_811.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_811.setObjectName("label_811")
         self.gridLayout_32.addWidget(self.label_811, 0, 0, 1, 1)
         self.label_601 = QtWidgets.QLabel(self.layoutWidget_2)
@@ -5467,10 +5605,12 @@ class Ui_MDCx(object):
         self.gridLayout_llm.setObjectName("gridLayout_llm")
         self.lineEdit_llm_url = QtWidgets.QLineEdit(self.gridLayoutWidget_llm)
         self.lineEdit_llm_url.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_llm_url.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_llm_url.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_llm_url.setObjectName("lineEdit_llm_url")
         self.gridLayout_llm.addWidget(self.lineEdit_llm_url, 0, 1, 1, 1)
         self.label_llm_url = QtWidgets.QLabel(self.gridLayoutWidget_llm)
@@ -5480,7 +5620,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_llm_url.sizePolicy().hasHeightForWidth())
         self.label_llm_url.setSizePolicy(sizePolicy)
         self.label_llm_url.setMinimumSize(QtCore.QSize(130, 30))
-        self.label_llm_url.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_llm_url.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_llm_url.setObjectName("label_llm_url")
         self.gridLayout_llm.addWidget(self.label_llm_url, 0, 0, 1, 1)
         self.label_llm_url_desc = QtWidgets.QLabel(self.gridLayoutWidget_llm)
@@ -5489,52 +5629,64 @@ class Ui_MDCx(object):
         self.gridLayout_llm.addWidget(self.label_llm_url_desc, 1, 1, 1, 1)
         self.label_llm_model = QtWidgets.QLabel(self.gridLayoutWidget_llm)
         self.label_llm_model.setMinimumSize(QtCore.QSize(130, 30))
-        self.label_llm_model.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_llm_model.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_llm_model.setObjectName("label_llm_model")
         self.gridLayout_llm.addWidget(self.label_llm_model, 2, 0, 1, 1)
         self.lineEdit_llm_model = QtWidgets.QLineEdit(self.gridLayoutWidget_llm)
         self.lineEdit_llm_model.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_llm_model.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_llm_model.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_llm_model.setObjectName("lineEdit_llm_model")
         self.gridLayout_llm.addWidget(self.lineEdit_llm_model, 2, 1, 1, 1)
         self.label_llm_key = QtWidgets.QLabel(self.gridLayoutWidget_llm)
         self.label_llm_key.setMinimumSize(QtCore.QSize(130, 30))
-        self.label_llm_key.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_llm_key.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_llm_key.setObjectName("label_llm_key")
         self.gridLayout_llm.addWidget(self.label_llm_key, 4, 0, 1, 1)
         self.lineEdit_llm_key = QtWidgets.QLineEdit(self.gridLayoutWidget_llm)
         self.lineEdit_llm_key.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_llm_key.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_llm_key.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_llm_key.setObjectName("lineEdit_llm_key")
         self.gridLayout_llm.addWidget(self.lineEdit_llm_key, 4, 1, 1, 1)
         self.label_llm_prompt_title = QtWidgets.QLabel(self.gridLayoutWidget_llm)
         self.label_llm_prompt_title.setMinimumSize(QtCore.QSize(130, 30))
-        self.label_llm_prompt_title.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_llm_prompt_title.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.label_llm_prompt_title.setObjectName("label_llm_prompt_title")
         self.gridLayout_llm.addWidget(self.label_llm_prompt_title, 5, 0, 1, 1)
         self.textEdit_llm_prompt_title = QtWidgets.QTextEdit(self.gridLayoutWidget_llm)
         self.textEdit_llm_prompt_title.setMinimumSize(QtCore.QSize(300, 60))
-        self.textEdit_llm_prompt_title.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 1px;\n"
-"                                font: \"Courier\";")
+        self.textEdit_llm_prompt_title.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 1px;\n"
+            '                                font: "Courier";'
+        )
         self.textEdit_llm_prompt_title.setObjectName("textEdit_llm_prompt_title")
         self.gridLayout_llm.addWidget(self.textEdit_llm_prompt_title, 5, 1, 1, 1)
         self.label_llm_prompt_outline = QtWidgets.QLabel(self.gridLayoutWidget_llm)
         self.label_llm_prompt_outline.setMinimumSize(QtCore.QSize(130, 30))
-        self.label_llm_prompt_outline.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_llm_prompt_outline.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.label_llm_prompt_outline.setObjectName("label_llm_prompt_outline")
         self.gridLayout_llm.addWidget(self.label_llm_prompt_outline, 6, 0, 1, 1)
         self.textEdit_llm_prompt_outline = QtWidgets.QTextEdit(self.gridLayoutWidget_llm)
         self.textEdit_llm_prompt_outline.setMinimumSize(QtCore.QSize(300, 60))
-        self.textEdit_llm_prompt_outline.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 1px;\n"
-"                                font: \"Courier\";")
+        self.textEdit_llm_prompt_outline.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 1px;\n"
+            '                                font: "Courier";'
+        )
         self.textEdit_llm_prompt_outline.setObjectName("textEdit_llm_prompt_outline")
         self.gridLayout_llm.addWidget(self.textEdit_llm_prompt_outline, 6, 1, 1, 1)
         self.label_llm_prompt_desc = QtWidgets.QLabel(self.gridLayoutWidget_llm)
@@ -5548,7 +5700,7 @@ class Ui_MDCx(object):
         self.gridLayout_llm.addWidget(self.doubleSpinBox_llm_max_req_sec, 8, 1, 1, 1)
         self.label_llm_max_req_sec = QtWidgets.QLabel(self.gridLayoutWidget_llm)
         self.label_llm_max_req_sec.setMinimumSize(QtCore.QSize(130, 30))
-        self.label_llm_max_req_sec.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_llm_max_req_sec.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_llm_max_req_sec.setObjectName("label_llm_max_req_sec")
         self.gridLayout_llm.addWidget(self.label_llm_max_req_sec, 8, 0, 1, 1)
         self.label_llm_max_req_sec_desc = QtWidgets.QLabel(self.gridLayoutWidget_llm)
@@ -5561,7 +5713,7 @@ class Ui_MDCx(object):
         self.gridLayout_llm.addWidget(self.spinBox_llm_max_try, 10, 1, 1, 1)
         self.label_llm_max_try = QtWidgets.QLabel(self.gridLayoutWidget_llm)
         self.label_llm_max_try.setMinimumSize(QtCore.QSize(130, 30))
-        self.label_llm_max_try.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_llm_max_try.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_llm_max_try.setObjectName("label_llm_max_try")
         self.gridLayout_llm.addWidget(self.label_llm_max_try, 10, 0, 1, 1)
         self.label_llm_max_try_desc = QtWidgets.QLabel(self.gridLayoutWidget_llm)
@@ -5570,7 +5722,7 @@ class Ui_MDCx(object):
         self.gridLayout_llm.addWidget(self.label_llm_max_try_desc, 11, 1, 1, 1)
         self.label_llm_temperature = QtWidgets.QLabel(self.gridLayoutWidget_llm)
         self.label_llm_temperature.setMinimumSize(QtCore.QSize(130, 30))
-        self.label_llm_temperature.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_llm_temperature.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_llm_temperature.setObjectName("label_llm_temperature")
         self.gridLayout_llm.addWidget(self.label_llm_temperature, 12, 0, 1, 1)
         self.doubleSpinBox_llm_temperature = QtWidgets.QDoubleSpinBox(self.gridLayoutWidget_llm)
@@ -5610,7 +5762,7 @@ class Ui_MDCx(object):
         self.label_242.setSizePolicy(sizePolicy)
         self.label_242.setMinimumSize(QtCore.QSize(130, 30))
         self.label_242.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_242.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_242.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_242.setObjectName("label_242")
         self.gridLayout_45.addWidget(self.label_242, 0, 0, 1, 1)
         self.label_74 = QtWidgets.QLabel(self.layoutWidget_9)
@@ -5665,7 +5817,7 @@ class Ui_MDCx(object):
         self.label_244.setMinimumSize(QtCore.QSize(130, 30))
         self.label_244.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_244.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_244.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_244.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_244.setObjectName("label_244")
         self.gridLayout_45.addWidget(self.label_244, 2, 0, 1, 1)
         self.groupBox_83 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_fanyi)
@@ -5687,7 +5839,7 @@ class Ui_MDCx(object):
         self.label_133.setSizePolicy(sizePolicy)
         self.label_133.setMinimumSize(QtCore.QSize(130, 30))
         self.label_133.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_133.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_133.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_133.setObjectName("label_133")
         self.gridLayout_48.addWidget(self.label_133, 0, 0, 1, 1)
         self.label_176 = QtWidgets.QLabel(self.layoutWidget_13)
@@ -5708,7 +5860,7 @@ class Ui_MDCx(object):
         self.label_166.setMinimumSize(QtCore.QSize(130, 30))
         self.label_166.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_166.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_166.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_166.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_166.setObjectName("label_166")
         self.gridLayout_48.addWidget(self.label_166, 1, 0, 1, 1)
         self.horizontalLayout_22 = QtWidgets.QHBoxLayout()
@@ -5763,7 +5915,7 @@ class Ui_MDCx(object):
         self.label_328.setSizePolicy(sizePolicy)
         self.label_328.setMinimumSize(QtCore.QSize(130, 0))
         self.label_328.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_328.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_328.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_328.setObjectName("label_328")
         self.groupBox_84 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_fanyi)
         self.groupBox_84.setGeometry(QtCore.QRect(30, 1346, 701, 420))
@@ -5785,7 +5937,7 @@ class Ui_MDCx(object):
         self.label_250.setMinimumSize(QtCore.QSize(130, 30))
         self.label_250.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_250.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_250.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_250.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_250.setObjectName("label_250")
         self.gridLayout_50.addWidget(self.label_250, 1, 0, 1, 1)
         self.horizontalLayout_35 = QtWidgets.QHBoxLayout()
@@ -5808,7 +5960,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_249.sizePolicy().hasHeightForWidth())
         self.label_249.setSizePolicy(sizePolicy)
         self.label_249.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_249.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_249.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_249.setWordWrap(True)
         self.label_249.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_249.setObjectName("label_249")
@@ -5830,7 +5982,7 @@ class Ui_MDCx(object):
         self.label_248.setSizePolicy(sizePolicy)
         self.label_248.setMinimumSize(QtCore.QSize(130, 30))
         self.label_248.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_248.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_248.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_248.setObjectName("label_248")
         self.gridLayout_50.addWidget(self.label_248, 0, 0, 1, 1)
         self.groupBox_85 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_fanyi)
@@ -5864,7 +6016,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_165.sizePolicy().hasHeightForWidth())
         self.label_165.setSizePolicy(sizePolicy)
         self.label_165.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_165.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_165.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_165.setObjectName("label_165")
         self.gridLayout_51.addWidget(self.label_165, 2, 1, 1, 1)
         self.checkBox_tag_translate = QtWidgets.QCheckBox(self.layoutWidget_21)
@@ -5878,7 +6030,7 @@ class Ui_MDCx(object):
         self.label_251.setSizePolicy(sizePolicy)
         self.label_251.setMinimumSize(QtCore.QSize(130, 30))
         self.label_251.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_251.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_251.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_251.setObjectName("label_251")
         self.gridLayout_51.addWidget(self.label_251, 0, 0, 1, 1)
         self.label_253 = QtWidgets.QLabel(self.layoutWidget_21)
@@ -5890,7 +6042,7 @@ class Ui_MDCx(object):
         self.label_253.setMinimumSize(QtCore.QSize(130, 30))
         self.label_253.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_253.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_253.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_253.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_253.setObjectName("label_253")
         self.gridLayout_51.addWidget(self.label_253, 1, 0, 1, 1)
         self.groupBox_86 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_fanyi)
@@ -5912,7 +6064,7 @@ class Ui_MDCx(object):
         self.label_255.setSizePolicy(sizePolicy)
         self.label_255.setMinimumSize(QtCore.QSize(130, 30))
         self.label_255.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_255.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_255.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_255.setObjectName("label_255")
         self.gridLayout_53.addWidget(self.label_255, 0, 0, 1, 1)
         self.label_256 = QtWidgets.QLabel(self.layoutWidget_23)
@@ -5924,7 +6076,7 @@ class Ui_MDCx(object):
         self.label_256.setMinimumSize(QtCore.QSize(130, 30))
         self.label_256.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_256.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_256.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_256.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_256.setObjectName("label_256")
         self.gridLayout_53.addWidget(self.label_256, 1, 0, 1, 1)
         self.label_245 = QtWidgets.QLabel(self.layoutWidget_23)
@@ -5934,7 +6086,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_245.sizePolicy().hasHeightForWidth())
         self.label_245.setSizePolicy(sizePolicy)
         self.label_245.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_245.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_245.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_245.setObjectName("label_245")
         self.gridLayout_53.addWidget(self.label_245, 2, 1, 1, 1)
         self.horizontalLayout_27 = QtWidgets.QHBoxLayout()
@@ -5972,7 +6124,7 @@ class Ui_MDCx(object):
         self.label_259.setSizePolicy(sizePolicy)
         self.label_259.setMinimumSize(QtCore.QSize(130, 30))
         self.label_259.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_259.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_259.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_259.setObjectName("label_259")
         self.gridLayout_55.addWidget(self.label_259, 0, 0, 1, 1)
         self.label_260 = QtWidgets.QLabel(self.layoutWidget_25)
@@ -5984,7 +6136,7 @@ class Ui_MDCx(object):
         self.label_260.setMinimumSize(QtCore.QSize(130, 30))
         self.label_260.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_260.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_260.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_260.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_260.setObjectName("label_260")
         self.gridLayout_55.addWidget(self.label_260, 1, 0, 1, 1)
         self.label_247 = QtWidgets.QLabel(self.layoutWidget_25)
@@ -5994,7 +6146,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_247.sizePolicy().hasHeightForWidth())
         self.label_247.setSizePolicy(sizePolicy)
         self.label_247.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_247.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_247.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_247.setObjectName("label_247")
         self.gridLayout_55.addWidget(self.label_247, 2, 1, 1, 1)
         self.horizontalLayout_39 = QtWidgets.QHBoxLayout()
@@ -6032,7 +6184,7 @@ class Ui_MDCx(object):
         self.label_264.setSizePolicy(sizePolicy)
         self.label_264.setMinimumSize(QtCore.QSize(130, 30))
         self.label_264.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_264.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_264.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_264.setObjectName("label_264")
         self.gridLayout_57.addWidget(self.label_264, 0, 0, 1, 1)
         self.label_265 = QtWidgets.QLabel(self.layoutWidget_27)
@@ -6044,7 +6196,7 @@ class Ui_MDCx(object):
         self.label_265.setMinimumSize(QtCore.QSize(130, 30))
         self.label_265.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_265.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_265.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_265.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_265.setObjectName("label_265")
         self.gridLayout_57.addWidget(self.label_265, 1, 0, 1, 1)
         self.label_266 = QtWidgets.QLabel(self.layoutWidget_27)
@@ -6054,7 +6206,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_266.sizePolicy().hasHeightForWidth())
         self.label_266.setSizePolicy(sizePolicy)
         self.label_266.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_266.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_266.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_266.setObjectName("label_266")
         self.gridLayout_57.addWidget(self.label_266, 2, 1, 1, 1)
         self.horizontalLayout_47 = QtWidgets.QHBoxLayout()
@@ -6092,7 +6244,7 @@ class Ui_MDCx(object):
         self.label_267.setSizePolicy(sizePolicy)
         self.label_267.setMinimumSize(QtCore.QSize(130, 30))
         self.label_267.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_267.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_267.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_267.setObjectName("label_267")
         self.gridLayout_58.addWidget(self.label_267, 0, 0, 1, 1)
         self.label_268 = QtWidgets.QLabel(self.layoutWidget_29)
@@ -6104,7 +6256,7 @@ class Ui_MDCx(object):
         self.label_268.setMinimumSize(QtCore.QSize(130, 30))
         self.label_268.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_268.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_268.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_268.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_268.setObjectName("label_268")
         self.gridLayout_58.addWidget(self.label_268, 1, 0, 1, 1)
         self.label_269 = QtWidgets.QLabel(self.layoutWidget_29)
@@ -6114,7 +6266,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_269.sizePolicy().hasHeightForWidth())
         self.label_269.setSizePolicy(sizePolicy)
         self.label_269.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_269.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_269.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_269.setObjectName("label_269")
         self.gridLayout_58.addWidget(self.label_269, 2, 1, 1, 1)
         self.checkBox_director_translate = QtWidgets.QCheckBox(self.layoutWidget_29)
@@ -6150,7 +6302,7 @@ class Ui_MDCx(object):
         self.scrollAreaWidgetContents_zimu.setObjectName("scrollAreaWidgetContents_zimu")
         self.groupBox_20 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_zimu)
         self.groupBox_20.setGeometry(QtCore.QRect(30, 20, 701, 271))
-        self.groupBox_20.setStyleSheet("font:\"Courier\";")
+        self.groupBox_20.setStyleSheet('font:"Courier";')
         self.groupBox_20.setObjectName("groupBox_20")
         self.gridLayoutWidget_17 = QtWidgets.QWidget(self.groupBox_20)
         self.gridLayoutWidget_17.setGeometry(QtCore.QRect(20, 30, 661, 221))
@@ -6160,10 +6312,12 @@ class Ui_MDCx(object):
         self.gridLayout_17.setObjectName("gridLayout_17")
         self.lineEdit_cnword_style = QtWidgets.QLineEdit(self.gridLayoutWidget_17)
         self.lineEdit_cnword_style.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_cnword_style.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_cnword_style.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_cnword_style.setObjectName("lineEdit_cnword_style")
         self.gridLayout_17.addWidget(self.lineEdit_cnword_style, 2, 1, 1, 1)
         self.label_89 = QtWidgets.QLabel(self.gridLayoutWidget_17)
@@ -6174,15 +6328,17 @@ class Ui_MDCx(object):
         self.label_89.setSizePolicy(sizePolicy)
         self.label_89.setMinimumSize(QtCore.QSize(130, 30))
         self.label_89.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_89.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_89.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_89.setObjectName("label_89")
         self.gridLayout_17.addWidget(self.label_89, 0, 0, 1, 1)
         self.lineEdit_cnword_char = QtWidgets.QLineEdit(self.gridLayoutWidget_17)
         self.lineEdit_cnword_char.setMinimumSize(QtCore.QSize(450, 30))
-        self.lineEdit_cnword_char.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_cnword_char.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_cnword_char.setObjectName("lineEdit_cnword_char")
         self.gridLayout_17.addWidget(self.lineEdit_cnword_char, 0, 1, 1, 1)
         self.label_90 = QtWidgets.QLabel(self.gridLayoutWidget_17)
@@ -6212,7 +6368,7 @@ class Ui_MDCx(object):
         self.label_69.setSizePolicy(sizePolicy)
         self.label_69.setMinimumSize(QtCore.QSize(0, 30))
         self.label_69.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_69.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_69.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_69.setObjectName("label_69")
         self.gridLayout_17.addWidget(self.label_69, 2, 0, 1, 1)
         self.label_119 = QtWidgets.QLabel(self.gridLayoutWidget_17)
@@ -6253,12 +6409,12 @@ class Ui_MDCx(object):
         self.label_120.setSizePolicy(sizePolicy)
         self.label_120.setMinimumSize(QtCore.QSize(130, 30))
         self.label_120.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_120.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_120.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_120.setObjectName("label_120")
         self.gridLayout_17.addWidget(self.label_120, 4, 0, 1, 1)
         self.groupBox_45 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_zimu)
         self.groupBox_45.setGeometry(QtCore.QRect(30, 310, 701, 451))
-        self.groupBox_45.setStyleSheet("font:\"Courier\";")
+        self.groupBox_45.setStyleSheet('font:"Courier";')
         self.groupBox_45.setObjectName("groupBox_45")
         self.gridLayoutWidget_27 = QtWidgets.QWidget(self.groupBox_45)
         self.gridLayoutWidget_27.setGeometry(QtCore.QRect(20, 30, 661, 186))
@@ -6284,7 +6440,7 @@ class Ui_MDCx(object):
         self.label_124.setMinimumSize(QtCore.QSize(130, 30))
         self.label_124.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_124.setText("")
-        self.label_124.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_124.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_124.setObjectName("label_124")
         self.gridLayout_27.addWidget(self.label_124, 1, 0, 1, 1)
         self.horizontalLayout_10 = QtWidgets.QHBoxLayout()
@@ -6320,7 +6476,7 @@ class Ui_MDCx(object):
         self.label_111.setSizePolicy(sizePolicy)
         self.label_111.setMinimumSize(QtCore.QSize(130, 30))
         self.label_111.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_111.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_111.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_111.setObjectName("label_111")
         self.gridLayout_27.addWidget(self.label_111, 0, 0, 1, 1)
         self.label_112 = QtWidgets.QLabel(self.gridLayoutWidget_27)
@@ -6331,7 +6487,7 @@ class Ui_MDCx(object):
         self.label_112.setSizePolicy(sizePolicy)
         self.label_112.setMinimumSize(QtCore.QSize(130, 0))
         self.label_112.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_112.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_112.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_112.setObjectName("label_112")
         self.gridLayout_27.addWidget(self.label_112, 2, 0, 1, 1)
         self.horizontalLayout_21 = QtWidgets.QHBoxLayout()
@@ -6353,10 +6509,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_sub_folder.sizePolicy().hasHeightForWidth())
         self.lineEdit_sub_folder.setSizePolicy(sizePolicy)
         self.lineEdit_sub_folder.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_sub_folder.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_sub_folder.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_sub_folder.setObjectName("lineEdit_sub_folder")
         self.horizontalLayout_28.addWidget(self.lineEdit_sub_folder)
         self.pushButton_select_subtitle_folder = QtWidgets.QPushButton(self.gridLayoutWidget_27)
@@ -6380,7 +6538,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_125.sizePolicy().hasHeightForWidth())
         self.label_125.setSizePolicy(sizePolicy)
         self.label_125.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_125.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_125.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_125.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_125.setObjectName("label_125")
         self.checkBox_sub_add_chs = QtWidgets.QCheckBox(self.groupBox_45)
@@ -6418,7 +6576,7 @@ class Ui_MDCx(object):
         self.scrollAreaWidgetContents_shuiyin.setObjectName("scrollAreaWidgetContents_shuiyin")
         self.groupBox_26 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_shuiyin)
         self.groupBox_26.setGeometry(QtCore.QRect(30, 1010, 701, 561))
-        self.groupBox_26.setStyleSheet("font:\"Courier\";")
+        self.groupBox_26.setStyleSheet('font:"Courier";')
         self.groupBox_26.setObjectName("groupBox_26")
         self.label_118 = QtWidgets.QLabel(self.groupBox_26)
         self.label_118.setGeometry(QtCore.QRect(50, 70, 631, 461))
@@ -6428,9 +6586,8 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_118.sizePolicy().hasHeightForWidth())
         self.label_118.setSizePolicy(sizePolicy)
         self.label_118.setMouseTracking(True)
-        self.label_118.setStyleSheet("color: rgb(8, 128, 128);\n"
-"                          line-height:50px")
-        self.label_118.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_118.setStyleSheet("color: rgb(8, 128, 128);\n                          line-height:50px")
+        self.label_118.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_118.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_118.setObjectName("label_118")
         self.label_download_mark_zip = QtWidgets.QLabel(self.groupBox_26)
@@ -6444,11 +6601,11 @@ class Ui_MDCx(object):
         self.label_download_mark_zip.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
         self.label_download_mark_zip.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_download_mark_zip.setStyleSheet("color: rgb(10, 52, 255);")
-        self.label_download_mark_zip.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_download_mark_zip.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_download_mark_zip.setObjectName("label_download_mark_zip")
         self.groupBox_31 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_shuiyin)
         self.groupBox_31.setGeometry(QtCore.QRect(30, 20, 701, 511))
-        self.groupBox_31.setStyleSheet("font:\"Courier\";")
+        self.groupBox_31.setStyleSheet('font:"Courier";')
         self.groupBox_31.setObjectName("groupBox_31")
         self.gridLayoutWidget_24 = QtWidgets.QWidget(self.groupBox_31)
         self.gridLayoutWidget_24.setGeometry(QtCore.QRect(20, 30, 661, 461))
@@ -6494,7 +6651,7 @@ class Ui_MDCx(object):
         self.label_138.setSizePolicy(sizePolicy)
         self.label_138.setMouseTracking(True)
         self.label_138.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_138.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_138.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_138.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_138.setObjectName("label_138")
         self.gridLayout_24.addWidget(self.label_138, 5, 1, 1, 1)
@@ -6507,7 +6664,7 @@ class Ui_MDCx(object):
         self.label_135.setMinimumSize(QtCore.QSize(0, 0))
         self.label_135.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_135.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_135.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_135.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_135.setObjectName("label_135")
         self.gridLayout_24.addWidget(self.label_135, 4, 0, 1, 1)
         self.label_128 = QtWidgets.QLabel(self.gridLayoutWidget_24)
@@ -6518,7 +6675,7 @@ class Ui_MDCx(object):
         self.label_128.setSizePolicy(sizePolicy)
         self.label_128.setMinimumSize(QtCore.QSize(130, 0))
         self.label_128.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_128.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_128.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_128.setObjectName("label_128")
         self.gridLayout_24.addWidget(self.label_128, 0, 0, 1, 1)
         self.horizontalLayout_14 = QtWidgets.QHBoxLayout()
@@ -6595,7 +6752,7 @@ class Ui_MDCx(object):
         self.label_141.setSizePolicy(sizePolicy)
         self.label_141.setMouseTracking(True)
         self.label_141.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_141.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_141.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_141.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_141.setObjectName("label_141")
         self.gridLayout_24.addWidget(self.label_141, 7, 1, 1, 1)
@@ -6637,7 +6794,7 @@ class Ui_MDCx(object):
         self.label_139.setSizePolicy(sizePolicy)
         self.label_139.setMinimumSize(QtCore.QSize(0, 0))
         self.label_139.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_139.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_139.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_139.setObjectName("label_139")
         self.gridLayout_24.addWidget(self.label_139, 2, 0, 1, 1)
         self.horizontalLayout_15 = QtWidgets.QHBoxLayout()
@@ -6680,7 +6837,7 @@ class Ui_MDCx(object):
         self.label_127.setSizePolicy(sizePolicy)
         self.label_127.setMinimumSize(QtCore.QSize(0, 0))
         self.label_127.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_127.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_127.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_127.setObjectName("label_127")
         self.gridLayout_24.addWidget(self.label_127, 6, 0, 1, 1)
         self.label_130 = QtWidgets.QLabel(self.gridLayoutWidget_24)
@@ -6694,7 +6851,7 @@ class Ui_MDCx(object):
         self.gridLayout_24.addWidget(self.label_130, 1, 1, 1, 1)
         self.groupBox_36 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_shuiyin)
         self.groupBox_36.setGeometry(QtCore.QRect(30, 550, 701, 101))
-        self.groupBox_36.setStyleSheet("font:\"Courier\";")
+        self.groupBox_36.setStyleSheet('font:"Courier";')
         self.groupBox_36.setObjectName("groupBox_36")
         self.gridLayoutWidget_30 = QtWidgets.QWidget(self.groupBox_36)
         self.gridLayoutWidget_30.setGeometry(QtCore.QRect(20, 30, 664, 51))
@@ -6749,12 +6906,12 @@ class Ui_MDCx(object):
         self.label_126.setSizePolicy(sizePolicy)
         self.label_126.setMinimumSize(QtCore.QSize(130, 0))
         self.label_126.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_126.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_126.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_126.setObjectName("label_126")
         self.gridLayout_30.addWidget(self.label_126, 0, 0, 1, 1)
         self.groupBox_42 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_shuiyin)
         self.groupBox_42.setGeometry(QtCore.QRect(30, 790, 701, 201))
-        self.groupBox_42.setStyleSheet("font:\"Courier\";")
+        self.groupBox_42.setStyleSheet('font:"Courier";')
         self.groupBox_42.setObjectName("groupBox_42")
         self.gridLayoutWidget_31 = QtWidgets.QWidget(self.groupBox_42)
         self.gridLayoutWidget_31.setGeometry(QtCore.QRect(20, 30, 664, 59))
@@ -6809,7 +6966,7 @@ class Ui_MDCx(object):
         self.label_131.setSizePolicy(sizePolicy)
         self.label_131.setMinimumSize(QtCore.QSize(130, 0))
         self.label_131.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_131.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_131.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_131.setObjectName("label_131")
         self.gridLayout_31.addWidget(self.label_131, 0, 0, 1, 1)
         self.gridLayoutWidget_29 = QtWidgets.QWidget(self.groupBox_42)
@@ -6865,7 +7022,7 @@ class Ui_MDCx(object):
         self.label_134.setSizePolicy(sizePolicy)
         self.label_134.setMinimumSize(QtCore.QSize(130, 30))
         self.label_134.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_134.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_134.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_134.setObjectName("label_134")
         self.gridLayout_29.addWidget(self.label_134, 0, 0, 1, 1)
         self.gridLayoutWidget_32 = QtWidgets.QWidget(self.groupBox_42)
@@ -6921,12 +7078,12 @@ class Ui_MDCx(object):
         self.label_216.setSizePolicy(sizePolicy)
         self.label_216.setMinimumSize(QtCore.QSize(130, 0))
         self.label_216.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_216.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_216.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_216.setObjectName("label_216")
         self.gridLayout_39.addWidget(self.label_216, 0, 0, 1, 1)
         self.groupBox_39 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_shuiyin)
         self.groupBox_39.setGeometry(QtCore.QRect(30, 670, 701, 101))
-        self.groupBox_39.setStyleSheet("font:\"Courier\";")
+        self.groupBox_39.setStyleSheet('font:"Courier";')
         self.groupBox_39.setObjectName("groupBox_39")
         self.gridLayoutWidget_33 = QtWidgets.QWidget(self.groupBox_39)
         self.gridLayoutWidget_33.setGeometry(QtCore.QRect(20, 30, 664, 51))
@@ -6981,7 +7138,7 @@ class Ui_MDCx(object):
         self.label_233.setSizePolicy(sizePolicy)
         self.label_233.setMinimumSize(QtCore.QSize(130, 0))
         self.label_233.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_233.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_233.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_233.setObjectName("label_233")
         self.gridLayout_42.addWidget(self.label_233, 0, 0, 1, 1)
         self.scrollArea_4.setWidget(self.scrollAreaWidgetContents_shuiyin)
@@ -7020,7 +7177,7 @@ class Ui_MDCx(object):
         self.label_402.setMinimumSize(QtCore.QSize(20, 0))
         self.label_402.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_402.setText("")
-        self.label_402.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_402.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_402.setObjectName("label_402")
         self.horizontalLayout_146.addWidget(self.label_402)
         self.checkBox_nfo_all_actor = QtWidgets.QCheckBox(self.layoutWidget_10)
@@ -7035,7 +7192,7 @@ class Ui_MDCx(object):
         self.label_391.setSizePolicy(sizePolicy)
         self.label_391.setMinimumSize(QtCore.QSize(130, 30))
         self.label_391.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_391.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_391.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_391.setObjectName("label_391")
         self.gridLayout_40.addWidget(self.label_391, 8, 0, 1, 1)
         self.horizontalLayout_37 = QtWidgets.QHBoxLayout()
@@ -7062,7 +7219,7 @@ class Ui_MDCx(object):
         self.label_413.setMinimumSize(QtCore.QSize(130, 30))
         self.label_413.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_413.setText("")
-        self.label_413.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_413.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_413.setObjectName("label_413")
         self.gridLayout_40.addWidget(self.label_413, 16, 0, 1, 1)
         self.label_396 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7081,10 +7238,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_nfo_tagline.sizePolicy().hasHeightForWidth())
         self.lineEdit_nfo_tagline.setSizePolicy(sizePolicy)
         self.lineEdit_nfo_tagline.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_nfo_tagline.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_nfo_tagline.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_nfo_tagline.setObjectName("lineEdit_nfo_tagline")
         self.gridLayout_40.addWidget(self.lineEdit_nfo_tagline, 6, 1, 1, 1)
         self.horizontalLayout_135 = QtWidgets.QHBoxLayout()
@@ -7156,7 +7315,7 @@ class Ui_MDCx(object):
         self.label_301.setMinimumSize(QtCore.QSize(130, 30))
         self.label_301.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_301.setText("")
-        self.label_301.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_301.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_301.setObjectName("label_301")
         self.gridLayout_40.addWidget(self.label_301, 15, 0, 1, 1)
         self.label_335 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7168,7 +7327,7 @@ class Ui_MDCx(object):
         self.label_335.setMinimumSize(QtCore.QSize(130, 30))
         self.label_335.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_335.setText("")
-        self.label_335.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_335.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_335.setObjectName("label_335")
         self.gridLayout_40.addWidget(self.label_335, 3, 0, 1, 1)
         self.label_209 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7180,7 +7339,7 @@ class Ui_MDCx(object):
         self.label_209.setMinimumSize(QtCore.QSize(130, 30))
         self.label_209.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_209.setText("")
-        self.label_209.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_209.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_209.setObjectName("label_209")
         self.gridLayout_40.addWidget(self.label_209, 1, 0, 1, 1)
         self.label_387 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7192,7 +7351,7 @@ class Ui_MDCx(object):
         self.label_387.setMinimumSize(QtCore.QSize(130, 30))
         self.label_387.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_387.setText("")
-        self.label_387.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_387.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_387.setObjectName("label_387")
         self.gridLayout_40.addWidget(self.label_387, 6, 0, 1, 1)
         self.label_163 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7203,7 +7362,7 @@ class Ui_MDCx(object):
         self.label_163.setSizePolicy(sizePolicy)
         self.label_163.setMinimumSize(QtCore.QSize(130, 30))
         self.label_163.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_163.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_163.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_163.setObjectName("label_163")
         self.gridLayout_40.addWidget(self.label_163, 0, 0, 1, 1)
         self.label_388 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7214,7 +7373,7 @@ class Ui_MDCx(object):
         self.label_388.setSizePolicy(sizePolicy)
         self.label_388.setMinimumSize(QtCore.QSize(130, 30))
         self.label_388.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_388.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_388.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_388.setObjectName("label_388")
         self.gridLayout_40.addWidget(self.label_388, 24, 0, 1, 1)
         self.horizontalLayout_136 = QtWidgets.QHBoxLayout()
@@ -7252,7 +7411,7 @@ class Ui_MDCx(object):
         self.label_412.setMinimumSize(QtCore.QSize(0, 30))
         self.label_412.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_412.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_412.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_412.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_412.setObjectName("label_412")
         self.horizontalLayout_144.addWidget(self.label_412)
         self.lineEdit_nfo_tag_series = QtWidgets.QLineEdit(self.layoutWidget_10)
@@ -7262,10 +7421,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_nfo_tag_series.sizePolicy().hasHeightForWidth())
         self.lineEdit_nfo_tag_series.setSizePolicy(sizePolicy)
         self.lineEdit_nfo_tag_series.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_nfo_tag_series.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_nfo_tag_series.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_nfo_tag_series.setObjectName("lineEdit_nfo_tag_series")
         self.horizontalLayout_144.addWidget(self.lineEdit_nfo_tag_series)
         self.gridLayout_40.addLayout(self.horizontalLayout_144, 16, 1, 1, 1)
@@ -7280,7 +7441,7 @@ class Ui_MDCx(object):
         self.label_416.setMinimumSize(QtCore.QSize(0, 30))
         self.label_416.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_416.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_416.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_416.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_416.setObjectName("label_416")
         self.horizontalLayout_145.addWidget(self.label_416)
         self.lineEdit_nfo_tag_studio = QtWidgets.QLineEdit(self.layoutWidget_10)
@@ -7290,10 +7451,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_nfo_tag_studio.sizePolicy().hasHeightForWidth())
         self.lineEdit_nfo_tag_studio.setSizePolicy(sizePolicy)
         self.lineEdit_nfo_tag_studio.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_nfo_tag_studio.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_nfo_tag_studio.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_nfo_tag_studio.setObjectName("lineEdit_nfo_tag_studio")
         self.horizontalLayout_145.addWidget(self.lineEdit_nfo_tag_studio)
         self.gridLayout_40.addLayout(self.horizontalLayout_145, 17, 1, 1, 1)
@@ -7308,7 +7471,7 @@ class Ui_MDCx(object):
         self.label_394.setMinimumSize(QtCore.QSize(20, 0))
         self.label_394.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_394.setText("")
-        self.label_394.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_394.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_394.setObjectName("label_394")
         self.horizontalLayout_142.addWidget(self.label_394)
         self.checkBox_outline_cdata = QtWidgets.QCheckBox(self.layoutWidget_10)
@@ -7323,7 +7486,7 @@ class Ui_MDCx(object):
         self.label_390.setSizePolicy(sizePolicy)
         self.label_390.setMinimumSize(QtCore.QSize(130, 30))
         self.label_390.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_390.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_390.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_390.setObjectName("label_390")
         self.gridLayout_40.addWidget(self.label_390, 9, 0, 1, 1)
         self.horizontalLayout_139 = QtWidgets.QHBoxLayout()
@@ -7394,7 +7557,7 @@ class Ui_MDCx(object):
         self.label_419.setMinimumSize(QtCore.QSize(130, 30))
         self.label_419.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_419.setText("")
-        self.label_419.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_419.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_419.setObjectName("label_419")
         self.gridLayout_40.addWidget(self.label_419, 18, 0, 1, 1)
         self.label_417 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7406,7 +7569,7 @@ class Ui_MDCx(object):
         self.label_417.setMinimumSize(QtCore.QSize(130, 30))
         self.label_417.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_417.setText("")
-        self.label_417.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_417.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_417.setObjectName("label_417")
         self.gridLayout_40.addWidget(self.label_417, 17, 0, 1, 1)
         self.horizontalLayout_91 = QtWidgets.QHBoxLayout()
@@ -7453,7 +7616,7 @@ class Ui_MDCx(object):
         self.label_384.setSizePolicy(sizePolicy)
         self.label_384.setMinimumSize(QtCore.QSize(130, 30))
         self.label_384.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_384.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_384.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_384.setObjectName("label_384")
         self.gridLayout_40.addWidget(self.label_384, 2, 0, 1, 1)
         self.label_208 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7464,7 +7627,7 @@ class Ui_MDCx(object):
         self.label_208.setSizePolicy(sizePolicy)
         self.label_208.setMinimumSize(QtCore.QSize(130, 30))
         self.label_208.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_208.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_208.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_208.setObjectName("label_208")
         self.gridLayout_40.addWidget(self.label_208, 12, 0, 1, 1)
         self.label_161 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7476,7 +7639,7 @@ class Ui_MDCx(object):
         self.label_161.setMinimumSize(QtCore.QSize(130, 30))
         self.label_161.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_161.setText("")
-        self.label_161.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_161.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_161.setObjectName("label_161")
         self.gridLayout_40.addWidget(self.label_161, 14, 0, 1, 1)
         self.horizontalLayout_147 = QtWidgets.QHBoxLayout()
@@ -7490,7 +7653,7 @@ class Ui_MDCx(object):
         self.label_418.setMinimumSize(QtCore.QSize(0, 30))
         self.label_418.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_418.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_418.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_418.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_418.setObjectName("label_418")
         self.horizontalLayout_147.addWidget(self.label_418)
         self.lineEdit_nfo_tag_publisher = QtWidgets.QLineEdit(self.layoutWidget_10)
@@ -7500,10 +7663,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_nfo_tag_publisher.sizePolicy().hasHeightForWidth())
         self.lineEdit_nfo_tag_publisher.setSizePolicy(sizePolicy)
         self.lineEdit_nfo_tag_publisher.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_nfo_tag_publisher.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_nfo_tag_publisher.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_nfo_tag_publisher.setObjectName("lineEdit_nfo_tag_publisher")
         self.horizontalLayout_147.addWidget(self.lineEdit_nfo_tag_publisher)
         self.gridLayout_40.addLayout(self.horizontalLayout_147, 18, 1, 1, 1)
@@ -7539,7 +7704,7 @@ class Ui_MDCx(object):
         self.label_334.setSizePolicy(sizePolicy)
         self.label_334.setMinimumSize(QtCore.QSize(130, 30))
         self.label_334.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_334.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_334.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_334.setObjectName("label_334")
         self.gridLayout_40.addWidget(self.label_334, 23, 0, 1, 1)
         self.label_385 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7550,7 +7715,7 @@ class Ui_MDCx(object):
         self.label_385.setSizePolicy(sizePolicy)
         self.label_385.setMinimumSize(QtCore.QSize(130, 30))
         self.label_385.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_385.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_385.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_385.setObjectName("label_385")
         self.gridLayout_40.addWidget(self.label_385, 4, 0, 1, 1)
         self.label_392 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7561,7 +7726,7 @@ class Ui_MDCx(object):
         self.label_392.setSizePolicy(sizePolicy)
         self.label_392.setMinimumSize(QtCore.QSize(130, 30))
         self.label_392.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_392.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_392.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_392.setObjectName("label_392")
         self.gridLayout_40.addWidget(self.label_392, 7, 0, 1, 1)
         self.horizontalLayout_40 = QtWidgets.QHBoxLayout()
@@ -7598,7 +7763,7 @@ class Ui_MDCx(object):
         self.label_403.setMinimumSize(QtCore.QSize(130, 30))
         self.label_403.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_403.setText("")
-        self.label_403.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_403.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_403.setObjectName("label_403")
         self.gridLayout_40.addWidget(self.label_403, 11, 0, 1, 1)
         self.horizontalLayout_121 = QtWidgets.QHBoxLayout()
@@ -7612,7 +7777,7 @@ class Ui_MDCx(object):
         self.label_393.setMinimumSize(QtCore.QSize(20, 0))
         self.label_393.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_393.setText("")
-        self.label_393.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_393.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_393.setObjectName("label_393")
         self.horizontalLayout_121.addWidget(self.label_393)
         self.checkBox_nfo_title_cd = QtWidgets.QCheckBox(self.layoutWidget_10)
@@ -7651,7 +7816,7 @@ class Ui_MDCx(object):
         self.label_386.setSizePolicy(sizePolicy)
         self.label_386.setMinimumSize(QtCore.QSize(130, 30))
         self.label_386.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_386.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_386.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_386.setObjectName("label_386")
         self.gridLayout_40.addWidget(self.label_386, 10, 0, 1, 1)
         self.horizontalLayout_34 = QtWidgets.QHBoxLayout()
@@ -7692,7 +7857,7 @@ class Ui_MDCx(object):
         self.label_150.setSizePolicy(sizePolicy)
         self.label_150.setMinimumSize(QtCore.QSize(130, 30))
         self.label_150.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_150.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_150.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_150.setObjectName("label_150")
         self.gridLayout_40.addWidget(self.label_150, 25, 0, 1, 1)
         self.label_433 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7704,7 +7869,7 @@ class Ui_MDCx(object):
         self.label_433.setMinimumSize(QtCore.QSize(130, 30))
         self.label_433.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_433.setText("")
-        self.label_433.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_433.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_433.setObjectName("label_433")
         self.gridLayout_40.addWidget(self.label_433, 19, 0, 1, 1)
         self.horizontalLayout_161 = QtWidgets.QHBoxLayout()
@@ -7718,7 +7883,7 @@ class Ui_MDCx(object):
         self.label_423.setMinimumSize(QtCore.QSize(0, 30))
         self.label_423.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_423.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_423.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_423.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_423.setObjectName("label_423")
         self.horizontalLayout_161.addWidget(self.label_423)
         self.lineEdit_nfo_tag_actor = QtWidgets.QLineEdit(self.layoutWidget_10)
@@ -7728,10 +7893,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_nfo_tag_actor.sizePolicy().hasHeightForWidth())
         self.lineEdit_nfo_tag_actor.setSizePolicy(sizePolicy)
         self.lineEdit_nfo_tag_actor.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_nfo_tag_actor.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_nfo_tag_actor.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_nfo_tag_actor.setObjectName("lineEdit_nfo_tag_actor")
         self.horizontalLayout_161.addWidget(self.lineEdit_nfo_tag_actor)
         self.gridLayout_40.addLayout(self.horizontalLayout_161, 19, 1, 1, 1)
@@ -7744,7 +7911,7 @@ class Ui_MDCx(object):
         self.label_434.setMinimumSize(QtCore.QSize(130, 30))
         self.label_434.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_434.setText("")
-        self.label_434.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_434.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_434.setObjectName("label_434")
         self.gridLayout_40.addWidget(self.label_434, 20, 0, 1, 1)
         self.horizontalLayout_162 = QtWidgets.QHBoxLayout()
@@ -7758,7 +7925,7 @@ class Ui_MDCx(object):
         self.label_424.setMinimumSize(QtCore.QSize(0, 30))
         self.label_424.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_424.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_424.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_424.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_424.setObjectName("label_424")
         self.horizontalLayout_162.addWidget(self.label_424)
         self.lineEdit_nfo_tag_actor_contains = QtWidgets.QLineEdit(self.layoutWidget_10)
@@ -7768,10 +7935,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_nfo_tag_actor_contains.sizePolicy().hasHeightForWidth())
         self.lineEdit_nfo_tag_actor_contains.setSizePolicy(sizePolicy)
         self.lineEdit_nfo_tag_actor_contains.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_nfo_tag_actor_contains.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_nfo_tag_actor_contains.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_nfo_tag_actor_contains.setObjectName("lineEdit_nfo_tag_actor_contains")
         self.horizontalLayout_162.addWidget(self.lineEdit_nfo_tag_actor_contains)
         self.gridLayout_40.addLayout(self.horizontalLayout_162, 20, 1, 1, 1)
@@ -7784,7 +7953,7 @@ class Ui_MDCx(object):
         self.label_435.setMinimumSize(QtCore.QSize(130, 30))
         self.label_435.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_435.setText("")
-        self.label_435.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_435.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_435.setObjectName("label_435")
         self.gridLayout_40.addWidget(self.label_435, 21, 0, 1, 1)
         self.label_432 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7796,7 +7965,7 @@ class Ui_MDCx(object):
         self.label_432.setMinimumSize(QtCore.QSize(0, 30))
         self.label_432.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_432.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_432.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_432.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_432.setObjectName("label_432")
         self.gridLayout_40.addWidget(self.label_432, 21, 1, 1, 1)
         self.label_428 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7808,7 +7977,7 @@ class Ui_MDCx(object):
         self.label_428.setMinimumSize(QtCore.QSize(0, 30))
         self.label_428.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_428.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_428.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_428.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_428.setObjectName("label_428")
         self.gridLayout_40.addWidget(self.label_428, 22, 1, 1, 1)
         self.label_429 = QtWidgets.QLabel(self.layoutWidget_10)
@@ -7820,7 +7989,7 @@ class Ui_MDCx(object):
         self.label_429.setMinimumSize(QtCore.QSize(130, 30))
         self.label_429.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_429.setText("")
-        self.label_429.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_429.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_429.setObjectName("label_429")
         self.gridLayout_40.addWidget(self.label_429, 22, 0, 1, 1)
         self.label_389 = QtWidgets.QLabel(self.groupBox_81)
@@ -7859,7 +8028,7 @@ class Ui_MDCx(object):
         self.scrollAreaWidgetContents_yanyuan.setObjectName("scrollAreaWidgetContents_yanyuan")
         self.groupBox_43 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_yanyuan)
         self.groupBox_43.setGeometry(QtCore.QRect(30, 20, 701, 321))
-        self.groupBox_43.setStyleSheet("font:\"Courier\";")
+        self.groupBox_43.setStyleSheet('font:"Courier";')
         self.groupBox_43.setObjectName("groupBox_43")
         self.gridLayoutWidget_25 = QtWidgets.QWidget(self.groupBox_43)
         self.gridLayoutWidget_25.setGeometry(QtCore.QRect(20, 30, 661, 292))
@@ -7874,10 +8043,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_user_id.sizePolicy().hasHeightForWidth())
         self.lineEdit_user_id.setSizePolicy(sizePolicy)
         self.lineEdit_user_id.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_user_id.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_user_id.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_user_id.setObjectName("lineEdit_user_id")
         self.gridLayout_25.addWidget(self.lineEdit_user_id, 6, 1, 1, 1)
         self.label_104 = QtWidgets.QLabel(self.gridLayoutWidget_25)
@@ -7889,7 +8060,7 @@ class Ui_MDCx(object):
         self.label_104.setMinimumSize(QtCore.QSize(130, 30))
         self.label_104.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_104.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_104.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_104.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_104.setObjectName("label_104")
         self.gridLayout_25.addWidget(self.label_104, 1, 0, 1, 1)
         self.label_105 = QtWidgets.QLabel(self.gridLayoutWidget_25)
@@ -7946,10 +8117,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_emby_url.sizePolicy().hasHeightForWidth())
         self.lineEdit_emby_url.setSizePolicy(sizePolicy)
         self.lineEdit_emby_url.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_emby_url.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_emby_url.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_emby_url.setObjectName("lineEdit_emby_url")
         self.gridLayout_25.addWidget(self.lineEdit_emby_url, 1, 1, 1, 1)
         self.label_298 = QtWidgets.QLabel(self.gridLayoutWidget_25)
@@ -7961,7 +8134,7 @@ class Ui_MDCx(object):
         self.label_298.setMinimumSize(QtCore.QSize(130, 30))
         self.label_298.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_298.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_298.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_298.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_298.setObjectName("label_298")
         self.gridLayout_25.addWidget(self.label_298, 8, 0, 1, 1)
         self.label_121 = QtWidgets.QLabel(self.gridLayoutWidget_25)
@@ -7982,7 +8155,7 @@ class Ui_MDCx(object):
         self.label_306.setSizePolicy(sizePolicy)
         self.label_306.setMinimumSize(QtCore.QSize(130, 30))
         self.label_306.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_306.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_306.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_306.setObjectName("label_306")
         self.gridLayout_25.addWidget(self.label_306, 0, 0, 1, 1)
         self.label_108 = QtWidgets.QLabel(self.gridLayoutWidget_25)
@@ -7994,7 +8167,7 @@ class Ui_MDCx(object):
         self.label_108.setMinimumSize(QtCore.QSize(130, 30))
         self.label_108.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_108.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_108.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_108.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_108.setObjectName("label_108")
         self.gridLayout_25.addWidget(self.label_108, 6, 0, 1, 1)
         self.label_107 = QtWidgets.QLabel(self.gridLayoutWidget_25)
@@ -8006,7 +8179,7 @@ class Ui_MDCx(object):
         self.label_107.setMinimumSize(QtCore.QSize(130, 30))
         self.label_107.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_107.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_107.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_107.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_107.setObjectName("label_107")
         self.gridLayout_25.addWidget(self.label_107, 3, 0, 1, 1)
         self.lineEdit_api_key = QtWidgets.QLineEdit(self.gridLayoutWidget_25)
@@ -8016,10 +8189,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_api_key.sizePolicy().hasHeightForWidth())
         self.lineEdit_api_key.setSizePolicy(sizePolicy)
         self.lineEdit_api_key.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_api_key.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_api_key.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_api_key.setObjectName("lineEdit_api_key")
         self.gridLayout_25.addWidget(self.lineEdit_api_key, 3, 1, 1, 1)
         self.label_109 = QtWidgets.QLabel(self.gridLayoutWidget_25)
@@ -8087,7 +8262,7 @@ class Ui_MDCx(object):
         self.label_296.setSizePolicy(sizePolicy)
         self.label_296.setMinimumSize(QtCore.QSize(130, 0))
         self.label_296.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_296.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_296.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_296.setObjectName("label_296")
         self.layoutWidget_8 = QtWidgets.QWidget(self.groupBox_41)
         self.layoutWidget_8.setGeometry(QtCore.QRect(20, 60, 661, 301))
@@ -8113,7 +8288,7 @@ class Ui_MDCx(object):
         self.label_293.setSizePolicy(sizePolicy)
         self.label_293.setMinimumSize(QtCore.QSize(130, 30))
         self.label_293.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_293.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_293.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_293.setObjectName("label_293")
         self.gridLayout.addWidget(self.label_293, 0, 0, 1, 1)
         self.label_101 = QtWidgets.QLabel(self.layoutWidget_8)
@@ -8124,7 +8299,7 @@ class Ui_MDCx(object):
         self.label_101.setSizePolicy(sizePolicy)
         self.label_101.setMinimumSize(QtCore.QSize(130, 30))
         self.label_101.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_101.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_101.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_101.setObjectName("label_101")
         self.gridLayout.addWidget(self.label_101, 5, 0, 1, 1)
         self.horizontalLayout_93 = QtWidgets.QHBoxLayout()
@@ -8164,10 +8339,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_net_actor_photo.sizePolicy().hasHeightForWidth())
         self.lineEdit_net_actor_photo.setSizePolicy(sizePolicy)
         self.lineEdit_net_actor_photo.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_net_actor_photo.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_net_actor_photo.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_net_actor_photo.setObjectName("lineEdit_net_actor_photo")
         self.gridLayout.addWidget(self.lineEdit_net_actor_photo, 1, 1, 1, 1)
         self.label_327 = QtWidgets.QLabel(self.layoutWidget_8)
@@ -8179,7 +8356,7 @@ class Ui_MDCx(object):
         self.label_327.setMinimumSize(QtCore.QSize(130, 30))
         self.label_327.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_327.setText("")
-        self.label_327.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_327.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_327.setObjectName("label_327")
         self.gridLayout.addWidget(self.label_327, 3, 0, 1, 1)
         self.horizontalLayout_95 = QtWidgets.QHBoxLayout()
@@ -8213,7 +8390,9 @@ class Ui_MDCx(object):
         self.label_download_actor_zip.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
         self.label_download_actor_zip.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_download_actor_zip.setStyleSheet("color: rgb(10, 52, 255);")
-        self.label_download_actor_zip.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_download_actor_zip.setAlignment(
+            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+        )
         self.label_download_actor_zip.setObjectName("label_download_actor_zip")
         self.horizontalLayout_97.addWidget(self.label_download_actor_zip)
         self.horizontalLayout_95.addLayout(self.horizontalLayout_97)
@@ -8227,10 +8406,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_actor_photo_folder.sizePolicy().hasHeightForWidth())
         self.lineEdit_actor_photo_folder.setSizePolicy(sizePolicy)
         self.lineEdit_actor_photo_folder.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_actor_photo_folder.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_actor_photo_folder.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_actor_photo_folder.setObjectName("lineEdit_actor_photo_folder")
         self.horizontalLayout_30.addWidget(self.lineEdit_actor_photo_folder)
         self.pushButton_select_actor_photo_folder = QtWidgets.QPushButton(self.layoutWidget_8)
@@ -8251,7 +8432,7 @@ class Ui_MDCx(object):
         self.label_303.setSizePolicy(sizePolicy)
         self.label_303.setMinimumSize(QtCore.QSize(130, 30))
         self.label_303.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_303.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_303.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_303.setObjectName("label_303")
         self.gridLayout.addWidget(self.label_303, 1, 0, 1, 1)
         self.label_123 = QtWidgets.QLabel(self.layoutWidget_8)
@@ -8329,7 +8510,7 @@ class Ui_MDCx(object):
         self.label_431.setSizePolicy(sizePolicy)
         self.label_431.setMinimumSize(QtCore.QSize(130, 30))
         self.label_431.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_431.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_431.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_431.setObjectName("label_431")
         self.gridLayout_14.addWidget(self.frame_8, 3, 0, 1, 1)
         self.horizontalLayout_155 = QtWidgets.QHBoxLayout()
@@ -8341,10 +8522,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_actor_db_path.sizePolicy().hasHeightForWidth())
         self.lineEdit_actor_db_path.setSizePolicy(sizePolicy)
         self.lineEdit_actor_db_path.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_actor_db_path.setStyleSheet("font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"                                  ")
+        self.lineEdit_actor_db_path.setStyleSheet(
+            'font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            "                                  "
+        )
         self.lineEdit_actor_db_path.setObjectName("lineEdit_actor_db_path")
         self.horizontalLayout_155.addWidget(self.lineEdit_actor_db_path)
         self.pushButton_select_actor_info_db = QtWidgets.QPushButton(self.gridLayoutWidget_14)
@@ -8415,7 +8598,7 @@ class Ui_MDCx(object):
         self.label_291.setSizePolicy(sizePolicy)
         self.label_291.setMinimumSize(QtCore.QSize(130, 30))
         self.label_291.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_291.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_291.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_291.setObjectName("label_291")
         self.gridLayout_14.addWidget(self.label_291, 0, 0, 1, 1)
         self.horizontalLayout_98 = QtWidgets.QHBoxLayout()
@@ -8430,7 +8613,7 @@ class Ui_MDCx(object):
         self.label_280.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_280.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_280.setText("")
-        self.label_280.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_280.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_280.setObjectName("label_280")
         self.horizontalLayout_98.addWidget(self.label_280)
         self.horizontalLayout_100 = QtWidgets.QHBoxLayout()
@@ -8497,7 +8680,7 @@ class Ui_MDCx(object):
         self.label_299.setSizePolicy(sizePolicy)
         self.label_299.setMinimumSize(QtCore.QSize(130, 0))
         self.label_299.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_299.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_299.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_299.setObjectName("label_299")
         self.checkBox_actor_info_photo = QtWidgets.QCheckBox(self.groupBox_64)
         self.checkBox_actor_info_photo.setGeometry(QtCore.QRect(450, 320, 191, 40))
@@ -8556,7 +8739,7 @@ class Ui_MDCx(object):
         self.label_415.setSizePolicy(sizePolicy)
         self.label_415.setMinimumSize(QtCore.QSize(130, 0))
         self.label_415.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_415.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_415.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_415.setObjectName("label_415")
         self.pushButton_del_actor_folder = QtWidgets.QPushButton(self.groupBox_68)
         self.pushButton_del_actor_folder.setGeometry(QtCore.QRect(490, 130, 171, 40))
@@ -8587,7 +8770,7 @@ class Ui_MDCx(object):
         self.scrollAreaWidgetContents_wangluo.setObjectName("scrollAreaWidgetContents_wangluo")
         self.groupBox_10 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_wangluo)
         self.groupBox_10.setGeometry(QtCore.QRect(30, 320, 701, 531))
-        self.groupBox_10.setStyleSheet("font:\"Courier\";")
+        self.groupBox_10.setStyleSheet('font:"Courier";')
         self.groupBox_10.setObjectName("groupBox_10")
         self.gridLayoutWidget_10 = QtWidgets.QWidget(self.groupBox_10)
         self.gridLayoutWidget_10.setGeometry(QtCore.QRect(20, 30, 661, 280))
@@ -8604,7 +8787,7 @@ class Ui_MDCx(object):
         self.label_45.setMinimumSize(QtCore.QSize(130, 30))
         self.label_45.setMaximumSize(QtCore.QSize(130, 16777215))
         self.label_45.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_45.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_45.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_45.setObjectName("label_45")
         self.gridLayout_10.addWidget(self.label_45, 0, 0, 1, 1)
         self.plainTextEdit_cookie_javdb = QtWidgets.QPlainTextEdit(self.gridLayoutWidget_10)
@@ -8614,9 +8797,11 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.plainTextEdit_cookie_javdb.sizePolicy().hasHeightForWidth())
         self.plainTextEdit_cookie_javdb.setSizePolicy(sizePolicy)
         self.plainTextEdit_cookie_javdb.setMinimumSize(QtCore.QSize(400, 80))
-        self.plainTextEdit_cookie_javdb.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 1px;\n"
-"                                font: \"Courier\";")
+        self.plainTextEdit_cookie_javdb.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 1px;\n"
+            '                                font: "Courier";'
+        )
         self.plainTextEdit_cookie_javdb.setObjectName("plainTextEdit_cookie_javdb")
         self.gridLayout_10.addWidget(self.plainTextEdit_cookie_javdb, 0, 1, 1, 1)
         self.horizontalLayout_151 = QtWidgets.QHBoxLayout()
@@ -8638,7 +8823,9 @@ class Ui_MDCx(object):
         self.label_javdb_cookie_result.setMinimumSize(QtCore.QSize(0, 0))
         self.label_javdb_cookie_result.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_javdb_cookie_result.setText("")
-        self.label_javdb_cookie_result.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_javdb_cookie_result.setAlignment(
+            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+        )
         self.label_javdb_cookie_result.setObjectName("label_javdb_cookie_result")
         self.horizontalLayout_151.addWidget(self.label_javdb_cookie_result)
         self.gridLayout_10.addLayout(self.horizontalLayout_151, 1, 1, 1, 1)
@@ -8651,15 +8838,22 @@ class Ui_MDCx(object):
         self.label_425.setMinimumSize(QtCore.QSize(130, 30))
         self.label_425.setMaximumSize(QtCore.QSize(130, 16777215))
         self.label_425.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_425.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_425.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_425.setObjectName("label_425")
         self.gridLayout_10.addWidget(self.label_425, 2, 0, 1, 1)
         self.plainTextEdit_cookie_javbus = QtWidgets.QPlainTextEdit(self.gridLayoutWidget_10)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.plainTextEdit_cookie_javbus.sizePolicy().hasHeightForWidth())
+        self.plainTextEdit_cookie_javbus.setSizePolicy(sizePolicy)
         self.plainTextEdit_cookie_javbus.setMinimumSize(QtCore.QSize(400, 80))
         self.plainTextEdit_cookie_javbus.setAccessibleDescription("")
-        self.plainTextEdit_cookie_javbus.setStyleSheet(" border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 1px;\n"
-"                                font: \"Courier\";")
+        self.plainTextEdit_cookie_javbus.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 1px;\n"
+            '                                font: "Courier";'
+        )
         self.plainTextEdit_cookie_javbus.setObjectName("plainTextEdit_cookie_javbus")
         self.gridLayout_10.addWidget(self.plainTextEdit_cookie_javbus, 2, 1, 1, 1)
         self.horizontalLayout_152 = QtWidgets.QHBoxLayout()
@@ -8681,7 +8875,9 @@ class Ui_MDCx(object):
         self.label_javbus_cookie_result.setMinimumSize(QtCore.QSize(0, 0))
         self.label_javbus_cookie_result.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_javbus_cookie_result.setText("")
-        self.label_javbus_cookie_result.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_javbus_cookie_result.setAlignment(
+            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+        )
         self.label_javbus_cookie_result.setObjectName("label_javbus_cookie_result")
         self.horizontalLayout_152.addWidget(self.label_javbus_cookie_result)
         self.gridLayout_10.addLayout(self.horizontalLayout_152, 3, 1, 1, 1)
@@ -8694,7 +8890,7 @@ class Ui_MDCx(object):
         self.label_75.setSizePolicy(sizePolicy)
         self.label_75.setStyleSheet("color: rgb(8, 128, 128);")
         self.label_75.setScaledContents(True)
-        self.label_75.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_75.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_75.setWordWrap(True)
         self.label_75.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_75.setObjectName("label_75")
@@ -8704,7 +8900,7 @@ class Ui_MDCx(object):
         self.label_get_cookie_url.setMouseTracking(False)
         self.label_get_cookie_url.setStyleSheet("color: rgb(10, 52, 255);")
         self.label_get_cookie_url.setScaledContents(False)
-        self.label_get_cookie_url.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_get_cookie_url.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_get_cookie_url.setOpenExternalLinks(False)
         self.label_get_cookie_url.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
         self.label_get_cookie_url.setObjectName("label_get_cookie_url")
@@ -8714,10 +8910,10 @@ class Ui_MDCx(object):
         self.label_7.setObjectName("label_7")
         self.groupBox_28 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_wangluo)
         self.groupBox_28.setGeometry(QtCore.QRect(30, 20, 701, 281))
-        self.groupBox_28.setStyleSheet("font:\"Courier\";")
+        self.groupBox_28.setStyleSheet('font:"Courier";')
         self.groupBox_28.setObjectName("groupBox_28")
         self.gridLayoutWidget_9 = QtWidgets.QWidget(self.groupBox_28)
-        self.gridLayoutWidget_9.setGeometry(QtCore.QRect(20, 30, 661, 234))
+        self.gridLayoutWidget_9.setGeometry(QtCore.QRect(20, 30, 661, 264))
         self.gridLayoutWidget_9.setObjectName("gridLayoutWidget_9")
         self.gridLayout_9 = QtWidgets.QGridLayout(self.gridLayoutWidget_9)
         self.gridLayout_9.setContentsMargins(0, 0, 0, 0)
@@ -8732,7 +8928,7 @@ class Ui_MDCx(object):
         self.label_103.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.label_103.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.label_103.setObjectName("label_103")
-        self.gridLayout_9.addWidget(self.label_103, 5, 1, 1, 1)
+        self.gridLayout_9.addWidget(self.label_103, 6, 1, 1, 1)
         self.horizontalLayout_17 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_17.setObjectName("horizontalLayout_17")
         self.checkBox_use_proxy = QtWidgets.QCheckBox(self.gridLayoutWidget_9)
@@ -8772,7 +8968,7 @@ class Ui_MDCx(object):
         self.lcdNumber_timeout.setProperty("intValue", 10)
         self.lcdNumber_timeout.setObjectName("lcdNumber_timeout")
         self.horizontalLayout_3.addWidget(self.lcdNumber_timeout)
-        self.gridLayout_9.addLayout(self.horizontalLayout_3, 3, 1, 1, 1)
+        self.gridLayout_9.addLayout(self.horizontalLayout_3, 4, 1, 1, 1)
         self.horizontalLayout_retry = QtWidgets.QHBoxLayout()
         self.horizontalLayout_retry.setObjectName("horizontalLayout_retry")
         self.horizontalSlider_retry = CustomQSlider(self.gridLayoutWidget_9)
@@ -8804,7 +9000,7 @@ class Ui_MDCx(object):
         self.lcdNumber_retry.setProperty("intValue", 3)
         self.lcdNumber_retry.setObjectName("lcdNumber_retry")
         self.horizontalLayout_retry.addWidget(self.lcdNumber_retry)
-        self.gridLayout_9.addLayout(self.horizontalLayout_retry, 4, 1, 1, 1)
+        self.gridLayout_9.addLayout(self.horizontalLayout_retry, 5, 1, 1, 1)
         self.label_73 = QtWidgets.QLabel(self.gridLayoutWidget_9)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -8813,9 +9009,9 @@ class Ui_MDCx(object):
         self.label_73.setSizePolicy(sizePolicy)
         self.label_73.setMinimumSize(QtCore.QSize(0, 0))
         self.label_73.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_73.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_73.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_73.setObjectName("label_73")
-        self.gridLayout_9.addWidget(self.label_73, 3, 0, 1, 1)
+        self.gridLayout_9.addWidget(self.label_73, 4, 0, 1, 1)
         self.lineEdit_proxy = QtWidgets.QLineEdit(self.gridLayoutWidget_9)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -8823,10 +9019,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_proxy.sizePolicy().hasHeightForWidth())
         self.lineEdit_proxy.setSizePolicy(sizePolicy)
         self.lineEdit_proxy.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_proxy.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_proxy.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_proxy.setObjectName("lineEdit_proxy")
         self.gridLayout_9.addWidget(self.lineEdit_proxy, 1, 1, 1, 1)
         self.lineEdit_cf_bypass_url = QtWidgets.QLineEdit(self.gridLayoutWidget_9)
@@ -8836,12 +9034,29 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_cf_bypass_url.sizePolicy().hasHeightForWidth())
         self.lineEdit_cf_bypass_url.setSizePolicy(sizePolicy)
         self.lineEdit_cf_bypass_url.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_cf_bypass_url.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_cf_bypass_url.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_cf_bypass_url.setObjectName("lineEdit_cf_bypass_url")
         self.gridLayout_9.addWidget(self.lineEdit_cf_bypass_url, 2, 1, 1, 1)
+        self.lineEdit_cf_bypass_proxy = QtWidgets.QLineEdit(self.gridLayoutWidget_9)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_cf_bypass_proxy.sizePolicy().hasHeightForWidth())
+        self.lineEdit_cf_bypass_proxy.setSizePolicy(sizePolicy)
+        self.lineEdit_cf_bypass_proxy.setMinimumSize(QtCore.QSize(300, 30))
+        self.lineEdit_cf_bypass_proxy.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
+        self.lineEdit_cf_bypass_proxy.setObjectName("lineEdit_cf_bypass_proxy")
+        self.gridLayout_9.addWidget(self.lineEdit_cf_bypass_proxy, 3, 1, 1, 1)
         self.label_65 = QtWidgets.QLabel(self.gridLayoutWidget_9)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -8850,9 +9065,9 @@ class Ui_MDCx(object):
         self.label_65.setSizePolicy(sizePolicy)
         self.label_65.setMinimumSize(QtCore.QSize(0, 0))
         self.label_65.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_65.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_65.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_65.setObjectName("label_65")
-        self.gridLayout_9.addWidget(self.label_65, 4, 0, 1, 1)
+        self.gridLayout_9.addWidget(self.label_65, 5, 0, 1, 1)
         self.label_64 = QtWidgets.QLabel(self.gridLayoutWidget_9)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -8862,7 +9077,7 @@ class Ui_MDCx(object):
         self.label_64.setMinimumSize(QtCore.QSize(130, 0))
         self.label_64.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_64.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_64.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_64.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_64.setObjectName("label_64")
         self.gridLayout_9.addWidget(self.label_64, 1, 0, 1, 1)
         self.label_cf_bypass = QtWidgets.QLabel(self.gridLayoutWidget_9)
@@ -8874,12 +9089,24 @@ class Ui_MDCx(object):
         self.label_cf_bypass.setMinimumSize(QtCore.QSize(130, 0))
         self.label_cf_bypass.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_cf_bypass.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_cf_bypass.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_cf_bypass.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_cf_bypass.setObjectName("label_cf_bypass")
         self.gridLayout_9.addWidget(self.label_cf_bypass, 2, 0, 1, 1)
+        self.label_cf_bypass_proxy = QtWidgets.QLabel(self.gridLayoutWidget_9)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_cf_bypass_proxy.sizePolicy().hasHeightForWidth())
+        self.label_cf_bypass_proxy.setSizePolicy(sizePolicy)
+        self.label_cf_bypass_proxy.setMinimumSize(QtCore.QSize(130, 0))
+        self.label_cf_bypass_proxy.setLayoutDirection(QtCore.Qt.RightToLeft)
+        self.label_cf_bypass_proxy.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.label_cf_bypass_proxy.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_cf_bypass_proxy.setObjectName("label_cf_bypass_proxy")
+        self.gridLayout_9.addWidget(self.label_cf_bypass_proxy, 3, 0, 1, 1)
         self.groupBox_44 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_wangluo)
         self.groupBox_44.setGeometry(QtCore.QRect(30, 1070, 701, 301))
-        self.groupBox_44.setStyleSheet("font:\"Courier\";")
+        self.groupBox_44.setStyleSheet('font:"Courier";')
         self.groupBox_44.setObjectName("groupBox_44")
         self.gridLayoutWidget = QtWidgets.QWidget(self.groupBox_44)
         self.gridLayoutWidget.setGeometry(QtCore.QRect(20, 30, 661, 241))
@@ -8895,7 +9122,7 @@ class Ui_MDCx(object):
         self.label_401.setSizePolicy(sizePolicy)
         self.label_401.setMinimumSize(QtCore.QSize(130, 30))
         self.label_401.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_401.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_401.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_401.setObjectName("label_401")
         self.gridLayout_12.addWidget(self.label_401, 0, 0, 1, 1)
         self.comboBox_custom_website = QtWidgets.QComboBox(self.gridLayoutWidget)
@@ -8916,10 +9143,12 @@ class Ui_MDCx(object):
         self.lineEdit_site_custom_url.setSizePolicy(sizePolicy)
         self.lineEdit_site_custom_url.setMinimumSize(QtCore.QSize(300, 30))
         self.lineEdit_site_custom_url.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.lineEdit_site_custom_url.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_site_custom_url.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_site_custom_url.setObjectName("lineEdit_site_custom_url")
         self.gridLayout_12.addWidget(self.lineEdit_site_custom_url, 3, 1, 1, 1)
         self.label_132 = QtWidgets.QLabel(self.gridLayoutWidget)
@@ -8940,7 +9169,7 @@ class Ui_MDCx(object):
         self.label_400.setSizePolicy(sizePolicy)
         self.label_400.setMinimumSize(QtCore.QSize(130, 30))
         self.label_400.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_400.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_400.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_400.setObjectName("label_400")
         self.gridLayout_12.addWidget(self.label_400, 3, 0, 1, 1)
         self.checkBox_site_use_browser = QtWidgets.QCheckBox(self.gridLayoutWidget)
@@ -8969,7 +9198,7 @@ class Ui_MDCx(object):
         self.gridLayout_12.setColumnStretch(0, 2)
         self.groupBox_14 = QtWidgets.QGroupBox(self.scrollAreaWidgetContents_wangluo)
         self.groupBox_14.setGeometry(QtCore.QRect(30, 870, 701, 181))
-        self.groupBox_14.setStyleSheet("font:\"Courier\";")
+        self.groupBox_14.setStyleSheet('font:"Courier";')
         self.groupBox_14.setObjectName("groupBox_14")
         self.gridLayoutWidget_11 = QtWidgets.QWidget(self.groupBox_14)
         self.gridLayoutWidget_11.setGeometry(QtCore.QRect(20, 30, 661, 51))
@@ -8985,7 +9214,7 @@ class Ui_MDCx(object):
         self.label_355.setSizePolicy(sizePolicy)
         self.label_355.setMinimumSize(QtCore.QSize(130, 30))
         self.label_355.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_355.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_355.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_355.setObjectName("label_355")
         self.gridLayout_65.addWidget(self.label_355, 0, 0, 1, 1)
         self.lineEdit_api_token_theporndb = QtWidgets.QLineEdit(self.gridLayoutWidget_11)
@@ -8995,10 +9224,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_api_token_theporndb.sizePolicy().hasHeightForWidth())
         self.lineEdit_api_token_theporndb.setSizePolicy(sizePolicy)
         self.lineEdit_api_token_theporndb.setMinimumSize(QtCore.QSize(300, 30))
-        self.lineEdit_api_token_theporndb.setStyleSheet(" font: \"Courier\";\n"
-"                                border: 1px solid rgba(0,0,0, 50);\n"
-"                                border-radius: 15px;\n"
-"")
+        self.lineEdit_api_token_theporndb.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_api_token_theporndb.setObjectName("lineEdit_api_token_theporndb")
         self.gridLayout_65.addWidget(self.lineEdit_api_token_theporndb, 0, 1, 1, 1)
         self.label_356 = QtWidgets.QLabel(self.groupBox_14)
@@ -9010,10 +9241,10 @@ class Ui_MDCx(object):
         self.label_356.setSizePolicy(sizePolicy)
         self.label_356.setStyleSheet("color: rgb(8, 128, 128);")
         self.label_356.setScaledContents(True)
-        self.label_356.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.label_356.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         self.label_356.setWordWrap(True)
         self.label_356.setOpenExternalLinks(True)
-        self.label_356.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByKeyboard|QtCore.Qt.LinksAccessibleByMouse)
+        self.label_356.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByKeyboard | QtCore.Qt.LinksAccessibleByMouse)
         self.label_356.setObjectName("label_356")
         self.layoutWidget6 = QtWidgets.QWidget(self.groupBox_14)
         self.layoutWidget6.setGeometry(QtCore.QRect(160, 130, 441, 43))
@@ -9037,10 +9268,10 @@ class Ui_MDCx(object):
         self.label_422.setSizePolicy(sizePolicy)
         self.label_422.setStyleSheet("color: rgb(8, 128, 128);")
         self.label_422.setScaledContents(True)
-        self.label_422.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_422.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_422.setWordWrap(True)
         self.label_422.setOpenExternalLinks(True)
-        self.label_422.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByKeyboard|QtCore.Qt.LinksAccessibleByMouse)
+        self.label_422.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByKeyboard | QtCore.Qt.LinksAccessibleByMouse)
         self.label_422.setObjectName("label_422")
         self.horizontalLayout_150.addWidget(self.label_422)
         self.scrollArea_3.setWidget(self.scrollAreaWidgetContents_wangluo)
@@ -9179,7 +9410,7 @@ class Ui_MDCx(object):
         self.label_42.setSizePolicy(sizePolicy)
         self.label_42.setMinimumSize(QtCore.QSize(0, 30))
         self.label_42.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_42.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_42.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_42.setObjectName("label_42")
         self.horizontalLayout_dock.addWidget(self.label_42)
         self.checkBox_hide_menu_icon = QtWidgets.QCheckBox(self.gridLayoutWidget_20)
@@ -9200,7 +9431,7 @@ class Ui_MDCx(object):
         self.label_321.setSizePolicy(sizePolicy)
         self.label_321.setMinimumSize(QtCore.QSize(0, 0))
         self.label_321.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_321.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_321.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_321.setObjectName("label_321")
         self.gridLayout_20.addWidget(self.label_321, 3, 0, 1, 1)
         self.horizontalLayout_102 = QtWidgets.QHBoxLayout()
@@ -9264,10 +9495,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_timed_interval.sizePolicy().hasHeightForWidth())
         self.lineEdit_timed_interval.setSizePolicy(sizePolicy)
         self.lineEdit_timed_interval.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_timed_interval.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_timed_interval.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_timed_interval.setAlignment(QtCore.Qt.AlignCenter)
         self.lineEdit_timed_interval.setObjectName("lineEdit_timed_interval")
         self.horizontalLayout_104.addWidget(self.lineEdit_timed_interval)
@@ -9278,7 +9511,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_84.sizePolicy().hasHeightForWidth())
         self.label_84.setSizePolicy(sizePolicy)
         self.label_84.setMinimumSize(QtCore.QSize(0, 30))
-        self.label_84.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_84.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_84.setObjectName("label_84")
         self.horizontalLayout_104.addWidget(self.label_84)
         self.gridLayout_20.addLayout(self.horizontalLayout_104, 4, 1, 1, 1)
@@ -9290,7 +9523,7 @@ class Ui_MDCx(object):
         self.label_308.setSizePolicy(sizePolicy)
         self.label_308.setMinimumSize(QtCore.QSize(0, 0))
         self.label_308.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_308.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_308.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_308.setObjectName("label_308")
         self.gridLayout_20.addWidget(self.label_308, 2, 0, 1, 1)
         self.label_309 = QtWidgets.QLabel(self.gridLayoutWidget_20)
@@ -9301,7 +9534,7 @@ class Ui_MDCx(object):
         self.label_309.setSizePolicy(sizePolicy)
         self.label_309.setMinimumSize(QtCore.QSize(0, 0))
         self.label_309.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_309.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_309.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_309.setObjectName("label_309")
         self.gridLayout_20.addWidget(self.label_309, 4, 0, 1, 1)
         self.label_277 = QtWidgets.QLabel(self.gridLayoutWidget_20)
@@ -9312,7 +9545,7 @@ class Ui_MDCx(object):
         self.label_277.setSizePolicy(sizePolicy)
         self.label_277.setMinimumSize(QtCore.QSize(0, 0))
         self.label_277.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_277.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_277.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_277.setObjectName("label_277")
         self.gridLayout_20.addWidget(self.label_277, 6, 0, 1, 1)
         self.horizontalLayout_63 = QtWidgets.QHBoxLayout()
@@ -9324,10 +9557,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_config_folder.sizePolicy().hasHeightForWidth())
         self.lineEdit_config_folder.setSizePolicy(sizePolicy)
         self.lineEdit_config_folder.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_config_folder.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_config_folder.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_config_folder.setObjectName("lineEdit_config_folder")
         self.horizontalLayout_63.addWidget(self.lineEdit_config_folder)
         self.pushButton_select_config_folder = QtWidgets.QPushButton(self.gridLayoutWidget_20)
@@ -9360,7 +9595,7 @@ class Ui_MDCx(object):
         self.label_279.setSizePolicy(sizePolicy)
         self.label_279.setMinimumSize(QtCore.QSize(0, 0))
         self.label_279.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_279.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_279.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_279.setObjectName("label_279")
         self.gridLayout_20.addWidget(self.label_279, 5, 0, 1, 1)
         self.label_40 = QtWidgets.QLabel(self.gridLayoutWidget_20)
@@ -9390,7 +9625,7 @@ class Ui_MDCx(object):
         self.label_421.setSizePolicy(sizePolicy)
         self.label_421.setMinimumSize(QtCore.QSize(0, 30))
         self.label_421.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_421.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_421.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_421.setObjectName("label_421")
         self.horizontalLayout_149.addWidget(self.label_421)
         self.gridLayout_20.addLayout(self.horizontalLayout_149, 10, 1, 1, 1)
@@ -9402,7 +9637,7 @@ class Ui_MDCx(object):
         self.label_314.setSizePolicy(sizePolicy)
         self.label_314.setMinimumSize(QtCore.QSize(0, 30))
         self.label_314.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_314.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_314.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_314.setObjectName("label_314")
         self.gridLayout_20.addWidget(self.label_314, 8, 0, 1, 1)
         self.label_243 = QtWidgets.QLabel(self.gridLayoutWidget_20)
@@ -9413,7 +9648,7 @@ class Ui_MDCx(object):
         self.label_243.setSizePolicy(sizePolicy)
         self.label_243.setMinimumSize(QtCore.QSize(0, 0))
         self.label_243.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_243.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_243.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_243.setObjectName("label_243")
         self.gridLayout_20.addWidget(self.label_243, 0, 0, 1, 1)
         self.frame_3 = QtWidgets.QFrame(self.gridLayoutWidget_20)
@@ -9455,10 +9690,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_rest_count.sizePolicy().hasHeightForWidth())
         self.lineEdit_rest_count.setSizePolicy(sizePolicy)
         self.lineEdit_rest_count.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_rest_count.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_rest_count.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_rest_count.setAlignment(QtCore.Qt.AlignCenter)
         self.lineEdit_rest_count.setObjectName("lineEdit_rest_count")
         self.horizontalLayout_109.addWidget(self.lineEdit_rest_count)
@@ -9469,7 +9706,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_52.sizePolicy().hasHeightForWidth())
         self.label_52.setSizePolicy(sizePolicy)
         self.label_52.setMinimumSize(QtCore.QSize(0, 30))
-        self.label_52.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_52.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_52.setObjectName("label_52")
         self.horizontalLayout_109.addWidget(self.label_52)
         self.lineEdit_rest_time = QtWidgets.QLineEdit(self.gridLayoutWidget_20)
@@ -9479,10 +9716,12 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.lineEdit_rest_time.sizePolicy().hasHeightForWidth())
         self.lineEdit_rest_time.setSizePolicy(sizePolicy)
         self.lineEdit_rest_time.setMinimumSize(QtCore.QSize(0, 30))
-        self.lineEdit_rest_time.setStyleSheet(" font: \"Courier\";\n"
-"                                    border: 1px solid rgba(0,0,0, 50);\n"
-"                                    border-radius: 15px;\n"
-"")
+        self.lineEdit_rest_time.setStyleSheet(
+            ' font: "Courier";\n'
+            "                                    border: 1px solid rgba(0,0,0, 50);\n"
+            "                                    border-radius: 15px;\n"
+            ""
+        )
         self.lineEdit_rest_time.setAlignment(QtCore.Qt.AlignCenter)
         self.lineEdit_rest_time.setObjectName("lineEdit_rest_time")
         self.horizontalLayout_109.addWidget(self.lineEdit_rest_time)
@@ -9493,7 +9732,7 @@ class Ui_MDCx(object):
         sizePolicy.setHeightForWidth(self.label_71.sizePolicy().hasHeightForWidth())
         self.label_71.setSizePolicy(sizePolicy)
         self.label_71.setMinimumSize(QtCore.QSize(0, 30))
-        self.label_71.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_71.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_71.setObjectName("label_71")
         self.horizontalLayout_109.addWidget(self.label_71)
         self.gridLayout_20.addLayout(self.horizontalLayout_109, 3, 1, 1, 1)
@@ -9505,7 +9744,7 @@ class Ui_MDCx(object):
         self.label_313.setSizePolicy(sizePolicy)
         self.label_313.setMinimumSize(QtCore.QSize(0, 30))
         self.label_313.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_313.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_313.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_313.setObjectName("label_313")
         self.gridLayout_20.addWidget(self.label_313, 7, 0, 1, 1)
         self.label_246 = QtWidgets.QLabel(self.gridLayoutWidget_20)
@@ -9516,7 +9755,7 @@ class Ui_MDCx(object):
         self.label_246.setSizePolicy(sizePolicy)
         self.label_246.setMinimumSize(QtCore.QSize(0, 30))
         self.label_246.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_246.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_246.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_246.setObjectName("label_246")
         self.gridLayout_20.addWidget(self.label_246, 9, 0, 1, 1)
         self.label_420 = QtWidgets.QLabel(self.gridLayoutWidget_20)
@@ -9527,7 +9766,7 @@ class Ui_MDCx(object):
         self.label_420.setSizePolicy(sizePolicy)
         self.label_420.setMinimumSize(QtCore.QSize(0, 30))
         self.label_420.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_420.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_420.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_420.setObjectName("label_420")
         self.gridLayout_20.addWidget(self.label_420, 10, 0, 1, 1)
         self.label_426 = QtWidgets.QLabel(self.gridLayoutWidget_20)
@@ -9538,7 +9777,7 @@ class Ui_MDCx(object):
         self.label_426.setSizePolicy(sizePolicy)
         self.label_426.setMinimumSize(QtCore.QSize(0, 30))
         self.label_426.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.label_426.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_426.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_426.setObjectName("label_426")
         self.gridLayout_20.addWidget(self.label_426, 11, 0, 1, 1)
         self.horizontalLayout_dock_2 = QtWidgets.QHBoxLayout()
@@ -9560,7 +9799,7 @@ class Ui_MDCx(object):
         self.label_427.setSizePolicy(sizePolicy)
         self.label_427.setMinimumSize(QtCore.QSize(0, 30))
         self.label_427.setStyleSheet("color: rgb(8, 128, 128);")
-        self.label_427.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.label_427.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_427.setObjectName("label_427")
         self.horizontalLayout_dock_2.addWidget(self.label_427)
         self.gridLayout_20.addLayout(self.horizontalLayout_dock_2, 11, 1, 1, 1)
@@ -9603,7 +9842,7 @@ class Ui_MDCx(object):
         self.label_241.setMinimumSize(QtCore.QSize(0, 0))
         self.label_241.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.label_241.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.label_241.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_241.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_241.setObjectName("label_241")
         self.pushButton_save_new_config = QtWidgets.QPushButton(self.page_setting)
         self.pushButton_save_new_config.setGeometry(QtCore.QRect(270, 630, 91, 40))
@@ -9621,7 +9860,15 @@ class Ui_MDCx(object):
         self.textBrowser_show_success_list.setFrameShadow(QtWidgets.QFrame.Raised)
         self.textBrowser_show_success_list.setReadOnly(False)
         self.textBrowser_show_success_list.setOverwriteMode(False)
-        self.textBrowser_show_success_list.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByKeyboard|QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextBrowserInteraction|QtCore.Qt.TextEditable|QtCore.Qt.TextEditorInteraction|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
+        self.textBrowser_show_success_list.setTextInteractionFlags(
+            QtCore.Qt.LinksAccessibleByKeyboard
+            | QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextBrowserInteraction
+            | QtCore.Qt.TextEditable
+            | QtCore.Qt.TextEditorInteraction
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
         self.textBrowser_show_success_list.setOpenExternalLinks(True)
         self.textBrowser_show_success_list.setOpenLinks(True)
         self.textBrowser_show_success_list.setObjectName("textBrowser_show_success_list")
@@ -9659,7 +9906,15 @@ class Ui_MDCx(object):
         self.textBrowser_show_tips.setFrameShadow(QtWidgets.QFrame.Raised)
         self.textBrowser_show_tips.setReadOnly(False)
         self.textBrowser_show_tips.setOverwriteMode(False)
-        self.textBrowser_show_tips.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByKeyboard|QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextBrowserInteraction|QtCore.Qt.TextEditable|QtCore.Qt.TextEditorInteraction|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
+        self.textBrowser_show_tips.setTextInteractionFlags(
+            QtCore.Qt.LinksAccessibleByKeyboard
+            | QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextBrowserInteraction
+            | QtCore.Qt.TextEditable
+            | QtCore.Qt.TextEditorInteraction
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
         self.textBrowser_show_tips.setOpenExternalLinks(True)
         self.textBrowser_show_tips.setOpenLinks(True)
         self.textBrowser_show_tips.setObjectName("textBrowser_show_tips")
@@ -9694,7 +9949,7 @@ class Ui_MDCx(object):
         self.label_show_version.setGeometry(QtCore.QRect(0, 489, 210, 201))
         self.label_show_version.setLineWidth(0)
         self.label_show_version.setText("")
-        self.label_show_version.setAlignment(QtCore.Qt.AlignBottom|QtCore.Qt.AlignHCenter)
+        self.label_show_version.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignHCenter)
         self.label_show_version.setObjectName("label_show_version")
         self.label_local_number = QtWidgets.QLabel(self.widget_setting)
         self.label_local_number.setGeometry(QtCore.QRect(0, 680, 21, 21))
@@ -9703,7 +9958,7 @@ class Ui_MDCx(object):
         self.label_local_number.setFrameShape(QtWidgets.QFrame.Box)
         self.label_local_number.setLineWidth(0)
         self.label_local_number.setText("")
-        self.label_local_number.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_local_number.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_local_number.setObjectName("label_local_number")
         self.widget_buttons = QtWidgets.QWidget(self.widget_setting)
         self.widget_buttons.setGeometry(QtCore.QRect(0, 50, 210, 341))
@@ -9781,17 +10036,19 @@ class Ui_MDCx(object):
         self.pushButton_close.setBaseSize(QtCore.QSize(0, 0))
         self.pushButton_close.setMouseTracking(True)
         self.pushButton_close.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.pushButton_close.setStyleSheet("QPushButton{\n"
-"                font: 900 14pt \"Tahoma\";\n"
-"                color:#F14C4C;\n"
-"                background:#F14C4C;\n"
-"                border-radius:8px;\n"
-"                margin:2px;\n"
-"                }\n"
-"                QPushButton:hover{\n"
-"                color:black;\n"
-"                background:#FF6058;\n"
-"                }")
+        self.pushButton_close.setStyleSheet(
+            "QPushButton{\n"
+            '                font: 900 14pt "Tahoma";\n'
+            "                color:#F14C4C;\n"
+            "                background:#F14C4C;\n"
+            "                border-radius:8px;\n"
+            "                margin:2px;\n"
+            "                }\n"
+            "                QPushButton:hover{\n"
+            "                color:black;\n"
+            "                background:#FF6058;\n"
+            "                }"
+        )
         self.pushButton_close.setObjectName("pushButton_close")
         self.pushButton_min = QtWidgets.QPushButton(self.close_widget)
         self.pushButton_min.setGeometry(QtCore.QRect(35, 10, 20, 20))
@@ -9805,18 +10062,20 @@ class Ui_MDCx(object):
         self.pushButton_min.setBaseSize(QtCore.QSize(0, 0))
         self.pushButton_min.setMouseTracking(True)
         self.pushButton_min.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.pushButton_min.setStyleSheet("QPushButton{\n"
-"                font: 900 14pt \"Tahoma\";\n"
-"                color:#FFBC3C;\n"
-"                background:#FFBC3C;\n"
-"                border-radius:8px;\n"
-"                margin:2px;\n"
-"                }\n"
-"                QPushButton:hover{\n"
-"                color:black;\n"
-"                background:#FFBC3C;\n"
-"                }\n"
-"")
+        self.pushButton_min.setStyleSheet(
+            "QPushButton{\n"
+            '                font: 900 14pt "Tahoma";\n'
+            "                color:#FFBC3C;\n"
+            "                background:#FFBC3C;\n"
+            "                border-radius:8px;\n"
+            "                margin:2px;\n"
+            "                }\n"
+            "                QPushButton:hover{\n"
+            "                color:black;\n"
+            "                background:#FFBC3C;\n"
+            "                }\n"
+            ""
+        )
         self.pushButton_min.setObjectName("pushButton_min")
         self.left_backgroud_widget.raise_()
         self.label_show_version.raise_()
@@ -9828,16 +10087,18 @@ class Ui_MDCx(object):
         self.progressBar_scrape.setMinimumSize(QtCore.QSize(0, 2))
         self.progressBar_scrape.setSizeIncrement(QtCore.QSize(0, 0))
         self.progressBar_scrape.setBaseSize(QtCore.QSize(0, 0))
-        self.progressBar_scrape.setStyleSheet("QProgressBar::chunk {\n"
-"            background-color: #5777FF;\n"
-"            width: 3px;\n"
-"            }\n"
-"            QProgressBar {\n"
-"            border: 0px solid rgba(51,102,153,80);\n"
-"            border-radius: 0px;\n"
-"            text-align: center;\n"
-"            background-color: rgba(255,255,255,0);\n"
-"            }")
+        self.progressBar_scrape.setStyleSheet(
+            "QProgressBar::chunk {\n"
+            "            background-color: #5777FF;\n"
+            "            width: 3px;\n"
+            "            }\n"
+            "            QProgressBar {\n"
+            "            border: 0px solid rgba(51,102,153,80);\n"
+            "            border-radius: 0px;\n"
+            "            text-align: center;\n"
+            "            background-color: rgba(255,255,255,0);\n"
+            "            }"
+        )
         self.progressBar_scrape.setProperty("value", 24)
         self.progressBar_scrape.setObjectName("progressBar_scrape")
         self.layoutWidget9 = QtWidgets.QWidget(self.centralwidget)
@@ -9902,62 +10163,62 @@ class Ui_MDCx(object):
         self.label_19 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_19.setGeometry(QtCore.QRect(9, 330, 81, 40))
         self.label_19.setLineWidth(0)
-        self.label_19.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_19.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_19.setObjectName("label_19")
         self.label_359 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_359.setGeometry(QtCore.QRect(40, 140, 50, 40))
         self.label_359.setLineWidth(0)
-        self.label_359.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_359.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_359.setObjectName("label_359")
         self.label_360 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_360.setGeometry(QtCore.QRect(40, 80, 50, 40))
         self.label_360.setLineWidth(0)
-        self.label_360.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_360.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_360.setObjectName("label_360")
         self.label_361 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_361.setGeometry(QtCore.QRect(9, 220, 81, 40))
         self.label_361.setLineWidth(0)
-        self.label_361.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_361.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_361.setObjectName("label_361")
         self.label_362 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_362.setGeometry(QtCore.QRect(40, 660, 50, 40))
         self.label_362.setLineWidth(0)
-        self.label_362.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_362.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_362.setObjectName("label_362")
         self.label_363 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_363.setGeometry(QtCore.QRect(9, 800, 81, 40))
         self.label_363.setLineWidth(0)
-        self.label_363.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_363.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_363.setObjectName("label_363")
         self.label_364 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_364.setGeometry(QtCore.QRect(380, 800, 81, 40))
         self.label_364.setLineWidth(0)
-        self.label_364.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_364.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_364.setObjectName("label_364")
         self.label_365 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_365.setGeometry(QtCore.QRect(380, 920, 81, 40))
         self.label_365.setLineWidth(0)
-        self.label_365.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_365.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_365.setObjectName("label_365")
         self.label_366 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_366.setGeometry(QtCore.QRect(9, 920, 81, 40))
         self.label_366.setLineWidth(0)
-        self.label_366.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_366.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_366.setObjectName("label_366")
         self.label_367 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_367.setGeometry(QtCore.QRect(380, 980, 81, 40))
         self.label_367.setLineWidth(0)
-        self.label_367.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_367.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_367.setObjectName("label_367")
         self.label_368 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_368.setGeometry(QtCore.QRect(9, 980, 81, 40))
         self.label_368.setLineWidth(0)
-        self.label_368.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_368.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_368.setObjectName("label_368")
         self.label_369 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_369.setGeometry(QtCore.QRect(360, 80, 50, 40))
         self.label_369.setLineWidth(0)
-        self.label_369.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_369.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_369.setObjectName("label_369")
         self.comboBox_nfo = QtWidgets.QComboBox(self.scrollAreaWidgetContents_nfo_editor)
         self.comboBox_nfo.setGeometry(QtCore.QRect(420, 80, 103, 40))
@@ -9968,32 +10229,32 @@ class Ui_MDCx(object):
         self.label_371 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_371.setGeometry(QtCore.QRect(9, 490, 81, 40))
         self.label_371.setLineWidth(0)
-        self.label_371.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_371.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_371.setObjectName("label_371")
         self.label_372 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_372.setGeometry(QtCore.QRect(9, 270, 81, 40))
         self.label_372.setLineWidth(0)
-        self.label_372.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_372.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_372.setObjectName("label_372")
         self.label_375 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_375.setGeometry(QtCore.QRect(9, 1050, 81, 40))
         self.label_375.setLineWidth(0)
-        self.label_375.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_375.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_375.setObjectName("label_375")
         self.label_376 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_376.setGeometry(QtCore.QRect(-1, 1110, 91, 40))
         self.label_376.setLineWidth(0)
-        self.label_376.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_376.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_376.setObjectName("label_376")
         self.label_377 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_377.setGeometry(QtCore.QRect(-1, 1170, 91, 40))
         self.label_377.setLineWidth(0)
-        self.label_377.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_377.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_377.setObjectName("label_377")
         self.label_378 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_378.setGeometry(QtCore.QRect(0, 1230, 91, 40))
         self.label_378.setLineWidth(0)
-        self.label_378.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_378.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_378.setObjectName("label_378")
         self.label_370 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_370.setGeometry(QtCore.QRect(100, 190, 561, 20))
@@ -10016,17 +10277,17 @@ class Ui_MDCx(object):
         self.label_373 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_373.setGeometry(QtCore.QRect(9, 860, 81, 40))
         self.label_373.setLineWidth(0)
-        self.label_373.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_373.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_373.setObjectName("label_373")
         self.label_374 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_374.setGeometry(QtCore.QRect(380, 860, 81, 40))
         self.label_374.setLineWidth(0)
-        self.label_374.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_374.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_374.setObjectName("label_374")
         self.label_380 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_380.setGeometry(QtCore.QRect(540, 80, 51, 40))
         self.label_380.setLineWidth(0)
-        self.label_380.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_380.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_380.setObjectName("label_380")
         self.lineEdit_nfo_number = QtWidgets.QLineEdit(self.scrollAreaWidgetContents_nfo_editor)
         self.lineEdit_nfo_number.setGeometry(QtCore.QRect(100, 80, 241, 40))
@@ -10093,7 +10354,7 @@ class Ui_MDCx(object):
         self.label_381 = QtWidgets.QLabel(self.scrollAreaWidgetContents_nfo_editor)
         self.label_381.setGeometry(QtCore.QRect(40, 20, 50, 40))
         self.label_381.setLineWidth(0)
-        self.label_381.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_381.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_381.setObjectName("label_381")
         self.textEdit_nfo_tag = QtWidgets.QTextEdit(self.scrollAreaWidgetContents_nfo_editor)
         self.textEdit_nfo_tag.setGeometry(QtCore.QRect(100, 660, 621, 101))
@@ -10165,66 +10426,89 @@ class Ui_MDCx(object):
         self.treeWidget_number.topLevelItem(0).setText(0, _translate("MDCx", "成功"))
         self.treeWidget_number.topLevelItem(1).setText(0, _translate("MDCx", "失败"))
         self.treeWidget_number.setSortingEnabled(__sortingEnabled)
-        self.label_file_path.setText(_translate("MDCx", "视频目录设置：【设置】-【目录】-【待刮削视频目录】。程序将刮削该目录及子目录的所有文件。"))
+        self.label_file_path.setText(
+            _translate(
+                "MDCx", "视频目录设置：【设置】-【目录】-【待刮削视频目录】。程序将刮削该目录及子目录的所有文件。"
+            )
+        )
         self.pushButton_select_media_folder.setText(_translate("MDCx", "选择目录"))
-        self.textBrowser_log_main_2.setHtml(_translate("MDCx", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"                <html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"                p, li { white-space: pre-wrap; }\n"
-"                </style></head><body style=\" font-family:\'.AppleSystemUIFont\'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span></p></body></html>"))
+        self.textBrowser_log_main_2.setHtml(
+            _translate(
+                "MDCx",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '                <html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "                p, li { white-space: pre-wrap; }\n"
+                "                </style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span></p></body></html>',
+            )
+        )
         self.pushButton_start_cap2.setText(_translate("MDCx", "开始"))
-        self.textBrowser_log_main.setHtml(_translate("MDCx", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"                <html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"                p, li { white-space: pre-wrap; }\n"
-"                </style></head><body style=\" font-family:\'.AppleSystemUIFont\'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span></p></body></html>"))
+        self.textBrowser_log_main.setHtml(
+            _translate(
+                "MDCx",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '                <html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "                p, li { white-space: pre-wrap; }\n"
+                "                </style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span></p></body></html>',
+            )
+        )
         self.pushButton_view_failed_list.setText(_translate("MDCx", "失败 0"))
-        self.textBrowser_log_main_3.setHtml(_translate("MDCx", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"                <html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"                p, li { white-space: pre-wrap; }\n"
-"                </style></head><body style=\" font-family:\'.AppleSystemUIFont\'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span></p></body></html>"))
+        self.textBrowser_log_main_3.setHtml(
+            _translate(
+                "MDCx",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '                <html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "                p, li { white-space: pre-wrap; }\n"
+                "                </style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span></p></body></html>',
+            )
+        )
         self.pushButton_scraper_failed_list.setText(_translate("MDCx", "当有失败任务时，点击可以一键刮削当前失败列表"))
         self.pushButton_check_net.setText(_translate("MDCx", "开始检测"))
-        self.groupBox_7.setTitle(_translate("MDCx", "单文件刮削（指定某个文件的番号网址进行刮削，当存在相同番号时可用这个）"))
+        self.groupBox_7.setTitle(
+            _translate("MDCx", "单文件刮削（指定某个文件的番号网址进行刮削，当存在相同番号时可用这个）")
+        )
         self.pushButton_select_file.setText(_translate("MDCx", "选择文件"))
         self.label_10.setText(_translate("MDCx", "*番号网址："))
         self.pushButton_start_single_file.setText(_translate("MDCx", "刮削"))
         self.label_3.setText(_translate("MDCx", "*文件路径："))
-        self.label.setText(_translate("MDCx", "不要填写网站首页地址！！！要填写该番号的网页地址！！！然后选择对应网站，点击刮削即可！"))
+        self.label.setText(
+            _translate("MDCx", "不要填写网站首页地址！！！要填写该番号的网页地址！！！然后选择对应网站，点击刮削即可！")
+        )
         self.pushButton_select_file_clear_info.setText(_translate("MDCx", "清空信息"))
         self.groupBox_13.setTitle(_translate("MDCx", "裁剪图片（将某个图片裁剪为封面图大小，支持加水印）"))
         self.pushButton_select_thumb.setText(_translate("MDCx", "选择图片"))
@@ -10235,11 +10519,19 @@ class Ui_MDCx(object):
         self.pushButton_find_missing_number.setText(_translate("MDCx", "检查缺失番号"))
         self.pushButton_select_local_library.setText(_translate("MDCx", "选择目录"))
         self.label_62.setText(_translate("MDCx", "本地资源库和演员名都可以填写多个，以逗号分开（中英文逗号都可以）"))
-        self.groupBox_6.setTitle(_translate("MDCx", "移动视频、字幕（将待刮削目录下所有子目录中的视频移动到一个目录中以方便进行查看）"))
+        self.groupBox_6.setTitle(
+            _translate("MDCx", "移动视频、字幕（将待刮削目录下所有子目录中的视频移动到一个目录中以方便进行查看）")
+        )
         self.pushButton_move_mp4.setText(_translate("MDCx", "开始移动"))
         self.label_41.setText(_translate("MDCx", "排除目录："))
-        self.label_8.setText(_translate("MDCx", "移动「待刮削视频目录」中的所有视频和字幕到「待刮削视频目录」下的「Movie_moved」目录下。"))
-        self.groupBox_21.setTitle(_translate("MDCx", "软链接助手（将挂载的网盘文件目录及子目录中的所有视频一键创建软链接到本地）"))
+        self.label_8.setText(
+            _translate(
+                "MDCx", "移动「待刮削视频目录」中的所有视频和字幕到「待刮削视频目录」下的「Movie_moved」目录下。"
+            )
+        )
+        self.groupBox_21.setTitle(
+            _translate("MDCx", "软链接助手（将挂载的网盘文件目录及子目录中的所有视频一键创建软链接到本地）")
+        )
         self.label_338.setText(_translate("MDCx", "本地目录："))
         self.label_339.setText(_translate("MDCx", "网盘目录："))
         self.pushButton_creat_symlink.setText(_translate("MDCx", "一键创建软链接"))
@@ -10247,37 +10539,60 @@ class Ui_MDCx(object):
         self.label_340.setText(_translate("MDCx", "本地目录中的软链接文件位置将同步按照网盘的文件目录结构创建"))
         self.pushButton_select_localdisk_path.setText(_translate("MDCx", "选择目录"))
         self.checkBox_copy_netdisk_nfo.setText(_translate("MDCx", "同时复制网盘目录的nfo、图片、字幕文件到软链接目录"))
-        self.label_341.setText(_translate("MDCx", "勾选后将同时复制网盘中刮削好的nfo等文件到本地，或者你也可以重新刮削这些软链接"))
+        self.label_341.setText(
+            _translate("MDCx", "勾选后将同时复制网盘中刮削好的nfo等文件到本地，或者你也可以重新刮削这些软链接")
+        )
         self.checkBox_create_link.setText(_translate("MDCx", "刮削过程中自动创建软链接"))
         self.groupBox_16.setTitle(_translate("MDCx", "刮削目录"))
         self.pushButton_select_softlink_folder.setText(_translate("MDCx", "选择目录"))
-        self.label_58.setText(_translate("MDCx", "指不想要刮削的目录，可以填写多个目录，以逗号分开（中英文逗号都可以）"))
+        self.label_58.setText(
+            _translate("MDCx", "指不想要刮削的目录，可以填写多个目录，以逗号分开（中英文逗号都可以）")
+        )
         self.label_49.setText(_translate("MDCx", "待刮削视频目录："))
         self.checkBox_no_escape_dir.setText(_translate("MDCx", "不排除"))
         self.label_56.setText(_translate("MDCx", "指含有视频的文件夹，将刮削该目录（含子目录）所有视频的元数据信息"))
-        self.checkBox_scrape_softlink_path.setText(_translate("MDCx", "在以下目录为待刮削目录中的视频创建软链接，然后刮削以下目录（适合网盘用户）"))
+        self.checkBox_scrape_softlink_path.setText(
+            _translate("MDCx", "在以下目录为待刮削目录中的视频创建软链接，然后刮削以下目录（适合网盘用户）")
+        )
         self.label_47.setText(_translate("MDCx", "成功输出目录："))
         self.pushButton_select_media_folder_setting_page.setText(_translate("MDCx", "选择目录"))
         self.label_48.setText(_translate("MDCx", "排除目录："))
-        self.label_57.setText(_translate("MDCx", "指刮削失败时，视频将移动到这个文件夹。输出目录可以不在待刮削视频目录下"))
+        self.label_57.setText(
+            _translate("MDCx", "指刮削失败时，视频将移动到这个文件夹。输出目录可以不在待刮削视频目录下")
+        )
         self.pushButton_select_failed_folder.setText(_translate("MDCx", "选择目录"))
         self.label_46.setText(_translate("MDCx", "失败输出目录："))
         self.pushButton_select_sucess_folder.setText(_translate("MDCx", "选择目录"))
-        self.label_29.setText(_translate("MDCx", "指刮削成功时，视频将移动到这个文件夹。输出目录可以不在待刮削视频目录下"))
-        self.label_383.setText(_translate("MDCx", "<p>如果创建软链接时要复制图片和NFO，请到「工具」-「软链接助手」勾选即可</p><p>1，软链接路径支持命名字段：</p><p>end_folder_name （指待刮削目录上最后的文件夹名）</p><p>2，成功/失败输出目录支持命名字段：</p><p>end_folder_name，first_folder_name （指待刮削目录下第一层子文件夹名）</p>"))
+        self.label_29.setText(
+            _translate("MDCx", "指刮削成功时，视频将移动到这个文件夹。输出目录可以不在待刮削视频目录下")
+        )
+        self.label_383.setText(
+            _translate(
+                "MDCx",
+                "<p>如果创建软链接时要复制图片和NFO，请到「工具」-「软链接助手」勾选即可</p><p>1，软链接路径支持命名字段：</p><p>end_folder_name （指待刮削目录上最后的文件夹名）</p><p>2，成功/失败输出目录支持命名字段：</p><p>end_folder_name，first_folder_name （指待刮削目录下第一层子文件夹名）</p>",
+            )
+        )
         self.groupBox_32.setTitle(_translate("MDCx", "文件扫描设置"))
         self.label_336.setText(_translate("MDCx", "检查软链接："))
-        self.label_337.setText(_translate("MDCx", "勾选后将检查软链接文件指向的目标文件是否存在，若不存在则会删除该软链接"))
-        self.label_348.setText(_translate("MDCx", "支持记录和跳过已刮削成功的文件，避免新增视频时重复刮削之前成功的文件"))
+        self.label_337.setText(
+            _translate("MDCx", "勾选后将检查软链接文件指向的目标文件是否存在，若不存在则会删除该软链接")
+        )
+        self.label_348.setText(
+            _translate("MDCx", "支持记录和跳过已刮削成功的文件，避免新增视频时重复刮削之前成功的文件")
+        )
         self.checkBox_skip_success_file.setText(_translate("MDCx", "跳过之前已刮削成功的文件"))
         self.checkBox_record_success_file.setText(_translate("MDCx", "记录刮削成功的文件列表"))
         self.pushButton_view_success_file.setText(_translate("MDCx", "查看"))
         self.checkBox_no_escape_file.setText(_translate("MDCx", "不跳过"))
         self.label_346.setText(_translate("MDCx", "跳过已刮削文件："))
-        self.label_88.setText(_translate("MDCx", "识别番号时，将先过滤多余字符再进行识别。（填写时以逗号分割，不用区分大小写）"))
+        self.label_88.setText(
+            _translate("MDCx", "识别番号时，将先过滤多余字符再进行识别。（填写时以逗号分割，不用区分大小写）")
+        )
         self.checkBox_check_symlink.setText(_translate("MDCx", "检查并清理失效的软链接"))
         self.checkBox_check_symlink_definition.setText(_translate("MDCx", "获取软链接指向的原文件的分辨率"))
-        self.label_94.setText(_translate("MDCx", "用于过滤本地的一些广告视频，此处填写文件大小，小于该大小的视频将跳过刮削"))
+        self.label_94.setText(
+            _translate("MDCx", "用于过滤本地的一些广告视频，此处填写文件大小，小于该大小的视频将跳过刮削")
+        )
         self.label_83.setText(_translate("MDCx", "过滤文件名多余字符："))
         self.label_93.setText(_translate("MDCx", "跳过小文件(MB) <："))
         self.groupBox_61.setTitle(_translate("MDCx", "文件清理设置"))
@@ -10288,18 +10603,24 @@ class Ui_MDCx(object):
         self.label_178.setText(_translate("MDCx", "文件名等于："))
         self.label_262.setText(_translate("MDCx", "⚠️ 清理文件规则"))
         self.checkBox_clean_file_contains.setText(_translate("MDCx", "启用"))
-        self.label_199.setText(_translate("MDCx", "以下已启用的规则中有任一命中时，文件将被清理。（多个内容以｜分割，区分大小写）"))
+        self.label_199.setText(
+            _translate("MDCx", "以下已启用的规则中有任一命中时，文件将被清理。（多个内容以｜分割，区分大小写）")
+        )
         self.label_261.setText(_translate("MDCx", "文件名包含："))
         self.label_270.setText(_translate("MDCx", "⚠️ 不清理文件规则"))
         self.checkBox_clean_excluded_file_contains.setText(_translate("MDCx", "启用"))
         self.label_202.setText(_translate("MDCx", "扩展名等于："))
         self.label_263.setText(_translate("MDCx", "文件大小(KB)<=："))
-        self.label_162.setText(_translate("MDCx", "以下已启用的规则中有任一命中时，文件将不被清理。（会优先处理不清理文件规则）"))
+        self.label_162.setText(
+            _translate("MDCx", "以下已启用的规则中有任一命中时，文件将不被清理。（会优先处理不清理文件规则）")
+        )
         self.checkBox_clean_file_size.setText(_translate("MDCx", "启用"))
         self.checkBox_clean_file_name.setText(_translate("MDCx", "启用"))
         self.pushButton_check_and_clean_files.setText(_translate("MDCx", "点击检查待刮削目录并清理文件"))
         self.checkBox_auto_clean.setText(_translate("MDCx", "刮削时自动清理"))
-        self.checkBox_i_agree_clean.setText(_translate("MDCx", "我已同意：无论出现任何问题，均与开发者无关，后果自行承担。"))
+        self.checkBox_i_agree_clean.setText(
+            _translate("MDCx", "我已同意：无论出现任何问题，均与开发者无关，后果自行承担。")
+        )
         self.checkBox_i_understand_clean.setText(_translate("MDCx", "我已知晓：文件删除后无法恢复！操作须谨慎！"))
         self.label_271.setText(_translate("MDCx", "⚠️ 使用前请确认规则是否已启用！！！不启用不生效！！！"))
         self.groupBox_9.setTitle(_translate("MDCx", "文件格式设置"))
@@ -10310,24 +10631,39 @@ class Ui_MDCx(object):
         self.radioButton_mode_sort.setText(_translate("MDCx", "视频模式"))
         self.label_312.setText(_translate("MDCx", "不刮削，读取本地信息并显示，适合检查媒体库或媒体库重新整理分类"))
         self.radioButton_mode_common.setText(_translate("MDCx", "正常模式"))
-        self.checkBox_read_has_nfo_update.setText(_translate("MDCx", "本地已刮削成功的文件，重新整理分类（按更新模式规则）"))
+        self.checkBox_read_has_nfo_update.setText(
+            _translate("MDCx", "本地已刮削成功的文件，重新整理分类（按更新模式规则）")
+        )
         self.label_345.setText(_translate("MDCx", "无需联网"))
         self.checkBox_read_update_nfo.setText(_translate("MDCx", "允许更新 nfo 文件"))
-        self.label_37.setText(_translate("MDCx", "<p>将按 下方「Emby视频标题」、「设置」-「翻译」、<br>「设置」-「NFO」等的设置项，利用本地 nfo 更新 nfo 信息</p>"))
+        self.label_37.setText(
+            _translate(
+                "MDCx",
+                "<p>将按 下方「Emby视频标题」、「设置」-「翻译」、<br>「设置」-「NFO」等的设置项，利用本地 nfo 更新 nfo 信息</p>",
+            )
+        )
         self.checkBox_read_download_file_again.setText(_translate("MDCx", "重新下载图片等文件（nfo 需有链接）"))
         self.label_347.setText(_translate("MDCx", "将按「设置」-「下载」，更新文件"))
-        self.checkBox_read_no_nfo_scrape.setText(_translate("MDCx", "本地之前刮削失败的文件和没有nfo的文件，重新刮削（按更新模式规则）"))
-        self.label_36.setText(_translate("MDCx", "流程同正常模式，但命名按照更新模式规则执行（在下方设置），适合二次刮削"))
+        self.checkBox_read_no_nfo_scrape.setText(
+            _translate("MDCx", "本地之前刮削失败的文件和没有nfo的文件，重新刮削（按更新模式规则）")
+        )
+        self.label_36.setText(
+            _translate("MDCx", "流程同正常模式，但命名按照更新模式规则执行（在下方设置），适合二次刮削")
+        )
         self.radioButton_mode_read.setText(_translate("MDCx", "读取模式"))
         self.radioButton_mode_update.setText(_translate("MDCx", "更新模式"))
-        self.label_15.setText(_translate("MDCx", "执行：刮削->重命名，仅整理本地视频，不下载图片，适合不要海报墙的情况"))
+        self.label_15.setText(
+            _translate("MDCx", "执行：刮削->重命名，仅整理本地视频，不下载图片，适合不要海报墙的情况")
+        )
         self.checkBox_sortmode_delpic.setText(_translate("MDCx", "删除本地已下载的图片和 nfo 文件"))
         self.label_27.setText(_translate("MDCx", "不勾选，则不删除"))
         self.label_11.setText(_translate("MDCx", "执行：刮削->下载封面->重命名->水印等全部操作，适合要海报墙的情况"))
         self.groupBox_27.setTitle(_translate("MDCx", "刮削成功后移动文件"))
         self.gridLayoutWidget_6.setStyleSheet(_translate("MDCx", "color: rgb(80, 80, 80);"))
         self.label_54.setText(_translate("MDCx", "刮削成功时，移动文件到成功输出目录"))
-        self.label_55.setText(_translate("MDCx", "刮削成功时，不移动文件位置，仍在原目录（适合已整理好文件夹或二次刮削场景）"))
+        self.label_55.setText(
+            _translate("MDCx", "刮削成功时，不移动文件位置，仍在原目录（适合已整理好文件夹或二次刮削场景）")
+        )
         self.radioButton_succ_move_on.setText(_translate("MDCx", "开"))
         self.radioButton_succ_move_off.setText(_translate("MDCx", "关"))
         self.groupBox_15.setTitle(_translate("MDCx", "刮削失败时移动文件"))
@@ -10343,7 +10679,9 @@ class Ui_MDCx(object):
         self.groupBox_5.setTitle(_translate("MDCx", "更新模式规则"))
         self.label_218.setText(_translate("MDCx", "D目录命名规则 "))
         self.label_14.setText(_translate("MDCx", "更新视频同级目录下的内容，即：../A/B/C[NEW].mp4"))
-        self.label_20.setText(_translate("MDCx", "在视频所在目录下为视频创建D目录，并更新C内容，即：../A/B/D/C[NEW].mp4"))
+        self.label_20.setText(
+            _translate("MDCx", "在视频所在目录下为视频创建D目录，并更新C内容，即：../A/B/D/C[NEW].mp4")
+        )
         self.label_278.setText(_translate("MDCx", "C文件命名规则 "))
         self.label_210.setText(_translate("MDCx", "B目录命名规则 "))
         self.radioButton_update_b_c.setText(_translate("MDCx", "更新B和C"))
@@ -10353,11 +10691,16 @@ class Ui_MDCx(object):
         self.checkBox_update_a.setText(_translate("MDCx", "同时更新A目录 "))
         self.label_294.setText(_translate("MDCx", "Emby视频标题 "))
         self.label_12.setText(_translate("MDCx", "假定视频文件现在的路径是： ../A/B/C.mp4"))
-        self.label_21.setText(_translate("MDCx", "<p style=\'line-height:20px\'>⚠️ 保留文件：请到 设置 > 下载 > 保留旧文件 或\n"
-"                          下载，设置要保留或更新的文件内容<br>\n"
-"                          ⚠️ 跳过文件：在视频目录新建一个名为 skip 的空文件，即可自动跳过该目录及子目录（所有模式均有效）<br>\n"
-"                          ⚠️ 移动文件：失败时不移动文件，成功时按更新模式规则移动<br>\n"
-"                          ⚠️ 重命名文件：在「成功后重命名文件」中设置是否重命名，命名规则同「命名」-「视频文件名」</p>"))
+        self.label_21.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>⚠️ 保留文件：请到 设置 > 下载 > 保留旧文件 或\n"
+                "                          下载，设置要保留或更新的文件内容<br>\n"
+                "                          ⚠️ 跳过文件：在视频目录新建一个名为 skip 的空文件，即可自动跳过该目录及子目录（所有模式均有效）<br>\n"
+                "                          ⚠️ 移动文件：失败时不移动文件，成功时按更新模式规则移动<br>\n"
+                "                          ⚠️ 重命名文件：在「成功后重命名文件」中设置是否重命名，命名规则同「命名」-「视频文件名」</p>",
+            )
+        )
         self.groupBox_18.setTitle(_translate("MDCx", "刮削成功后重命名文件"))
         self.label_38.setText(_translate("MDCx", "刮削成功时，按「命名」-「视频命名规则」-「视频文件名」重命名文件"))
         self.label_39.setText(_translate("MDCx", "刮削成功时，继续使用原来文件名"))
@@ -10371,24 +10714,54 @@ class Ui_MDCx(object):
         self.groupBox_2.setTitle(_translate("MDCx", "刮削成功后在输出目录创建软链接或硬链接"))
         self.radioButton_soft_off.setText(_translate("MDCx", "关"))
         self.radioButton_soft_on.setText(_translate("MDCx", "创建软链接"))
-        self.label_link_off.setText(_translate("MDCx", "<span>适合 NAS 和硬盘用户。本地党可随心所欲整理文件。<br>注意：选择此项，下面的「成功后移动文件」「失败后移动文件」才会生效</span>"))
+        self.label_link_off.setText(
+            _translate(
+                "MDCx",
+                "<span>适合 NAS 和硬盘用户。本地党可随心所欲整理文件。<br>注意：选择此项，下面的「成功后移动文件」「失败后移动文件」才会生效</span>",
+            )
+        )
         self.radioButton_hard_on.setText(_translate("MDCx", "创建硬链接"))
-        self.label_softlink.setText(_translate("MDCx", "<span>适合网盘用户。刮削资料存本地，Emby 加载快，网盘读写少。<br>注意：Windows 用户，成功后的输出目录必须选择本地磁盘（系统限制）</span>"))
-        self.label_hardlink.setText(_translate("MDCx", "<span>适合 PT 用户。刮削资料同盘单独存放，不影响分享率。<br>注意：Mac 用户，请选择创建软连接，输出目录同盘即可（硬链接有权限问题）</span>"))
+        self.label_softlink.setText(
+            _translate(
+                "MDCx",
+                "<span>适合网盘用户。刮削资料存本地，Emby 加载快，网盘读写少。<br>注意：Windows 用户，成功后的输出目录必须选择本地磁盘（系统限制）</span>",
+            )
+        )
+        self.label_hardlink.setText(
+            _translate(
+                "MDCx",
+                "<span>适合 PT 用户。刮削资料同盘单独存放，不影响分享率。<br>注意：Mac 用户，请选择创建软连接，输出目录同盘即可（硬链接有权限问题）</span>",
+            )
+        )
         self.label_342.setText(_translate("MDCx", "注：软硬链接不会移动和重命名原视频文件，仅移动和重命名链接文件"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab1), _translate("MDCx", " 刮削模式 "))
         self.groupBox_80.setTitle(_translate("MDCx", "类型刮削网站"))
         self.label_151.setText(_translate("MDCx", "无码番号："))
         self.label_316.setText(_translate("MDCx", "动漫里番："))
         self.label_322.setText(_translate("MDCx", "Mywife："))
-        self.label_232.setText(_translate("MDCx", "<p>「网站偏好」-「指定网站」指定 mdtv、hdouban，或文件路径含有「国产」、「麻豆」时，将自动使用以上网站刮削国产番号</p>"))
+        self.label_232.setText(
+            _translate(
+                "MDCx",
+                "<p>「网站偏好」-「指定网站」指定 mdtv、hdouban，或文件路径含有「国产」、「麻豆」时，将自动使用以上网站刮削国产番号</p>",
+            )
+        )
         self.label_156.setText(_translate("MDCx", "比如：259LUXU-1111"))
         self.label_157.setText(_translate("MDCx", "比如：FC2-111111"))
         self.label_158.setText(_translate("MDCx", "比如：sexart.11.11.11"))
         self.label_149.setText(_translate("MDCx", "欧美番号："))
         self.label_155.setText(_translate("MDCx", "比如：111111-111，111111_111，n1111，HEYZO-1111，SMD-111"))
-        self.label_318.setText(_translate("MDCx", "<p>「网站偏好」-「指定网站」指定 getchu、dmm、getchu_dmm，或文件路径含有「里番」、「动漫」时，将自动使用 getchu_dmm（二合一） 刮削</p>"))
-        self.label_323.setText(_translate("MDCx", "<p>「网站偏好」-「指定网站」指定 mywife，或文件路径含有 mywife时，将自动使用 mywife 刮削（Mywife 番号规则： Mywife No.1230）</p>"))
+        self.label_318.setText(
+            _translate(
+                "MDCx",
+                "<p>「网站偏好」-「指定网站」指定 getchu、dmm、getchu_dmm，或文件路径含有「里番」、「动漫」时，将自动使用 getchu_dmm（二合一） 刮削</p>",
+            )
+        )
+        self.label_323.setText(
+            _translate(
+                "MDCx",
+                "<p>「网站偏好」-「指定网站」指定 mywife，或文件路径含有 mywife时，将自动使用 mywife 刮削（Mywife 番号规则： Mywife No.1230）</p>",
+            )
+        )
         self.label_154.setText(_translate("MDCx", "比如：MIDE-111，以及不符合以下类型的番号"))
         self.label_152.setText(_translate("MDCx", "素人番号："))
         self.label_153.setText(_translate("MDCx", "有码番号："))
@@ -10414,7 +10787,12 @@ class Ui_MDCx(object):
         self.label_206.setText(_translate("MDCx", "预告片："))
         self.label_201.setText(_translate("MDCx", "系列："))
         self.label_179.setText(_translate("MDCx", "所有演员："))
-        self.label_325.setText(_translate("MDCx", "<p>说明：对于某个字段，如果不指定刮削网站，则将使用任意已获取网站的数据；否则将依次使用字段刮削网站与该类型的刮削网站的交集。</p><p>例如，若标题设置为 theporndb,dmm,javdb,fc2ppvdb，有码设置为 dmm,javdb,javbus，FC2设置为 fc2,fc2ppvdb</p><p>则对于有码影片，将依次使用 dmm,javdb 的标题数据；对于FC2影片将使用 fc2ppvdb 的标题数据</p>"))
+        self.label_325.setText(
+            _translate(
+                "MDCx",
+                "<p>说明：对于某个字段，如果不指定刮削网站，则将使用任意已获取网站的数据；否则将依次使用字段刮削网站与该类型的刮削网站的交集。</p><p>例如，若标题设置为 theporndb,dmm,javdb,fc2ppvdb，有码设置为 dmm,javdb,javbus，FC2设置为 fc2,fc2ppvdb</p><p>则对于有码影片，将依次使用 dmm,javdb 的标题数据；对于FC2影片将使用 fc2ppvdb 的标题数据</p>",
+            )
+        )
         self.groupBox_11.setTitle(_translate("MDCx", "网站偏好"))
         self.radioButton_scrape_single.setText(_translate("MDCx", "指定网站"))
         self.label_32.setText(_translate("MDCx", "按各个字段设置的刮削网站进行刮削，字段来自多个网站。字段全一些。"))
@@ -10459,7 +10837,9 @@ class Ui_MDCx(object):
         self.comboBox_website_all.setItemText(34, _translate("MDCx", "javday"))
         self.comboBox_website_all.setItemText(35, _translate("MDCx", "avbase"))
         self.comboBox_website_all.setItemText(36, _translate("MDCx", "missav"))
-        self.label_315.setText(_translate("MDCx", "⚠️ 下载剧照、预告片，请选择「字段优先」或「指定网站」！「速度优先」信息不全！"))
+        self.label_315.setText(
+            _translate("MDCx", "⚠️ 下载剧照、预告片，请选择「字段优先」或「指定网站」！「速度优先」信息不全！")
+        )
         self.pushButton_scrape_note.setText(_translate("MDCx", "刮削不到？看这里！"))
         self.label_300.setText(_translate("MDCx", "⚠️ 注意！！！选择「字段优先」时，以下设置才有效！！！"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MDCx", " 刮削网站 "))
@@ -10482,14 +10862,21 @@ class Ui_MDCx(object):
         self.label_305.setText(_translate("MDCx", " 国产封面人脸位置不固定，建议手动裁剪或直接复制"))
         self.checkBox_ignore_size.setText(_translate("MDCx", "预告片下载时，不校验文件大小"))
         self.label_272.setText(_translate("MDCx", " 有时网络返回值不对，校验会导致预告片下载失败"))
-        self.label_85.setText(_translate("MDCx", "<p style=\'line-height:20px\'>封面图：poster，当 Emby\n"
-"                                视图选择封面图时，列表页会使用 poster（竖图）显示；<br>\n"
-"                                缩略图：thumb，当 Emby 视图选择缩略图时，列表页会使用 Thumb（横图）显示；<br>\n"
-"                                背景图：fanart，在 Emby 详情页作为背景图显示（复制缩略图得到背景图）；<br>\n"
-"                                剧照：extrafanart，在 Emby 详情页作为背景轮播显示（停留约 50s 后进入轮播状态）；<br>\n"
-"                                预告片：trailer，在 Emby 详情页可以播放预告片；<br>\n"
-"                                nfo：包含标题、简介、标签等信息，在 Emby 详情页展示。</p>"))
-        self.label_310.setText(_translate("MDCx", "⚠️ 下载剧照、预告片，请选择「字段优先」或「指定网站」！「速度优先」信息不全！"))
+        self.label_85.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>封面图：poster，当 Emby\n"
+                "                                视图选择封面图时，列表页会使用 poster（竖图）显示；<br>\n"
+                "                                缩略图：thumb，当 Emby 视图选择缩略图时，列表页会使用 Thumb（横图）显示；<br>\n"
+                "                                背景图：fanart，在 Emby 详情页作为背景图显示（复制缩略图得到背景图）；<br>\n"
+                "                                剧照：extrafanart，在 Emby 详情页作为背景轮播显示（停留约 50s 后进入轮播状态）；<br>\n"
+                "                                预告片：trailer，在 Emby 详情页可以播放预告片；<br>\n"
+                "                                nfo：包含标题、简介、标签等信息，在 Emby 详情页展示。</p>",
+            )
+        )
+        self.label_310.setText(
+            _translate("MDCx", "⚠️ 下载剧照、预告片，请选择「字段优先」或「指定网站」！「速度优先」信息不全！")
+        )
         self.groupBox_33.setTitle(_translate("MDCx", "保留旧文件"))
         self.checkBox_old_poster.setText(_translate("MDCx", "封面图"))
         self.checkBox_old_thumb.setText(_translate("MDCx", "缩略图"))
@@ -10499,22 +10886,37 @@ class Ui_MDCx(object):
         self.checkBox_old_nfo.setText(_translate("MDCx", "nfo"))
         self.checkBox_old_extrafanart_copy.setText(_translate("MDCx", "剧照副本"))
         self.checkBox_old_theme_videos.setText(_translate("MDCx", "主题视频"))
-        self.label_79.setText(_translate("MDCx", "<p style=\'line-height:20px\'>勾选时，将使用本地文件（如有），不再重新下载。<br>\n"
-"                          ⚠️ 注意：不勾选时，本地旧文件将被删除！并根据上方设置的下载项重新下载！</p>"))
+        self.label_79.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>勾选时，将使用本地文件（如有），不再重新下载。<br>\n"
+                "                          ⚠️ 注意：不勾选时，本地旧文件将被删除！并根据上方设置的下载项重新下载！</p>",
+            )
+        )
         self.groupBox_51.setTitle(_translate("MDCx", "创建主题视频"))
-        self.label_87.setText(_translate("MDCx", "<p style=\'line-height:20px\'>复制预告片到视频下的 backdrops 目录，当在 Emby\n"
-"                          浏览该番号时，预告片会作为背景视频播放。<br>\n"
-"                          开启主题视频：Emby 设置-显示-主题视频-开（PC 端可以打开，手机端不建议打开，会变成全屏播放...）</p>"))
+        self.label_87.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>复制预告片到视频下的 backdrops 目录，当在 Emby\n"
+                "                          浏览该番号时，预告片会作为背景视频播放。<br>\n"
+                "                          开启主题视频：Emby 设置-显示-主题视频-开（PC 端可以打开，手机端不建议打开，会变成全屏播放...）</p>",
+            )
+        )
         self.checkBox_theme_videos.setText(_translate("MDCx", "使用预告片作为主题视频"))
         self.pushButton_add_all_theme_videos.setText(_translate("MDCx", "添加所有主题视频"))
         self.pushButton_del_all_theme_videos.setText(_translate("MDCx", "删除所有主题视频"))
         self.groupBox_34.setTitle(_translate("MDCx", "创建剧照副本"))
         self.checkBox_download_extrafanart_copy.setText(_translate("MDCx", "额外复制一份剧照图到文件夹"))
-        self.label_59.setText(_translate("MDCx", "<p style=\'line-height:20px\'>在 Emby\n"
-"                          中，剧照图片作为背景显示，无法手动浏览。<br>\n"
-"                          如需在 Emby 中手动查看剧照，可复制剧照图片到单独目录，并且媒体库类型选择「家庭视频与照片」<br>\n"
-"                          请使用「extrafanart」以外的其他名字。目录名字为空或「extrafanart」时，将不会创建副本目录。<br>\n"
-"                          注意：此处只需填写目录名字，请不要填写完整路径！</p>"))
+        self.label_59.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>在 Emby\n"
+                "                          中，剧照图片作为背景显示，无法手动浏览。<br>\n"
+                "                          如需在 Emby 中手动查看剧照，可复制剧照图片到单独目录，并且媒体库类型选择「家庭视频与照片」<br>\n"
+                "                          请使用「extrafanart」以外的其他名字。目录名字为空或「extrafanart」时，将不会创建副本目录。<br>\n"
+                "                          注意：此处只需填写目录名字，请不要填写完整路径！</p>",
+            )
+        )
         self.pushButton_add_all_extrafanart_copy.setText(_translate("MDCx", "添加所有剧照副本"))
         self.pushButton_del_all_extrafanart_copy.setText(_translate("MDCx", "删除所有剧照副本"))
         self.groupBox_52.setTitle(_translate("MDCx", "下载高清图"))
@@ -10532,32 +10934,44 @@ class Ui_MDCx(object):
         self.checkBox_official_big_pic.setText(_translate("MDCx", "启用片商官网查找高清图"))
         self.label_398.setText(_translate("MDCx", "将从片商官网搜索高清图，当图片不高清时会继续使用 Google 搜图"))
         self.groupBox_66.setTitle(_translate("MDCx", "显示剧照"))
-        self.label_333.setText(_translate("MDCx", "<p style=\'line-height:20px\'>复制剧照到视频下的 behind the scenes\n"
-"                          目录，Emby 浏览时，剧照会作为附加内容在详情页下方显示。<br></p>"))
+        self.label_333.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>复制剧照到视频下的 behind the scenes\n"
+                "                          目录，Emby 浏览时，剧照会作为附加内容在详情页下方显示。<br></p>",
+            )
+        )
         self.checkBox_extras.setText(_translate("MDCx", "剧照作为附加内容显示"))
         self.pushButton_add_all_extras.setText(_translate("MDCx", "为所有视频复制剧照"))
         self.pushButton_del_all_extras.setText(_translate("MDCx", "删除所有复制的剧照"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_4), _translate("MDCx", " 下载 "))
         self.groupBox_8.setTitle(_translate("MDCx", "视频命名规则"))
-        self.label_66.setText(_translate("MDCx", "<p\n"
-"                                style=\'line-height:20px\'>当刮削成功时，将为该视频创建一个视频目录，并移动该视频目录到成功输出目录。<br>\n"
-"                                目录名字支持自定义。命名字段有：<br>\n"
-"                                title （标题）, originaltitle （原标题）, actor （女演员）, all_actor\n"
-"                                （男女演员）,first_actor （首位演员）, number （番号）, letters （番号前缀）, first_letter\n"
-"                                （番号首字符）, outline （剧情简介）, director （导演）, series （系列）, studio （片商）,\n"
-"                                publisher （发行商）, release （发行日期）, year （年代）, runtime （时长）, mosaic\n"
-"                                （有码/无码）, definition （720P/1080P/4K）, cnword （自定义的字幕标识）, moword\n"
-"                                （自定义的无码标识）, filename （原文件名）, wanted （想看人数）, score （评分）, 4K\n"
-"                                （4K）<br>\n"
-"                                注意：<br>\n"
-"                                1，可以添加命名字段以外的字符，命名时会原样保留；<br>\n"
-"                                2，当留空时，表示不创建视频目录；<br>\n"
-"                                3，当勾选「成功后不移动文件」时，将不会创建视频目录</p>"))
+        self.label_66.setText(
+            _translate(
+                "MDCx",
+                "<p\n"
+                "                                style='line-height:20px'>当刮削成功时，将为该视频创建一个视频目录，并移动该视频目录到成功输出目录。<br>\n"
+                "                                目录名字支持自定义。命名字段有：<br>\n"
+                "                                title （标题）, originaltitle （原标题）, actor （女演员）, all_actor\n"
+                "                                （男女演员）,first_actor （首位演员）, number （番号）, letters （番号前缀）, first_letter\n"
+                "                                （番号首字符）, outline （剧情简介）, director （导演）, series （系列）, studio （片商）,\n"
+                "                                publisher （发行商）, release （发行日期）, year （年代）, runtime （时长）, mosaic\n"
+                "                                （有码/无码）, definition （720P/1080P/4K）, cnword （自定义的字幕标识）, moword\n"
+                "                                （自定义的无码标识）, filename （原文件名）, wanted （想看人数）, score （评分）, 4K\n"
+                "                                （4K）<br>\n"
+                "                                注意：<br>\n"
+                "                                1，可以添加命名字段以外的字符，命名时会原样保留；<br>\n"
+                "                                2，当留空时，表示不创建视频目录；<br>\n"
+                "                                3，当勾选「成功后不移动文件」时，将不会创建视频目录</p>",
+            )
+        )
         self.label_63.setText(_translate("MDCx", "视频文件名："))
         self.lineEdit_dir_name.setAccessibleDescription(_translate("MDCx", "测试"))
         self.label_43.setText(_translate("MDCx", "视频目录名："))
         self.label_240.setText(_translate("MDCx", "防屏蔽字符："))
-        self.label_68.setText(_translate("MDCx", "指在 nfo 文件中的标题(title)格式，在 Emby 中作为视频标题显示，命名字段同上"))
+        self.label_68.setText(
+            _translate("MDCx", "指在 nfo 文件中的标题(title)格式，在 Emby 中作为视频标题显示，命名字段同上")
+        )
         self.label_67.setText(_translate("MDCx", "Emby视频标题："))
         self.label_61.setText(_translate("MDCx", "指本地视频文件的文件名格式，命名字段同上"))
         self.label_239.setText(_translate("MDCx", "视频文件命名时，可插入防屏蔽字符到文件名的每个字符之间"))
@@ -10568,7 +10982,9 @@ class Ui_MDCx(object):
         self.radioButton_cd_part_upper.setText(_translate("MDCx", "-CD1"))
         self.radioButton_cd_part_digital.setText(_translate("MDCx", "-1"))
         self.label_349.setText(_translate("MDCx", "数字，-1、-2"))
-        self.label_99.setText(_translate("MDCx", "默认识别分集：-CD1｜-PART1｜-HD1｜-1.mp4 （文件名含有这些字符时将识别其中的分集信息）"))
+        self.label_99.setText(
+            _translate("MDCx", "默认识别分集：-CD1｜-PART1｜-HD1｜-1.mp4 （文件名含有这些字符时将识别其中的分集信息）")
+        )
         self.checkBox_cd_part_a.setText(_translate("MDCx", "-A.mp4｜.A.mp4｜12A.mp4 (字母结尾的分集，不含字母C)"))
         self.label_350.setText(_translate("MDCx", "允许识别分集："))
         self.checkBox_cd_part_01.setText(_translate("MDCx", "-01.mp4(两位数字结尾的分集)"))
@@ -10583,31 +10999,63 @@ class Ui_MDCx(object):
         self.groupBox_77.setTitle(_translate("MDCx", "长度命名规则"))
         self.label_171.setText(_translate("MDCx", "目录名最大长度："))
         self.label_167.setText(_translate("MDCx", "演员名最大数量："))
-        self.label_169.setText(_translate("MDCx", "<p style=\'line-height:20px\'>指目录名最长字符数（建议不要超过 100，太长时 Windows\n"
-"                          可能报错）<br>\n"
-"                          当超过最大长度时，将通过截短标题字段内容来缩短长度</p>"))
+        self.label_169.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>指目录名最长字符数（建议不要超过 100，太长时 Windows\n"
+                "                          可能报错）<br>\n"
+                "                          当超过最大长度时，将通过截短标题字段内容来缩短长度</p>",
+            )
+        )
         self.label_170.setText(_translate("MDCx", "文件名最大长度："))
-        self.label_172.setText(_translate("MDCx", "<p style=\'line-height:20px\'>指文件名最长字符数（建议不要超过 100，太长时 Windows\n"
-"                          可能报错）<br>\n"
-"                          当超过最大长度时，将通过截短标题字段内容来缩短长度</p>"))
-        self.label_168.setText(_translate("MDCx", "指有多位演员时，命名时最多显示的演员数量。超出的演员将用以下字符替代："))
+        self.label_172.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>指文件名最长字符数（建议不要超过 100，太长时 Windows\n"
+                "                          可能报错）<br>\n"
+                "                          当超过最大长度时，将通过截短标题字段内容来缩短长度</p>",
+            )
+        )
+        self.label_168.setText(
+            _translate("MDCx", "指有多位演员时，命名时最多显示的演员数量。超出的演员将用以下字符替代：")
+        )
         self.lineEdit_folder_name_max.setAccessibleDescription(_translate("MDCx", "测试"))
         self.groupBox_46.setTitle(_translate("MDCx", "马赛克命名规则"))
         self.label_189.setText(_translate("MDCx", "无码："))
-        self.label_117.setText(_translate("MDCx", "\n"
-"                          <p\n"
-"                          style=\'line-height:20px\'>指无码流出版本，当视频文件路径中含有「流出」、「LEAKED」字样时，该文件识别为无码流出版本。在重命名文件名及目录名时，在番号后显示该字符表示为无码流出版本</p>"))
+        self.label_117.setText(
+            _translate(
+                "MDCx",
+                "\n"
+                "                          <p\n"
+                "                          style='line-height:20px'>指无码流出版本，当视频文件路径中含有「流出」、「LEAKED」字样时，该文件识别为无码流出版本。在重命名文件名及目录名时，在番号后显示该字符表示为无码流出版本</p>",
+            )
+        )
         self.label_175.setText(_translate("MDCx", "无码流出："))
         self.label_190.setText(_translate("MDCx", "有码："))
-        self.label_137.setText(_translate("MDCx", "\n"
-"                          <p\n"
-"                          style=\'line-height:20px\'>指无码版本，当视频文件路径中含有「无码」、「無碼」、「無修正」、「uncensored」字样时，该文件识别为无码版本。<br>在重命名文件名及目录名时，在番号后显示该字符表示为无码版本</p>"))
-        self.label_116.setText(_translate("MDCx", "<p\n"
-"                          style=\'line-height:20px\'>指马赛克有损去除版本，当视频文件路径中含有「-uncensored.」、「破解」、「克破」、「UMR.」等字样时，该文件识别为无码破解版本。<br>\n"
-"                          在重命名文件名及目录名时，在番号后显示该字符表示为无码破解版本</p>"))
+        self.label_137.setText(
+            _translate(
+                "MDCx",
+                "\n"
+                "                          <p\n"
+                "                          style='line-height:20px'>指无码版本，当视频文件路径中含有「无码」、「無碼」、「無修正」、「uncensored」字样时，该文件识别为无码版本。<br>在重命名文件名及目录名时，在番号后显示该字符表示为无码版本</p>",
+            )
+        )
+        self.label_116.setText(
+            _translate(
+                "MDCx",
+                "<p\n"
+                "                          style='line-height:20px'>指马赛克有损去除版本，当视频文件路径中含有「-uncensored.」、「破解」、「克破」、「UMR.」等字样时，该文件识别为无码破解版本。<br>\n"
+                "                          在重命名文件名及目录名时，在番号后显示该字符表示为无码破解版本</p>",
+            )
+        )
         self.label_174.setText(_translate("MDCx", "无码破解："))
-        self.label_145.setText(_translate("MDCx", "<p>指有码版本，当视频文件路径中含有「有码」、「有碼」字样时，该文件识别为\n"
-"                          有码版本，重命名文件名及目录名时，在番号后显示该字符表示为有码版本</p>"))
+        self.label_145.setText(
+            _translate(
+                "MDCx",
+                "<p>指有码版本，当视频文件路径中含有「有码」、「有碼」字样时，该文件识别为\n"
+                "                          有码版本，重命名文件名及目录名时，在番号后显示该字符表示为有码版本</p>",
+            )
+        )
         self.groupBox_37.setTitle(_translate("MDCx", "图片命名规则"))
         self.radioButton_pic_with_filename.setText(_translate("MDCx", "视频文件名-poster.jpg "))
         self.radioButton_pic_no_filename.setText(_translate("MDCx", "poster.jpg"))
@@ -10620,13 +11068,24 @@ class Ui_MDCx(object):
         self.label_122.setText(_translate("MDCx", "在视频目录创建「trailers」文件夹，多分集共用一个「trailer.mp4」"))
         self.groupBox_40.setTitle(_translate("MDCx", "字段命名规则"))
         self.label_407.setText(_translate("MDCx", "演员："))
-        self.label_146.setText(_translate("MDCx", "<p>比如moword(自定义的无码标识),cnword(字幕)将显示为: 番号-流出-C<br>\n"
-"                                此处只控制顺序，需要在对应位置（如“添加 4K 字符”）勾选才能控制是否显示</p>"))
-        self.checkBox_number_del_num.setText(_translate("MDCx", "去除素人番号前缀数字（比如：259LUXU-1488 将修改为 LUXU-1488，建议保留）"))
-        self.checkBox_actor_del_char.setText(_translate("MDCx", "去除演员名括号中的名字（比如：Rio（柚木ティナ）将修改为 Rio）"))
+        self.label_146.setText(
+            _translate(
+                "MDCx",
+                "<p>比如moword(自定义的无码标识),cnword(字幕)将显示为: 番号-流出-C<br>\n"
+                "                                此处只控制顺序，需要在对应位置（如“添加 4K 字符”）勾选才能控制是否显示</p>",
+            )
+        )
+        self.checkBox_number_del_num.setText(
+            _translate("MDCx", "去除素人番号前缀数字（比如：259LUXU-1488 将修改为 LUXU-1488，建议保留）")
+        )
+        self.checkBox_actor_del_char.setText(
+            _translate("MDCx", "去除演员名括号中的名字（比如：Rio（柚木ティナ）将修改为 Rio）")
+        )
         self.label_319.setText(_translate("MDCx", "素人番号："))
         self.label_197.setText(_translate("MDCx", "番号后缀顺序："))
-        self.checkBox_title_del_actor.setText(_translate("MDCx", "去除标题后的演员名（个别网站在标题末尾额外多加了演员名，建议去除）"))
+        self.checkBox_title_del_actor.setText(
+            _translate("MDCx", "去除标题后的演员名（个别网站在标题末尾额外多加了演员名，建议去除）")
+        )
         self.label_276.setText(_translate("MDCx", "发行日期："))
         self.label_302.setText(_translate("MDCx", "年: YYYY或YY，月: MM，日:DD，比如: YY.MM.DD 将显示为 22.03.20"))
         self.label_100.setText(_translate("MDCx", "当演员名不存在时，在使用演员命名字段命名时，使用以上字符替代"))
@@ -10638,25 +11097,39 @@ class Ui_MDCx(object):
         self.radioButton_definition_hd.setText(_translate("MDCx", "HD、FHD、QHD、UHD"))
         self.label_329.setText(_translate("MDCx", "以视频分辨率的高度数值来命名不同画质"))
         self.label_330.setText(_translate("MDCx", "以视频清晰度的英文缩写来命名不同画质"))
-        self.label_331.setText(_translate("MDCx", "<p>说明：qHD=540P，HD=720P/960P，FHD=1080P，QHD=1440P(2K)，UHD=4K/8K。低于540P时默认使用高度值命名</p>"))
+        self.label_331.setText(
+            _translate(
+                "MDCx",
+                "<p>说明：qHD=540P，HD=720P/960P，FHD=1080P，QHD=1440P(2K)，UHD=4K/8K。低于540P时默认使用高度值命名</p>",
+            )
+        )
         self.radioButton_videosize_video.setText(_translate("MDCx", "读取视频画面的高度"))
         self.radioButton_videosize_path.setText(_translate("MDCx", "使用路径中包含的画质信息"))
         self.radioButton_videosize_none.setText(_translate("MDCx", "不获取分辨率"))
         self.label_332.setText(_translate("MDCx", "分辨率获取方式："))
         self.groupBox_67.setTitle(_translate("MDCx", "其他说明"))
         self.label_353.setText(_translate("MDCx", "1，多版本显示："))
-        self.label_352.setText(_translate("MDCx", "<p>1）Emby 支持多版本显示（类似选集），\n"
-"                          需要：</p><p>视频文件名的开头部分必须包含视频目录名。（比如：SSIS-111/SSIS-111-4K.mp4）\n"
-"                          </p><p>查看规则：<a\n"
-"                          href=\"https://support.emby.media/support/solutions/articles/44001159102-movie-naming\"><span\n"
-"                          style=\" text-decoration: underline;\n"
-"                          color:#094fd1;\">https://support.emby.media/support/solutions/articles/44001159102-movie-naming</span></a></p><p>2）分集视频默认会显示为附加视频，如果要以多版本样式显示，分集命名规则还需要选择「-1」</p>"))
-        self.label_351.setText(_translate("MDCx", "Emby 分集封面需要每个分集都提供图片，图片命名规则需要选择「视频文件名-poster.jpg」"))
+        self.label_352.setText(
+            _translate(
+                "MDCx",
+                "<p>1）Emby 支持多版本显示（类似选集），\n"
+                "                          需要：</p><p>视频文件名的开头部分必须包含视频目录名。（比如：SSIS-111/SSIS-111-4K.mp4）\n"
+                "                          </p><p>查看规则：<a\n"
+                '                          href="https://support.emby.media/support/solutions/articles/44001159102-movie-naming"><span\n'
+                '                          style=" text-decoration: underline;\n'
+                '                          color:#094fd1;">https://support.emby.media/support/solutions/articles/44001159102-movie-naming</span></a></p><p>2）分集视频默认会显示为附加视频，如果要以多版本样式显示，分集命名规则还需要选择「-1」</p>',
+            )
+        )
+        self.label_351.setText(
+            _translate("MDCx", "Emby 分集封面需要每个分集都提供图片，图片命名规则需要选择「视频文件名-poster.jpg」")
+        )
         self.label_354.setText(_translate("MDCx", "2，分集封面显示："))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("MDCx", " 命名 "))
         self.groupBox_trans.setTitle(_translate("MDCx", "翻译引擎"))
         self.label_81.setText(_translate("MDCx", "翻译引擎："))
-        self.label_60.setText(_translate("MDCx", "填写免费或付费 key 时，将使用 API 翻译 ；不填写时，将使用网页端接口翻译。"))
+        self.label_60.setText(
+            _translate("MDCx", "填写免费或付费 key 时，将使用 API 翻译 ；不填写时，将使用网页端接口翻译。")
+        )
         self.checkBox_google.setText(_translate("MDCx", "Google"))
         self.checkBox_deepl.setText(_translate("MDCx", "DeepL"))
         self.checkBox_youdao.setText(_translate("MDCx", "有道"))
@@ -10664,7 +11137,9 @@ class Ui_MDCx(object):
         self.label_164.setText(_translate("MDCx", "当勾选多个时，将随机使用所勾选的其中任一翻译引擎，可降低被封几率"))
         self.label_80.setText(_translate("MDCx", "DeepL API key："))
         self.label_811.setText(_translate("MDCx", "翻译引擎："))
-        self.label_601.setText(_translate("MDCx", "填写免费或付费 key 时，将使用 API 翻译 ；不填写时，将使用网页端接口翻译。"))
+        self.label_601.setText(
+            _translate("MDCx", "填写免费或付费 key 时，将使用 API 翻译 ；不填写时，将使用网页端接口翻译。")
+        )
         self.groupBox_llm.setTitle(_translate("MDCx", "LLM 翻译"))
         self.label_llm_url.setText(_translate("MDCx", "API URL:"))
         self.label_llm_url_desc.setText(_translate("MDCx", "示例: https://api.openai.com/v1"))
@@ -10683,12 +11158,16 @@ class Ui_MDCx(object):
         self.checkBox_title_yesjav.setText(_translate("MDCx", "使用yesjav中文标题"))
         self.checkBox_title_translate.setText(_translate("MDCx", "使用翻译引擎翻译标题"))
         self.label_242.setText(_translate("MDCx", "标题语言："))
-        self.label_74.setText(_translate("MDCx", "将优先使用刮削网站的中文翻译，当刮削页面无中文时，才使用以下翻译方式。"))
+        self.label_74.setText(
+            _translate("MDCx", "将优先使用刮削网站的中文翻译，当刮削页面无中文时，才使用以下翻译方式。")
+        )
         self.radioButton_title_zh_cn.setText(_translate("MDCx", "中文简体"))
         self.radioButton_title_zh_tw.setText(_translate("MDCx", "中文繁体"))
         self.radioButton_title_jp.setText(_translate("MDCx", "日语"))
         self.label_236.setText(_translate("MDCx", "当存在色花中文标题时，即使刮削网站有中文翻译，也会使用色花中文标题"))
-        self.label_160.setText(_translate("MDCx", "翻译优先级：色花（内置标题数据） > yesjav（在线色花数据） > 翻译引擎"))
+        self.label_160.setText(
+            _translate("MDCx", "翻译优先级：色花（内置标题数据） > yesjav（在线色花数据） > 翻译引擎")
+        )
         self.checkBox_title_sehua_2.setText(_translate("MDCx", "优先使用色花中文标题"))
         self.label_244.setText(_translate("MDCx", "翻译方式："))
         self.groupBox_83.setTitle(_translate("MDCx", "简介"))
@@ -10709,20 +11188,25 @@ class Ui_MDCx(object):
         self.radioButton_actor_zh_cn.setText(_translate("MDCx", "中文简体"))
         self.radioButton_actor_zh_tw.setText(_translate("MDCx", "中文繁体"))
         self.radioButton_actor_jp.setText(_translate("MDCx", "日语"))
-        self.label_249.setText(_translate("MDCx", "<p style=\'line-height:20px\'>\n"
-"                                素人和 FC2 番号演员可能是「素人」之类假名字，勾选「使用AV-wiki获取演员真实名字」，可以请求 AV-wiki\n"
-"                                获取演员真实日文名，之后可使用映射表翻译为中文！<br>\n"
-"                                演员名比较复杂，不能简单使用翻译引擎翻译。主要的问题：演员名翻译不准确、演员有多个名字、同一演员不同番号演员名不统一、各网站使用的演员名不统一等。<br>\n"
-"                                不过，通过演员名映射翻译表可以解决这些问题，使刮削后的演员名整齐统一。<br>\n"
-"                                实现逻辑：刮削网站获取演员名后，通过查询映射表中的匹配词来映射对应输出词。\n"
-"                                <br>\n"
-"                                演员名映射翻译表文件名为：mapping_actor.xml<br>\n"
-"                                ·\n"
-"                                Windows位置：\\配置文件目录\\userdata\\mapping_actor.xml（配置文件目录在「设置」-「其他」中设置）<br>\n"
-"                                · Mac位置：/配置文件目录/userdata/mapping_actor.xml<br>\n"
-"                                你可使用文件编辑工具打开该文件自定义修改添加。映射表中的字段含义如下：<br>\n"
-"                                1、keyword：匹配词（每个名字前后都要有逗号）。刮削网站获取演员名后，会在 keyword 的名字中进行匹配。<br>\n"
-"                                2、zh_cn/zh_tw/jp：输出词。当 keyword 匹配到演员名时，可输出对应语言的名字。</p>"))
+        self.label_249.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>\n"
+                "                                素人和 FC2 番号演员可能是「素人」之类假名字，勾选「使用AV-wiki获取演员真实名字」，可以请求 AV-wiki\n"
+                "                                获取演员真实日文名，之后可使用映射表翻译为中文！<br>\n"
+                "                                演员名比较复杂，不能简单使用翻译引擎翻译。主要的问题：演员名翻译不准确、演员有多个名字、同一演员不同番号演员名不统一、各网站使用的演员名不统一等。<br>\n"
+                "                                不过，通过演员名映射翻译表可以解决这些问题，使刮削后的演员名整齐统一。<br>\n"
+                "                                实现逻辑：刮削网站获取演员名后，通过查询映射表中的匹配词来映射对应输出词。\n"
+                "                                <br>\n"
+                "                                演员名映射翻译表文件名为：mapping_actor.xml<br>\n"
+                "                                ·\n"
+                "                                Windows位置：\\配置文件目录\\userdata\\mapping_actor.xml（配置文件目录在「设置」-「其他」中设置）<br>\n"
+                "                                · Mac位置：/配置文件目录/userdata/mapping_actor.xml<br>\n"
+                "                                你可使用文件编辑工具打开该文件自定义修改添加。映射表中的字段含义如下：<br>\n"
+                "                                1、keyword：匹配词（每个名字前后都要有逗号）。刮削网站获取演员名后，会在 keyword 的名字中进行匹配。<br>\n"
+                "                                2、zh_cn/zh_tw/jp：输出词。当 keyword 匹配到演员名时，可输出对应语言的名字。</p>",
+            )
+        )
         self.checkBox_actor_realname.setText(_translate("MDCx", "使用AV-wiki获取演员真实名字"))
         self.checkBox_actor_translate.setText(_translate("MDCx", "使用演员映射表翻译演员"))
         self.label_248.setText(_translate("MDCx", "演员语言："))
@@ -10730,14 +11214,18 @@ class Ui_MDCx(object):
         self.radioButton_tag_zh_cn.setText(_translate("MDCx", "中文简体"))
         self.radioButton_tag_zh_tw.setText(_translate("MDCx", "中文繁体"))
         self.radioButton_tag_jp.setText(_translate("MDCx", "日语"))
-        self.label_165.setText(_translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。"))
+        self.label_165.setText(
+            _translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。")
+        )
         self.checkBox_tag_translate.setText(_translate("MDCx", "使用信息映射表翻译标签"))
         self.label_251.setText(_translate("MDCx", "标签语言："))
         self.label_253.setText(_translate("MDCx", "翻译方式："))
         self.groupBox_86.setTitle(_translate("MDCx", "系列"))
         self.label_255.setText(_translate("MDCx", "系列语言："))
         self.label_256.setText(_translate("MDCx", "翻译方式："))
-        self.label_245.setText(_translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。"))
+        self.label_245.setText(
+            _translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。")
+        )
         self.radioButton_series_zh_cn.setText(_translate("MDCx", "中文简体"))
         self.radioButton_series_zh_tw.setText(_translate("MDCx", "中文繁体"))
         self.radioButton_series_jp.setText(_translate("MDCx", "日语"))
@@ -10745,7 +11233,9 @@ class Ui_MDCx(object):
         self.groupBox_87.setTitle(_translate("MDCx", "片商"))
         self.label_259.setText(_translate("MDCx", "片商语言："))
         self.label_260.setText(_translate("MDCx", "翻译方式："))
-        self.label_247.setText(_translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。"))
+        self.label_247.setText(
+            _translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。")
+        )
         self.radioButton_studio_zh_cn.setText(_translate("MDCx", "中文简体"))
         self.radioButton_studio_zh_tw.setText(_translate("MDCx", "中文繁体"))
         self.radioButton_studio_jp.setText(_translate("MDCx", "日语"))
@@ -10753,7 +11243,9 @@ class Ui_MDCx(object):
         self.groupBox_88.setTitle(_translate("MDCx", "发行商"))
         self.label_264.setText(_translate("MDCx", "发行商语言："))
         self.label_265.setText(_translate("MDCx", "翻译方式："))
-        self.label_266.setText(_translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。"))
+        self.label_266.setText(
+            _translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。")
+        )
         self.radioButton_publisher_zh_cn.setText(_translate("MDCx", "中文简体"))
         self.radioButton_publisher_zh_tw.setText(_translate("MDCx", "中文繁体"))
         self.radioButton_publisher_jp.setText(_translate("MDCx", "日语"))
@@ -10761,7 +11253,9 @@ class Ui_MDCx(object):
         self.groupBox_89.setTitle(_translate("MDCx", "导演"))
         self.label_267.setText(_translate("MDCx", "发行商语言："))
         self.label_268.setText(_translate("MDCx", "翻译方式："))
-        self.label_269.setText(_translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。"))
+        self.label_269.setText(
+            _translate("MDCx", "映射表文件名：mapping_info.xml。作用和演员映射表类似，说明可参考演员映射表。")
+        )
         self.checkBox_director_translate.setText(_translate("MDCx", "使用信息映射表翻译导演"))
         self.radioButton_director_zh_cn.setText(_translate("MDCx", "中文简体"))
         self.radioButton_director_zh_tw.setText(_translate("MDCx", "中文繁体"))
@@ -10769,17 +11263,28 @@ class Ui_MDCx(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_6), _translate("MDCx", " 翻译 "))
         self.groupBox_20.setTitle(_translate("MDCx", "中文字幕字符规则"))
         self.label_89.setText(_translate("MDCx", "中文字幕判断字符："))
-        self.label_90.setText(_translate("MDCx", "指视频有中文字幕时，在重命名文件名及目录名时在番号后添加该字符表示有中文字幕"))
-        self.label_91.setText(_translate("MDCx", "<p\n"
-"                                style=\'line-height:20px\'>指视频文件路径中含有以上字符时，视为该文件有中文字幕，多个以逗号分割<br>\n"
-"                                此外，还会查找同目录是否存在同名字幕文件、nfo 的标签是否有中文字幕字样</p>"))
+        self.label_90.setText(
+            _translate("MDCx", "指视频有中文字幕时，在重命名文件名及目录名时在番号后添加该字符表示有中文字幕")
+        )
+        self.label_91.setText(
+            _translate(
+                "MDCx",
+                "<p\n"
+                "                                style='line-height:20px'>指视频文件路径中含有以上字符时，视为该文件有中文字幕，多个以逗号分割<br>\n"
+                "                                此外，还会查找同目录是否存在同名字幕文件、nfo 的标签是否有中文字幕字样</p>",
+            )
+        )
         self.label_69.setText(_translate("MDCx", "中文字幕命名字符："))
-        self.label_119.setText(_translate("MDCx", "指命名时在番号后添加中文字幕命名字符。你也可以使用 cnword 字段来调整添加位置"))
+        self.label_119.setText(
+            _translate("MDCx", "指命名时在番号后添加中文字幕命名字符。你也可以使用 cnword 字段来调整添加位置")
+        )
         self.checkBox_foldername.setText(_translate("MDCx", "视频目录名"))
         self.checkBox_filename.setText(_translate("MDCx", "视频文件名"))
         self.label_120.setText(_translate("MDCx", "添加中文字幕字符："))
         self.groupBox_45.setTitle(_translate("MDCx", "添加外挂字幕"))
-        self.label_113.setText(_translate("MDCx", "刮削时，如果视频无内嵌字幕且同目录无字幕文件，则从字幕文件目录查找并复制字幕"))
+        self.label_113.setText(
+            _translate("MDCx", "刮削时，如果视频无内嵌字幕且同目录无字幕文件，则从字幕文件目录查找并复制字幕")
+        )
         self.label_102.setText(_translate("MDCx", "下载字幕包解压，填写字幕文件目录的路径"))
         self.label_download_sub_zip.setText(_translate("MDCx", "点击下载字幕包"))
         self.label_111.setText(_translate("MDCx", "字幕文件目录："))
@@ -10787,54 +11292,71 @@ class Ui_MDCx(object):
         self.radioButton_add_sub_on.setText(_translate("MDCx", "开"))
         self.radioButton_add_sub_off.setText(_translate("MDCx", "关"))
         self.pushButton_select_subtitle_folder.setText(_translate("MDCx", "选择目录"))
-        self.pushButton_add_sub_for_all_video.setText(_translate("MDCx", "点击检查所有视频的字幕情况并为无字幕视频添加字幕"))
-        self.label_125.setText(_translate("MDCx", "<p\n"
-"                          style=\'line-height:20px\'>当字幕文件目录为空时，将只检查并统计无字幕的视频列表<br>\n"
-"                          当视频已识别为有字幕状态时（已有字幕或包含中文字幕字符等），不会重复添加字幕<br>\n"
-"                          当视频添加新的外挂字幕后，如勾选重新刮削，将在添加结束后自动刮削<br>\n"
-"                          当视频之前添加了外挂字幕，但是还没有重新刮削时，这时也会自动刮削<br>\n"
-"                          当勾选添加.chs后缀时，字幕文件会被统一命名为：视频文件名.chs.srt</p>"))
+        self.pushButton_add_sub_for_all_video.setText(
+            _translate("MDCx", "点击检查所有视频的字幕情况并为无字幕视频添加字幕")
+        )
+        self.label_125.setText(
+            _translate(
+                "MDCx",
+                "<p\n"
+                "                          style='line-height:20px'>当字幕文件目录为空时，将只检查并统计无字幕的视频列表<br>\n"
+                "                          当视频已识别为有字幕状态时（已有字幕或包含中文字幕字符等），不会重复添加字幕<br>\n"
+                "                          当视频添加新的外挂字幕后，如勾选重新刮削，将在添加结束后自动刮削<br>\n"
+                "                          当视频之前添加了外挂字幕，但是还没有重新刮削时，这时也会自动刮削<br>\n"
+                "                          当勾选添加.chs后缀时，字幕文件会被统一命名为：视频文件名.chs.srt</p>",
+            )
+        )
         self.checkBox_sub_add_chs.setText(_translate("MDCx", "字幕文件名添加.chs后缀"))
         self.checkBox_sub_rescrape.setText(_translate("MDCx", "新添加字幕的视频在结束后重新刮削"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MDCx", " 字幕 "))
         self.groupBox_26.setTitle(_translate("MDCx", "自定义水印样式"))
-        self.label_118.setText(_translate("MDCx", "<p\n"
-"                          style=\'line-height:20px\'>1、下载水印图片包并解压（也可以使用自己的图片），水印图片的保存路径为：<br>\n"
-"                          · Windows位置：（配置文件目录在「设置」-「高级」中设置）<br>\n"
-"                          字幕水印：\\配置文件目录\\userdata\\watermark\\sub.png<br>\n"
-"                          有码水印：\\配置文件目录\\userdata\\watermark\\youma.png<br>\n"
-"                          破解水印：\\配置文件目录\\userdata\\watermark\\umr.png<br>\n"
-"                          流出水印：\\配置文件目录\\userdata\\watermark\\leak.png<br>\n"
-"                          无码水印：\\配置文件目录\\userdata\\watermark\\wuma.png<br>\n"
-"                          4K水印：\\配置文件目录\\userdata\\watermark\\4k.png<br>\n"
-"                          8K水印：\\配置文件目录\\userdata\\watermark\\8k.png<br>\n"
-"                          · Mac位置：（配置文件目录在「设置」-「高级」中设置）<br>\n"
-"                          字幕水印：/配置文件目录/userdata/watermark/sub.png<br>\n"
-"                          有码水印：/配置文件目录/userdata/watermark/youma.png<br>\n"
-"                          破解水印：/配置文件目录/userdata/watermark/umr.png<br>\n"
-"                          流出水印：/配置文件目录/userdata/watermark/leak.png<br>\n"
-"                          无码水印：/配置文件目录/userdata/watermark/wuma.png<br>\n"
-"                          4K水印：/配置文件目录/userdata/watermark/4k.png<br>\n"
-"                          8K水印：/配置文件目录/userdata/watermark/8k.png<br>\n"
-"                          <br>\n"
-"                          2、水印图片显示的逻辑：<br>\n"
-"                          · 首先计算水印图片的显示高度 = 封面图高度 * 设置的水印大小 / 40<br>\n"
-"                          比如水印大小设置为 5，则水印图片的高度会缩放为封面图高度的 5/40<br>\n"
-"                          · 然后根据水印图片的显示高度，和水印图片的宽高比，计算水印图片的显示宽度<br>\n"
-"                          · 最后根据设置的要添加的水印类型和首个水印位置，顺时针依次显示在封面图的四个角上</p>"))
+        self.label_118.setText(
+            _translate(
+                "MDCx",
+                "<p\n"
+                "                          style='line-height:20px'>1、下载水印图片包并解压（也可以使用自己的图片），水印图片的保存路径为：<br>\n"
+                "                          · Windows位置：（配置文件目录在「设置」-「高级」中设置）<br>\n"
+                "                          字幕水印：\\配置文件目录\\userdata\\watermark\\sub.png<br>\n"
+                "                          有码水印：\\配置文件目录\\userdata\\watermark\\youma.png<br>\n"
+                "                          破解水印：\\配置文件目录\\userdata\\watermark\\umr.png<br>\n"
+                "                          流出水印：\\配置文件目录\\userdata\\watermark\\leak.png<br>\n"
+                "                          无码水印：\\配置文件目录\\userdata\\watermark\\wuma.png<br>\n"
+                "                          4K水印：\\配置文件目录\\userdata\\watermark\\4k.png<br>\n"
+                "                          8K水印：\\配置文件目录\\userdata\\watermark\\8k.png<br>\n"
+                "                          · Mac位置：（配置文件目录在「设置」-「高级」中设置）<br>\n"
+                "                          字幕水印：/配置文件目录/userdata/watermark/sub.png<br>\n"
+                "                          有码水印：/配置文件目录/userdata/watermark/youma.png<br>\n"
+                "                          破解水印：/配置文件目录/userdata/watermark/umr.png<br>\n"
+                "                          流出水印：/配置文件目录/userdata/watermark/leak.png<br>\n"
+                "                          无码水印：/配置文件目录/userdata/watermark/wuma.png<br>\n"
+                "                          4K水印：/配置文件目录/userdata/watermark/4k.png<br>\n"
+                "                          8K水印：/配置文件目录/userdata/watermark/8k.png<br>\n"
+                "                          <br>\n"
+                "                          2、水印图片显示的逻辑：<br>\n"
+                "                          · 首先计算水印图片的显示高度 = 封面图高度 * 设置的水印大小 / 40<br>\n"
+                "                          比如水印大小设置为 5，则水印图片的高度会缩放为封面图高度的 5/40<br>\n"
+                "                          · 然后根据水印图片的显示高度，和水印图片的宽高比，计算水印图片的显示宽度<br>\n"
+                "                          · 最后根据设置的要添加的水印类型和首个水印位置，顺时针依次显示在封面图的四个角上</p>",
+            )
+        )
         self.label_download_mark_zip.setText(_translate("MDCx", "点击下载水印图片包"))
         self.groupBox_31.setTitle(_translate("MDCx", "水印设置"))
         self.radioButton_not_fixed_position.setText(_translate("MDCx", "不固定位置"))
         self.radioButton_fixed_corner.setText(_translate("MDCx", "固定一个位置"))
         self.radioButton_fixed_position.setText(_translate("MDCx", "固定不同位置"))
-        self.label_138.setText(_translate("MDCx", "<p\n"
-"                                style=\'line-height:20px\'>水印分为字幕水印、马赛克水印、4K/8K水印。<br>\n"
-"                                马赛克水印有四个：有码、破解、流出、无码，将按优先级显示其中一种状态<br>\n"
-"                                马赛克水印优先级：有码 > 破解 > 流出 > 无码<br>\n"
-"                                举例：如果视频是流出版本<br>\n"
-"                                ·当流出和无码都勾选时，会显示流出水印<br>\n"
-"                                ·当流出未勾选，无码已勾选时，会显示无码水印<br>\n"
-"                                ·当流出和无码都不勾选时，则不显示水印客</p>"))
+        self.label_138.setText(
+            _translate(
+                "MDCx",
+                "<p\n"
+                "                                style='line-height:20px'>水印分为字幕水印、马赛克水印、4K/8K水印。<br>\n"
+                "                                马赛克水印有四个：有码、破解、流出、无码，将按优先级显示其中一种状态<br>\n"
+                "                                马赛克水印优先级：有码 > 破解 > 流出 > 无码<br>\n"
+                "                                举例：如果视频是流出版本<br>\n"
+                "                                ·当流出和无码都勾选时，会显示流出水印<br>\n"
+                "                                ·当流出未勾选，无码已勾选时，会显示无码水印<br>\n"
+                "                                ·当流出和无码都不勾选时，则不显示水印客</p>",
+            )
+        )
         self.label_135.setText(_translate("MDCx", "水印类型："))
         self.label_128.setText(_translate("MDCx", "添加水印的图片："))
         self.checkBox_sub.setText(_translate("MDCx", "字幕"))
@@ -10844,17 +11366,24 @@ class Ui_MDCx(object):
         self.checkBox_uncensored.setText(_translate("MDCx", "无码"))
         self.checkBox_hd.setText(_translate("MDCx", "4K/8K"))
         self.label_140.setText(_translate("MDCx", "水印图片的显示高度 = 设置的水印大小 / 40 * 封面图高度"))
-        self.label_141.setText(_translate("MDCx", "<p\n"
-"                                style=\'line-height:20px\'>不固定位置：将从首个水印位置开始，顺时针方向依次添加其他水印<br>\n"
-"                                固定一个位置：水印在指定位置依次横向显示<br>\n"
-"                                固定多个位置：可单独设置 4K/8K 水印、字幕水印和马赛克水印的位置<br>\n"
-"                                注意：不固定位置时，4K/8K 水印会使用固定位置方式，并自动挤开其他水印</p>"))
+        self.label_141.setText(
+            _translate(
+                "MDCx",
+                "<p\n"
+                "                                style='line-height:20px'>不固定位置：将从首个水印位置开始，顺时针方向依次添加其他水印<br>\n"
+                "                                固定一个位置：水印在指定位置依次横向显示<br>\n"
+                "                                固定多个位置：可单独设置 4K/8K 水印、字幕水印和马赛克水印的位置<br>\n"
+                "                                注意：不固定位置时，4K/8K 水印会使用固定位置方式，并自动挤开其他水印</p>",
+            )
+        )
         self.checkBox_poster_mark.setText(_translate("MDCx", "poster"))
         self.checkBox_thumb_mark.setText(_translate("MDCx", "thumb"))
         self.checkBox_fanart_mark.setText(_translate("MDCx", "fanart"))
         self.label_139.setText(_translate("MDCx", "水印大小："))
         self.label_127.setText(_translate("MDCx", "水印位置："))
-        self.label_130.setText(_translate("MDCx", "Emby 中 fanart 作为背景图，不需要添加水印。其他软件作为预览图时，可添加水印"))
+        self.label_130.setText(
+            _translate("MDCx", "Emby 中 fanart 作为背景图，不需要添加水印。其他软件作为预览图时，可添加水印")
+        )
         self.groupBox_36.setTitle(_translate("MDCx", "不固定位置"))
         self.radioButton_top_left.setText(_translate("MDCx", "左上"))
         self.radioButton_top_right.setText(_translate("MDCx", "右上"))
@@ -10950,7 +11479,9 @@ class Ui_MDCx(object):
         self.label_423.setText(_translate("MDCx", "标签中演员的格式："))
         self.lineEdit_nfo_tag_actor.setText(_translate("MDCx", "actor"))
         self.label_424.setText(_translate("MDCx", "演员名白名单："))
-        self.label_432.setText(_translate("MDCx", "仅在白名单内的演员名才会被添加至标签（多个内容以｜分割），留空表示全部添加"))
+        self.label_432.setText(
+            _translate("MDCx", "仅在白名单内的演员名才会被添加至标签（多个内容以｜分割），留空表示全部添加")
+        )
         self.label_428.setText(_translate("MDCx", "注意：如果需要繁体，请到「设置」-「翻译」-「标签」，勾选为繁体！"))
         self.label_389.setText(_translate("MDCx", "注：同一字段多个名称可以兼容更多类型版本的媒体库"))
         self.pushButton_field_tips_nfo.setText(_translate("MDCx", "字段说明"))
@@ -10994,8 +11525,15 @@ class Ui_MDCx(object):
         self.label_download_actor_zip.setText(_translate("MDCx", "点击下载头像包"))
         self.pushButton_select_actor_photo_folder.setText(_translate("MDCx", "选择目录"))
         self.label_303.setText(_translate("MDCx", "网络头像库："))
-        self.label_123.setText(_translate("MDCx", "<p>支持优先使用 Graphis.ne.jp 的图片作为演员头像和演员背景；<br>Graphis.ne.jp 提供了演员不同时期的图片，默认请求早期的图片。</p>"))
-        self.label_159.setText(_translate("MDCx", "建议 Fork 该项目到你的 Github，当项目故障时，可填写你 Fork 后的项目地址"))
+        self.label_123.setText(
+            _translate(
+                "MDCx",
+                "<p>支持优先使用 Graphis.ne.jp 的图片作为演员头像和演员背景；<br>Graphis.ne.jp 提供了演员不同时期的图片，默认请求早期的图片。</p>",
+            )
+        )
+        self.label_159.setText(
+            _translate("MDCx", "建议 Fork 该项目到你的 Github，当项目故障时，可填写你 Fork 后的项目地址")
+        )
         self.groupBox_64.setTitle(_translate("MDCx", "补全 Emby/Jellyfin 演员信息"))
         self.radioButton_actor_info_zh_cn.setText(_translate("MDCx", "中文简体"))
         self.radioButton_actor_info_zh_tw.setText(_translate("MDCx", "中文繁体"))
@@ -11012,14 +11550,22 @@ class Ui_MDCx(object):
         self.checkBox_actor_info_translate.setText(_translate("MDCx", "不存在中文时，翻译日语为中文"))
         self.label_106.setText(_translate("MDCx", "不勾选则无中文时使用日语"))
         self.pushButton_add_actor_info.setText(_translate("MDCx", "开始补全"))
-        self.label_295.setText(_translate("MDCx", "使用维基百科补全 Emby/Jellyfin 演员信息，包括：演员介绍、资料、简历、生平、Imdb主页等。"))
+        self.label_295.setText(
+            _translate(
+                "MDCx", "使用维基百科补全 Emby/Jellyfin 演员信息，包括：演员介绍、资料、简历、生平、Imdb主页等。"
+            )
+        )
         self.radioButton_actor_info_all.setText(_translate("MDCx", "所有女优"))
         self.radioButton_actor_info_miss.setText(_translate("MDCx", "仅缺少信息的女优"))
         self.label_299.setText(_translate("MDCx", "补全范围："))
         self.checkBox_actor_info_photo.setText(_translate("MDCx", "补全完成后自动补全演员头像"))
         self.groupBox_68.setTitle(_translate("MDCx", "补全 Kodi/Plex/Jvedio 演员头像"))
         self.pushButton_add_actor_pic_kodi.setText(_translate("MDCx", "开始补全"))
-        self.label_414.setText(_translate("MDCx", "将为待刮削目录的每个视频在同目录创建一个 .actors 文件夹，并将该视频的演员图片放在该文件夹中"))
+        self.label_414.setText(
+            _translate(
+                "MDCx", "将为待刮削目录的每个视频在同目录创建一个 .actors 文件夹，并将该视频的演员图片放在该文件夹中"
+            )
+        )
         self.checkBox_actor_pic_replace.setText(_translate("MDCx", "覆盖已存在的演员图片"))
         self.label_415.setText(_translate("MDCx", "图片已存在时："))
         self.pushButton_del_actor_folder.setText(_translate("MDCx", "清除所有 .actors 文件夹"))
@@ -11030,43 +11576,80 @@ class Ui_MDCx(object):
         self.plainTextEdit_cookie_javdb.setPlaceholderText(_translate("MDCx", "刮削FC2需要填写"))
         self.pushButton_check_javdb_cookie.setText(_translate("MDCx", "检查cookie"))
         self.label_425.setText(_translate("MDCx", "javbus：\n（登录状态）"))
-        self.plainTextEdit_cookie_javbus.setPlaceholderText(_translate("MDCx", "美国节点需要填写，其他节点一般不需要填写，除非提示需要填写。"))
+        self.plainTextEdit_cookie_javbus.setPlaceholderText(
+            _translate("MDCx", "美国节点需要填写，其他节点一般不需要填写，除非提示需要填写。")
+        )
         self.pushButton_check_javbus_cookie.setText(_translate("MDCx", "检查cookie"))
-        self.label_75.setText(_translate("MDCx", "<p style=\'line-height:20px\'>Cookie 获取方法：<br>\n"
-"                          1，使用 Chrome 打开目标网站并登录，在页面空白位置点击鼠标右键，选择 「检查」 ；<br>\n"
-"                          2，右侧弹窗顶部选择：「网络」 -> 「全部」，然后刷新当前页面；<br>\n"
-"                          3，点击「名称」栏新加载出来的第一个内容 -> 「标头」 -> 「请求表头」 -> 「Cookie」；<br>\n"
-"                          4，复制 Cookie 对应的全部值填入上面输入框。（不要直接右键点「复制值」！！！！\n"
-"                          一定要先用鼠标「手动框选」要复制的全部文字，然后再右键点「复制」！！！不是「复制值」！！！！！！）<br>\n"
-"                          （注意：Cookie 存在有效期，过期无效时请重新获取。）</p>"))
+        self.label_75.setText(
+            _translate(
+                "MDCx",
+                "<p style='line-height:20px'>Cookie 获取方法：<br>\n"
+                "                          1，使用 Chrome 打开目标网站并登录，在页面空白位置点击鼠标右键，选择 「检查」 ；<br>\n"
+                "                          2，右侧弹窗顶部选择：「网络」 -> 「全部」，然后刷新当前页面；<br>\n"
+                "                          3，点击「名称」栏新加载出来的第一个内容 -> 「标头」 -> 「请求表头」 -> 「Cookie」；<br>\n"
+                "                          4，复制 Cookie 对应的全部值填入上面输入框。（不要直接右键点「复制值」！！！！\n"
+                "                          一定要先用鼠标「手动框选」要复制的全部文字，然后再右键点「复制」！！！不是「复制值」！！！！！！）<br>\n"
+                "                          （注意：Cookie 存在有效期，过期无效时请重新获取。）</p>",
+            )
+        )
         self.label_get_cookie_url.setText(_translate("MDCx", "https://tieba.baidu.com/p/5492736764"))
         self.label_7.setText(_translate("MDCx", "演示动画："))
         self.groupBox_28.setTitle(_translate("MDCx", "网络设置"))
-        self.label_103.setText(_translate("MDCx", "<p>支持 http(s), socks5(h) 代理. 示例: http://127.0.0.1:7897<br>需要用户名和密码时格式为: schema://username:password@host:port<br>Cloudflare Bypass 为空时表示关闭该功能</p>"))
+        self.label_103.setText(
+            _translate(
+                "MDCx",
+                "<p>支持 http(s), socks5(h) 代理. 示例: http://127.0.0.1:7897<br>需要用户名和密码时格式为: schema://username:password@host:port<br>Cloudflare Bypass 为空时表示关闭该功能<br>“使用代理”仅控制常规网络请求代理开关，不控制 CF Bypass 代理<br>“CF Bypass代理”仅作用于 bypass 服务请求（mirror/html）</p>",
+            )
+        )
+        self.checkBox_use_proxy.setToolTip(_translate("MDCx", "仅控制常规网络请求代理开关，不控制 CF Bypass 代理"))
         self.checkBox_use_proxy.setText(_translate("MDCx", "使用代理"))
         self.label_73.setText(_translate("MDCx", "超时时间："))
+        self.lineEdit_cf_bypass_url.setPlaceholderText(_translate("MDCx", "例如: http://127.0.0.1:8000"))
+        self.lineEdit_cf_bypass_proxy.setPlaceholderText(_translate("MDCx", "例如: http://127.0.0.1:7890（可选）"))
         self.label_65.setText(_translate("MDCx", "重试次数："))
         self.label_64.setText(_translate("MDCx", "代理地址："))
         self.label_cf_bypass.setText(_translate("MDCx", "CF Bypass："))
-        self.lineEdit_cf_bypass_url.setPlaceholderText(_translate("MDCx", "例如: http://127.0.0.1:8000"))
+        self.label_cf_bypass_proxy.setText(_translate("MDCx", "CF Bypass代理："))
         self.groupBox_44.setTitle(_translate("MDCx", "网站设置"))
         self.label_401.setText(_translate("MDCx", "当前网站："))
-        self.label_132.setText(_translate("MDCx", "<p>可在下方设置选定网站的配置。<span style=\" color:#d9001f;\">切换网站前需先保存，否则不会生效</span></p><p>注意：当前并非所有网站均支持这些配置，某些设置可能无效</p>"))
+        self.label_132.setText(
+            _translate(
+                "MDCx",
+                '<p>可在下方设置选定网站的配置。<span style=" color:#d9001f;">切换网站前需先保存，否则不会生效</span></p><p>注意：当前并非所有网站均支持这些配置，某些设置可能无效</p>',
+            )
+        )
         self.label_400.setText(_translate("MDCx", "自定义网址："))
         self.checkBox_site_use_browser.setText(_translate("MDCx", "使用浏览器请求"))
-        self.label_110.setText(_translate("MDCx", "<html><head/><body><p>自定义指定网站的网址，刮削时将用其代替默认网址</p></body></html>"))
-        self.label_136.setText(_translate("MDCx", "<html><head/><body><p>必须安装 Chrome 浏览器。可处理某些无法获取的网站，内存占用会显著提高</p></body></html>"))
+        self.label_110.setText(
+            _translate("MDCx", "<html><head/><body><p>自定义指定网站的网址，刮削时将用其代替默认网址</p></body></html>")
+        )
+        self.label_136.setText(
+            _translate(
+                "MDCx",
+                "<html><head/><body><p>必须安装 Chrome 浏览器。可处理某些无法获取的网站，内存占用会显著提高</p></body></html>",
+            )
+        )
         self.groupBox_14.setTitle(_translate("MDCx", "API Token"))
         self.label_355.setText(_translate("MDCx", "ThePornDB："))
-        self.label_356.setText(_translate("MDCx", "<html><head/><body><p><a\n"
-"                          href=\"https://theporndb.net/\"><span style=\"\n"
-"                          text-decoration: underline;\n"
-"                          color:#094fd1;\">https://theporndb.net/</span></a>\n"
-"                          注册登录后，点头像 - API Tokens - CREATE。复制生成的 API Token\n"
-"                          填入此处。</p></body></html>"))
+        self.label_356.setText(
+            _translate(
+                "MDCx",
+                "<html><head/><body><p><a\n"
+                '                          href="https://theporndb.net/"><span style="\n'
+                "                          text-decoration: underline;\n"
+                '                          color:#094fd1;">https://theporndb.net/</span></a>\n'
+                "                          注册登录后，点头像 - API Tokens - CREATE。复制生成的 API Token\n"
+                "                          填入此处。</p></body></html>",
+            )
+        )
         self.checkBox_theporndb_hash.setText(_translate("MDCx", "不使用Hash值匹配数据"))
-        self.label_422.setText(_translate("MDCx", "\n"
-"                                <html><head/><body><p>该网站的Hash值匹配结果可能错误</p></body></html>"))
+        self.label_422.setText(
+            _translate(
+                "MDCx",
+                "\n"
+                "                                <html><head/><body><p>该网站的Hash值匹配结果可能错误</p></body></html>",
+            )
+        )
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab3), _translate("MDCx", " 网络 "))
         self.groupBox_17.setTitle(_translate("MDCx", "保存日志"))
         self.radioButton_log_on.setText(_translate("MDCx", "开"))
@@ -11095,9 +11678,13 @@ class Ui_MDCx(object):
         self.label_309.setText(_translate("MDCx", "自动刮削："))
         self.label_277.setText(_translate("MDCx", "弹窗确认："))
         self.pushButton_select_config_folder.setText(_translate("MDCx", "选择目录"))
-        self.checkBox_remain_task.setText(_translate("MDCx", "记住未完成的刮削任务，即使退出或中止，下次仍可继续刮削未完成任务"))
+        self.checkBox_remain_task.setText(
+            _translate("MDCx", "记住未完成的刮削任务，即使退出或中止，下次仍可继续刮削未完成任务")
+        )
         self.label_279.setText(_translate("MDCx", "保留任务："))
-        self.label_40.setText(_translate("MDCx", "将读取该目录中的配置文件、映射表、水印图片、演员头像等数据，修改后重启程序方可生效"))
+        self.label_40.setText(
+            _translate("MDCx", "将读取该目录中的配置文件、映射表、水印图片、演员头像等数据，修改后重启程序方可生效")
+        )
         self.checkBox_dialog_qt.setText(_translate("MDCx", "使用 QT 选择对话框"))
         self.label_421.setText(_translate("MDCx", "目录中的文件较多时，可以勾选此项以提高打开速度"))
         self.label_314.setText(_translate("MDCx", "隐藏图标："))
@@ -11119,186 +11706,201 @@ class Ui_MDCx(object):
         self.pushButton_save_config.setText(_translate("MDCx", "保存"))
         self.label_241.setText(_translate("MDCx", "当前配置："))
         self.pushButton_save_new_config.setText(_translate("MDCx", "另存为"))
-        self.textBrowser_show_success_list.setHtml(_translate("MDCx", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"                  <html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"                  p, li { white-space: pre-wrap; }\n"
-"                  </style></head><body style=\" font-family:\'.AppleSystemUIFont\'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span></p></body></html>"))
+        self.textBrowser_show_success_list.setHtml(
+            _translate(
+                "MDCx",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '                  <html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "                  p, li { white-space: pre-wrap; }\n"
+                "                  </style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span></p></body></html>',
+            )
+        )
         self.pushButton_success_list_close.setText(_translate("MDCx", "关闭"))
         self.pushButton_success_list_clear.setText(_translate("MDCx", "清空列表"))
         self.pushButton_success_list_save.setText(_translate("MDCx", "保存"))
         self.label_success_title.setText(_translate("MDCx", "已刮削成功文件列表"))
-        self.textBrowser_show_tips.setHtml(_translate("MDCx", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"                  <html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"                  p, li { white-space: pre-wrap; }\n"
-"                  </style></head><body style=\" font-family:\'.AppleSystemUIFont\'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                  <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span></p></body></html>"))
+        self.textBrowser_show_tips.setHtml(
+            _translate(
+                "MDCx",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '                  <html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "                  p, li { white-space: pre-wrap; }\n"
+                "                  </style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                  <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span></p></body></html>',
+            )
+        )
         self.pushButton_show_tips_close.setText(_translate("MDCx", "关闭"))
         self.label_show_tips_title.setText(_translate("MDCx", "说明"))
-        self.textBrowser_about.setHtml(_translate("MDCx", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"                <html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"                p, li { white-space: pre-wrap; }\n"
-"                </style></head><body style=\" font-family:\'.AppleSystemUIFont\'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">· Movie_Data_Capture 项目地址：https://github.com/yoshiko2/Movie_Data_Capture</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">· AVDC-GUI 项目地址：https://github.com/moyy996/AVDC</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">· MDCx-docker 项目地址：https://github.com/northsea4/mdcx-docker</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">使用说明 （内容来自 AVDC-GUI ：https://github.com/moyy996/AVDC ）</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">目录</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">一、功能简介</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">二、项目简介</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">三、常见番号命名参考</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">四、设置说明</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> </span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">一、功能简介</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 日本电影元数据抓取工具/刮削器，配合本地影片管理软件EMBY,KODI，PLEX等管理本地影片，该软件起到分类与元数据抓取作用，利用元数据信息来分类，供本地影片分类整理使用。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> </span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">二、项目简介</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> Gui made by moyy996，Core made by yoshiko2</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 命令行版项目地址：https://github.com/yoshiko2/Movie_Data_Capture</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> GUI版项目地址：https://github.com/moyy996/AVDC</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> GUI版EXE下载地址：https://github.com/moyy996/AVDC/releases</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> </span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">三、常见番号命名参考</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">不区分大小写、刮削前尽量命名规范！！！！</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">3.1.标准有码</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> Javdb、Javbus:SSNI-111</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> Dmm：ssni00111</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">3.2.无码</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> Javdb、Javbus、Avsox:111111-1111、111111_111、HEYZO-1111、n1111</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">3.3.素人</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> Mgstage:259LUXU-1111</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> Javdb:LUXU-1111</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> Fc2club:FC2-111111、FC2-PPV-111111、FC2PPV-111111</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">3.4.欧美</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> Javdb、Javbus:sexart.11.11.11(系列.年.月.日)</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">3.5.自带字幕影片</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 可以把电影命名为类似ssni-xxx-c.mp4,ssni-xxx-C.mp4，abp-xxx-CD1-C.mp4 的规则。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">3.6.多集影片</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 可以把多集电影按照集数后缀命名为类似ssni-xxx-cd1.mp4, ssni-xxx-cd2.mp4, abp-xxx-CD1-C.mp4的规则，只要含有-CDn/-cdn类似命名规则，即可使用分集功能.**不支持-A -B -1 -2,容易跟字幕的-C混淆**.</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">3.7.多集、字幕顺序</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> abp-xxx-CD1-C.mp4，分集在前，字幕在后，字幕必须与拓展名靠近，-C.mp4.</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">3.8.外挂字幕文件</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 字幕文件名必须与影片文件名一致，才可以一起移动到新目录，目前支持srt ass sub类型的字幕文件。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> </span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">四、设置说明</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">详细的说明： https://github.com/moyy996/AVDC/blob/master/README.md</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.1.刮削模式/整理模式</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 1、刮削模式：通过番号刮削数据，包括元数据、封面图、缩略图、背景图。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 2、整理模式：仅根据女优把电影命名为番号并分类到女优名称的文件夹下。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.2.软链接模式：使用此模式，要以管理员身份运行。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 刮削完不移动视频，而是在相应目录创建软链接（类似于快捷方式），方便PT下载完既想刮削又想继续上传的仓鼠党同志。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 但是，只能在媒体库展示，不能在媒体库播放。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.3.调试模式</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 输出番号的元数据，包括封面，导演，演员，简介等。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.4.排除目录</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 在多层目录刮削时排除所填目录。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.5.视频目录</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 要整理的视频的目录，会遍历此目录下的所有视频，包括子目录中。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.6.命名规则</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 1、目录命名：存放视频数据的目录名，支持多层目录，支持自定义符号，例：[actor]/studio/number-【title】。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 2、视频标题（媒体库中）：nfo中的标题命名。例：number-[title]。可以自定义符号。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 3、视频标题（本地文件）：本地视频、图片的命名。例：number-[title]。可以自定义符号。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 4、可选项为title（片名）、actor（演员）、studio（制作商）、director（导演）、release（发售日）、year（发行年份）、number（番号）、runtime（时长）、series（系列）、publisher（发行商）</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.7.代理设置</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 1、代理</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> proxy=127.0.0.1:1080</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> proxy行设置本地代理地址和端口，支持Shadowxxxx/X,V2XXX本地代理端口，代理软件开全局模式 ,建议使用日本代理。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 如果一直报Connect Failed! Please check your Proxy or Network!错误，请检查端口号是否正确，或者把proxy=后面的地址和端口删除，并开启代理软件全局模式，或者重启电脑，代理软件，网卡。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 2、连接超时重试设置</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> timeout=10 </span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 10为超时重试时间 单位：秒，可选范围3-10</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 3、连接重试次数设置</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> retry=3 </span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 3即为重试次数，可选范围2-5</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.8.媒体库选择</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 如果是PLEX，请安装插件：XBMCnfoMoviesImporter</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.9.排除指定字符和目录，字符串</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 1、排除字符:指定字符删除，例如排除字符： \\()，删除创建文件夹时的\\()字符</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 2、排除目录:指定目录，例如排除目录： failed,JAV_output，多目录刮削时跳过failed,JAV_output</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 3、排除字符串:提取番号时，先删除指定字符串，提高成功率，字符串之间用\',\'隔开。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.10.网站选择</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 可以使用所有网站，或者指定网站（avsox,javbus,dmm,javdb,fc2club，mgstage，avbase，missav）进行刮削。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 仅使用javdb进行刮削，尽量不要用，刮削30左右会被JAVDB封IP一段时间。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.11.保存日志</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 开启后日志保存在程序目录的Log目录下的txt文件内，每次运行会产生一个txt文件，txt文件可以删除，不影响程序运行。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.12.失败后移动文件</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 如果刮削不到影片信息，可选择不移动视频，或者自动移动到失败输出目录中。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> </span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span></p></body></html>"))
+        self.textBrowser_about.setHtml(
+            _translate(
+                "MDCx",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '                <html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "                p, li { white-space: pre-wrap; }\n"
+                "                </style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">· Movie_Data_Capture 项目地址：https://github.com/yoshiko2/Movie_Data_Capture</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">· AVDC-GUI 项目地址：https://github.com/moyy996/AVDC</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">· MDCx-docker 项目地址：https://github.com/northsea4/mdcx-docker</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">使用说明 （内容来自 AVDC-GUI ：https://github.com/moyy996/AVDC ）</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">目录</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">一、功能简介</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">二、项目简介</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">三、常见番号命名参考</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">四、设置说明</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> </span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">一、功能简介</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 日本电影元数据抓取工具/刮削器，配合本地影片管理软件EMBY,KODI，PLEX等管理本地影片，该软件起到分类与元数据抓取作用，利用元数据信息来分类，供本地影片分类整理使用。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> </span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">二、项目简介</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> Gui made by moyy996，Core made by yoshiko2</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 命令行版项目地址：https://github.com/yoshiko2/Movie_Data_Capture</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> GUI版项目地址：https://github.com/moyy996/AVDC</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> GUI版EXE下载地址：https://github.com/moyy996/AVDC/releases</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> </span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">三、常见番号命名参考</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">不区分大小写、刮削前尽量命名规范！！！！</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">3.1.标准有码</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> Javdb、Javbus:SSNI-111</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> Dmm：ssni00111</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">3.2.无码</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> Javdb、Javbus、Avsox:111111-1111、111111_111、HEYZO-1111、n1111</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">3.3.素人</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> Mgstage:259LUXU-1111</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> Javdb:LUXU-1111</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> Fc2club:FC2-111111、FC2-PPV-111111、FC2PPV-111111</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">3.4.欧美</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> Javdb、Javbus:sexart.11.11.11(系列.年.月.日)</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">3.5.自带字幕影片</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 可以把电影命名为类似ssni-xxx-c.mp4,ssni-xxx-C.mp4，abp-xxx-CD1-C.mp4 的规则。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">3.6.多集影片</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 可以把多集电影按照集数后缀命名为类似ssni-xxx-cd1.mp4, ssni-xxx-cd2.mp4, abp-xxx-CD1-C.mp4的规则，只要含有-CDn/-cdn类似命名规则，即可使用分集功能.**不支持-A -B -1 -2,容易跟字幕的-C混淆**.</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">3.7.多集、字幕顺序</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> abp-xxx-CD1-C.mp4，分集在前，字幕在后，字幕必须与拓展名靠近，-C.mp4.</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">3.8.外挂字幕文件</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 字幕文件名必须与影片文件名一致，才可以一起移动到新目录，目前支持srt ass sub类型的字幕文件。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> </span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">四、设置说明</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">详细的说明： https://github.com/moyy996/AVDC/blob/master/README.md</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.1.刮削模式/整理模式</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 1、刮削模式：通过番号刮削数据，包括元数据、封面图、缩略图、背景图。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 2、整理模式：仅根据女优把电影命名为番号并分类到女优名称的文件夹下。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.2.软链接模式：使用此模式，要以管理员身份运行。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 刮削完不移动视频，而是在相应目录创建软链接（类似于快捷方式），方便PT下载完既想刮削又想继续上传的仓鼠党同志。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 但是，只能在媒体库展示，不能在媒体库播放。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.3.调试模式</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 输出番号的元数据，包括封面，导演，演员，简介等。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.4.排除目录</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 在多层目录刮削时排除所填目录。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.5.视频目录</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 要整理的视频的目录，会遍历此目录下的所有视频，包括子目录中。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.6.命名规则</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 1、目录命名：存放视频数据的目录名，支持多层目录，支持自定义符号，例：[actor]/studio/number-【title】。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 2、视频标题（媒体库中）：nfo中的标题命名。例：number-[title]。可以自定义符号。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 3、视频标题（本地文件）：本地视频、图片的命名。例：number-[title]。可以自定义符号。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 4、可选项为title（片名）、actor（演员）、studio（制作商）、director（导演）、release（发售日）、year（发行年份）、number（番号）、runtime（时长）、series（系列）、publisher（发行商）</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.7.代理设置</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 1、代理</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> proxy=127.0.0.1:1080</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> proxy行设置本地代理地址和端口，支持Shadowxxxx/X,V2XXX本地代理端口，代理软件开全局模式 ,建议使用日本代理。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 如果一直报Connect Failed! Please check your Proxy or Network!错误，请检查端口号是否正确，或者把proxy=后面的地址和端口删除，并开启代理软件全局模式，或者重启电脑，代理软件，网卡。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 2、连接超时重试设置</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> timeout=10 </span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 10为超时重试时间 单位：秒，可选范围3-10</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 3、连接重试次数设置</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> retry=3 </span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 3即为重试次数，可选范围2-5</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.8.媒体库选择</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 如果是PLEX，请安装插件：XBMCnfoMoviesImporter</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.9.排除指定字符和目录，字符串</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 1、排除字符:指定字符删除，例如排除字符： \\()，删除创建文件夹时的\\()字符</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 2、排除目录:指定目录，例如排除目录： failed,JAV_output，多目录刮削时跳过failed,JAV_output</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                "                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Consolas,PingFang SC,Microsoft YaHei UI';\"> 3、排除字符串:提取番号时，先删除指定字符串，提高成功率，字符串之间用','隔开。</span><span style=\" font-family:'Microsoft YaHei UI'; font-size:9pt;\"> </span> </p>\n"
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.10.网站选择</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 可以使用所有网站，或者指定网站（avsox,javbus,dmm,javdb,fc2club，mgstage，avbase，missav）进行刮削。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 仅使用javdb进行刮削，尽量不要用，刮削30左右会被JAVDB封IP一段时间。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.11.保存日志</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 开启后日志保存在程序目录的Log目录下的txt文件内，每次运行会产生一个txt文件，txt文件可以删除，不影响程序运行。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"><br /> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';">4.12.失败后移动文件</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> 如果刮削不到影片信息，可选择不移动视频，或者自动移动到失败输出目录中。</span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span> </p>\n'
+                '                <p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';"> </span><span style=" font-family:\'Microsoft YaHei UI\'; font-size:9pt;"> </span></p></body></html>',
+            )
+        )
         self.pushButton_main.setText(_translate("MDCx", " 主界面"))
         self.pushButton_log.setText(_translate("MDCx", " 日志"))
         self.pushButton_tool.setText(_translate("MDCx", " 工具"))
@@ -11338,4 +11940,6 @@ class Ui_MDCx(object):
         self.pushButton_nfo_close.setText(_translate("MDCx", "关闭"))
         self.pushButton_nfo_close.setShortcut(_translate("MDCx", "Esc"))
         self.label_4.setText(_translate("MDCx", "编辑 NFO"))
+
+
 from .CustomClass import CustomQSlider

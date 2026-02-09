@@ -133,6 +133,68 @@ async def test_call_bypass_html_uses_html_endpoint_and_params_and_sets_final_url
 
 
 @pytest.mark.asyncio
+async def test_call_bypass_html_appends_proxy_param_when_configured():
+    client = AsyncWebClient(
+        timeout=1,
+        cf_bypass_url="http://127.0.0.1:8000",
+        cf_bypass_proxy="http://127.0.0.1:7890",
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_request(method, url, **kwargs):
+        captured["method"] = method
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return _fake_response(status_code=200, content=b"<html>ok</html>", headers={}), ""
+
+    client.request = fake_request  # type: ignore[method-assign]
+
+    response, error = await client._call_bypass_html("https://missav.ws/SNOS-010/cn", use_proxy=True)
+
+    assert error == ""
+    assert response is not None
+    assert captured["method"] == "GET"
+    assert captured["url"] == "http://127.0.0.1:8000/html"
+    kwargs = captured["kwargs"]
+    assert isinstance(kwargs, dict)
+    assert kwargs["params"] == {
+        "url": "https://missav.ws/SNOS-010/cn",
+        "proxy": "http://127.0.0.1:7890",
+    }
+    assert kwargs["use_proxy"] is False
+    assert kwargs["enable_cf_bypass"] is False
+
+
+@pytest.mark.asyncio
+async def test_call_bypass_html_appends_bypass_cache_param_when_forced():
+    client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
+    captured: dict[str, object] = {}
+
+    async def fake_request(method, url, **kwargs):
+        captured["method"] = method
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return _fake_response(status_code=200, content=b"<html>ok</html>", headers={}), ""
+
+    client.request = fake_request  # type: ignore[method-assign]
+
+    response, error = await client._call_bypass_html(
+        "https://missav.ws/SNOS-013/cn",
+        use_proxy=False,
+        bypass_cache=True,
+    )
+
+    assert error == ""
+    assert response is not None
+    kwargs = captured["kwargs"]
+    assert isinstance(kwargs, dict)
+    assert kwargs["params"] == {
+        "url": "https://missav.ws/SNOS-013/cn",
+        "bypassCookieCache": "true",
+    }
+
+
+@pytest.mark.asyncio
 async def test_call_bypass_mirror_returns_error_on_http_status():
     client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
 
@@ -193,6 +255,64 @@ async def test_call_bypass_mirror_follows_redirect_and_updates_final_url():
 
 
 @pytest.mark.asyncio
+async def test_call_bypass_mirror_sets_x_proxy_header_when_enabled():
+    client = AsyncWebClient(
+        timeout=1,
+        cf_bypass_url="http://127.0.0.1:8000",
+        cf_bypass_proxy="http://127.0.0.1:7890",
+    )
+    captured_headers: dict[str, str] = {}
+
+    async def fake_request(method, url, **kwargs):
+        nonlocal captured_headers
+        captured_headers = dict(kwargs.get("headers") or {})
+        return _fake_response(status_code=200, headers={"Content-Type": "text/html"}, content=b"<html>ok</html>")
+
+    client.curl_session.request = fake_request  # type: ignore[method-assign]
+
+    response, error = await client._call_bypass_mirror(
+        method="GET",
+        target_url="https://missav.ws/SNOS-011/cn",
+        headers={"Accept": "text/html"},
+        cookies=None,
+        use_proxy=True,
+        allow_redirects=True,
+    )
+
+    assert error == ""
+    assert response is not None
+    assert captured_headers.get("x-hostname") == "missav.ws"
+    assert captured_headers.get("x-proxy") == "http://127.0.0.1:7890"
+
+
+@pytest.mark.asyncio
+async def test_call_bypass_mirror_sets_x_bypass_cache_header_when_forced():
+    client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
+    captured_headers: dict[str, str] = {}
+
+    async def fake_request(method, url, **kwargs):
+        nonlocal captured_headers
+        captured_headers = dict(kwargs.get("headers") or {})
+        return _fake_response(status_code=200, headers={"Content-Type": "text/html"}, content=b"<html>ok</html>")
+
+    client.curl_session.request = fake_request  # type: ignore[method-assign]
+
+    response, error = await client._call_bypass_mirror(
+        method="GET",
+        target_url="https://missav.ws/SNOS-014/cn",
+        headers={"Accept": "text/html"},
+        cookies=None,
+        use_proxy=False,
+        bypass_cache=True,
+        allow_redirects=True,
+    )
+
+    assert error == ""
+    assert response is not None
+    assert captured_headers.get("x-bypass-cache") == "true"
+
+
+@pytest.mark.asyncio
 async def test_try_bypass_cloudflare_fallbacks_to_html_when_mirror_failed():
     client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
 
@@ -204,7 +324,7 @@ async def test_try_bypass_cloudflare_fallbacks_to_html_when_mirror_failed():
         mirror_call_count += 1
         return None, "mirror failed"
 
-    async def fake_call_bypass_html(target_url: str, *, use_proxy: bool):
+    async def fake_call_bypass_html(target_url: str, *, use_proxy: bool, bypass_cache: bool = False):
         nonlocal html_call_count
         html_call_count += 1
         return _fake_response(status_code=200, content=b"<html>ok</html>"), ""
@@ -225,6 +345,35 @@ async def test_try_bypass_cloudflare_fallbacks_to_html_when_mirror_failed():
 
 
 @pytest.mark.asyncio
+async def test_try_bypass_cloudflare_force_refresh_mirror_before_html_fallback():
+    client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
+    mirror_bypass_cache_flags: list[bool] = []
+    html_bypass_cache_flags: list[bool] = []
+
+    async def fake_call_bypass_mirror(**kwargs):
+        mirror_bypass_cache_flags.append(bool(kwargs.get("bypass_cache")))
+        return None, "mirror 返回 Cloudflare 挑战页"
+
+    async def fake_call_bypass_html(target_url: str, *, use_proxy: bool, bypass_cache: bool = False):
+        html_bypass_cache_flags.append(bypass_cache)
+        return _fake_response(status_code=200, content=b"<html>ok</html>"), ""
+
+    client._call_bypass_mirror = fake_call_bypass_mirror  # type: ignore[method-assign]
+    client._call_bypass_html = fake_call_bypass_html  # type: ignore[method-assign]
+
+    response, error = await client._try_bypass_cloudflare(
+        host="javdb.com",
+        target_url="https://javdb.com/search?q=SNOS-040&locale=zh",
+        **_default_try_kwargs(),
+    )
+
+    assert error == ""
+    assert response is not None
+    assert mirror_bypass_cache_flags == [False, True]
+    assert html_bypass_cache_flags == [False]
+
+
+@pytest.mark.asyncio
 async def test_try_bypass_cloudflare_skips_html_fallback_for_terminal_mirror_http_status():
     client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
 
@@ -236,7 +385,7 @@ async def test_try_bypass_cloudflare_skips_html_fallback_for_terminal_mirror_htt
         mirror_call_count += 1
         return None, "mirror HTTP 404"
 
-    async def fake_call_bypass_html(target_url: str, *, use_proxy: bool):
+    async def fake_call_bypass_html(target_url: str, *, use_proxy: bool, bypass_cache: bool = False):
         nonlocal html_call_count
         html_call_count += 1
         return _fake_response(status_code=200, content=b"<html>ok</html>"), ""
@@ -284,6 +433,39 @@ async def test_try_bypass_cloudflare_non_get_does_not_fallback_to_html():
 
 
 @pytest.mark.asyncio
+async def test_try_bypass_cloudflare_second_retry_forces_bypass_cache():
+    client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
+    client._cf_bypass_retries = 2
+
+    bypass_cache_flags: list[bool] = []
+
+    async def fake_call_bypass_mirror(**kwargs):
+        bypass_cache_flags.append(bool(kwargs.get("bypass_cache")))
+        if len(bypass_cache_flags) == 1:
+            return None, "mirror failed"
+        return _fake_response(status_code=200, content=b"<html>ok</html>"), ""
+
+    client._call_bypass_mirror = fake_call_bypass_mirror  # type: ignore[method-assign]
+
+    response, error = await client._try_bypass_cloudflare(
+        host="missav.ws",
+        method="HEAD",
+        target_url="https://missav.ws/SNOS-015/cn",
+        headers={},
+        cookies=None,
+        data=None,
+        json_data=None,
+        timeout=None,
+        allow_redirects=True,
+        use_proxy=False,
+    )
+
+    assert error == ""
+    assert response is not None
+    assert bypass_cache_flags == [False, True]
+
+
+@pytest.mark.asyncio
 async def test_request_returns_bypass_response_when_cf_challenge_hit():
     client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
     host = "missav.ws"
@@ -317,6 +499,45 @@ async def test_request_returns_bypass_response_when_cf_challenge_hit():
     assert error == ""
     assert response is bypass_response
     assert call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_request_enables_bypass_proxy_when_configured():
+    client = AsyncWebClient(
+        timeout=1,
+        cf_bypass_url="http://127.0.0.1:8000",
+        cf_bypass_proxy="http://127.0.0.1:7890",
+    )
+    host = "missav.ws"
+
+    async def fake_curl_request(method, url, **kwargs):
+        return _fake_response(
+            status_code=503,
+            headers={"Content-Type": "text/html", "server": "cloudflare", "cf-ray": "abc"},
+            content=b"<html>just a moment cf-chl</html>",
+        )
+
+    client.curl_session.request = fake_curl_request  # type: ignore[method-assign]
+
+    captured_use_proxy: bool | None = None
+    bypass_response = _fake_response(
+        status_code=200,
+        headers={"Content-Type": "text/html", "x-mdcx-bypass-mode": "mirror"},
+        content=b"<html>bypass</html>",
+    )
+
+    async def fake_try_bypass_cloudflare(**kwargs):
+        nonlocal captured_use_proxy
+        captured_use_proxy = kwargs.get("use_proxy")
+        return bypass_response, ""
+
+    client._try_bypass_cloudflare = fake_try_bypass_cloudflare  # type: ignore[method-assign]
+
+    response, error = await client.request("GET", f"https://{host}/SNOS-012/cn")
+
+    assert error == ""
+    assert response is bypass_response
+    assert captured_use_proxy is True
 
 
 @pytest.mark.asyncio
