@@ -64,6 +64,8 @@ class _Flags:
     nfo_deal_set: set[Path] = field(default_factory=set)
     # 去获取json的番号列表
     json_get_set: set[str] = field(default_factory=set)
+    # 番号的json刮削状态（None: 进行中，True: 成功，False: 失败）
+    json_get_status: dict[str, bool | None] = field(default_factory=dict)
     # 获取成功的json
     json_data_dic: dict[str, ScrapeResult] = field(default_factory=dict)
     img_path: str = ""
@@ -104,6 +106,7 @@ class _Flags:
         self.theme_videos_deal_set = set()
         self.nfo_deal_set = set()
         self.json_get_set = set()
+        self.json_get_status = {}
         self.json_data_dic = {}
         self.img_path = ""
 

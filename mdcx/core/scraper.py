@@ -265,6 +265,7 @@ class Scraper:
         # 获取文件基础信息
         file_info = await get_file_info_v2(file_path)
         number = file_info.number
+        origin_number = number
         folder_old_path = file_info.folder_path
         file_show_name = file_info.file_show_name
         file_show_path = file_info.file_show_path
@@ -299,7 +300,14 @@ class Scraper:
                 if manager.config.main_mode == 4:
                     number = json_data.number  # 读取模式且存在nfo时，可能会导致movie_number改变，需要更新
                 Flags.json_data_dic.update({number: ScrapeResult(file_info, json_data, other)})
+                for status_number in (origin_number, number):
+                    if status_number in Flags.json_get_status and Flags.json_get_status[status_number] is None:
+                        Flags.json_get_status[status_number] = True
+            elif origin_number in Flags.json_get_status and Flags.json_get_status[origin_number] is None:
+                Flags.json_get_status[origin_number] = False
         except Exception as e:
+            if origin_number in Flags.json_get_status and Flags.json_get_status[origin_number] is None:
+                Flags.json_get_status[origin_number] = False
             self._check_stop(show_name)
             signal.show_traceback_log(traceback.format_exc())
             signal.show_log_text(traceback.format_exc())
@@ -503,20 +511,25 @@ class Scraper:
 
         # 刮削json_data
         # 获取已刮削的json_data
-        if "." in movie_number or file_info.mosaic in ["国产"]:
-            pass
-        elif movie_number not in Flags.json_get_set:
-            # 第一次遇到该番号，刮削
-            Flags.json_get_set.add(movie_number)
-        elif not Flags.json_data_dic.get(movie_number):
-            # 已经获取过该番号的json_data（如同一番号的其他集），但已刮削字典中找不到，说明第一次遇到它的线程还没刮削完，等它结束。
-            # todo 修改此处实现, 不要对分集启动多个刮削任务
-            while not Flags.json_data_dic.get(movie_number):
-                await asyncio.sleep(1)
+        enable_shared_json = "." not in movie_number and file_info.mosaic not in ["国产"]
+        if enable_shared_json:
+            if movie_number not in Flags.json_get_status:
+                # 第一次遇到该番号，标记为“正在刮削”
+                Flags.json_get_set.add(movie_number)
+                Flags.json_get_status[movie_number] = None
+                LogBuffer.log().write(f"\n 🟡 [Same Number] 首次刮削，开始共享番号数据：{movie_number}")
+            else:
+                # 同番号任务等待首个任务完成；若首个任务失败，直接结束等待，避免线程卡死
+                LogBuffer.log().write(f"\n 🟡 [Same Number] 等待同番号任务完成：{movie_number}")
+                while Flags.json_get_status.get(movie_number) is None:
+                    await asyncio.sleep(1)
+                if Flags.json_get_status.get(movie_number) is False:
+                    LogBuffer.error().write(f"同番号任务失败，取消等待：{movie_number}")
+                    return None, None
 
         pre_data = Flags.json_data_dic.get(movie_number)
         # 已存在该番号数据时直接使用该数据
-        if pre_data and "." not in movie_number and file_info.mosaic not in ["国产"]:
+        if pre_data and enable_shared_json:
             pre_res = pre_data.data
             res = update(pre_res, file_info)
 
