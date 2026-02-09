@@ -64,7 +64,13 @@ class AsyncWebClient:
         self._cf_bypass_enabled = bool(self.cf_bypass_url)
         self._cf_host_cookies: dict[str, dict[str, str]] = {}
         self._cf_host_user_agents: dict[str, str] = {}
+        self._cf_cookie_user_agent_bindings: dict[str, dict[str, str]] = {}
+        self._cf_cookie_user_agent_binding_timestamps: dict[str, dict[str, float]] = {}
+        self._cf_cookie_binding_ttl = 3600.0
+        self._cf_cookie_binding_max_entries_per_host = 32
+        self._cf_cookie_binding_max_entries_total = 256
         self._cf_host_locks: dict[str, asyncio.Lock] = {}
+        self._cf_host_retry_semaphores: dict[str, asyncio.Semaphore] = {}
         self._cf_locks_guard = asyncio.Lock()
         self._cf_last_refresh_at: dict[str, float] = {}
         self._cf_host_challenge_hits: dict[str, int] = {}
@@ -75,6 +81,10 @@ class AsyncWebClient:
         self._cf_cookie_retries = 2
         self._cf_force_refresh_retries = 2
         self._cf_request_bypass_rounds = 2
+        self._cf_retry_max_concurrent_per_host = 2
+        self._cf_retry_after_bypass_base_delay = 1.2
+        self._cf_retry_after_bypass_jitter = 1.3
+        self._retry_sleep_jitter = 0.4
 
     def _log(self, message: str) -> None:
         try:
@@ -116,6 +126,24 @@ class AsyncWebClient:
         async with self._cf_locks_guard:
             return self._cf_host_locks.setdefault(host, asyncio.Lock())
 
+    async def _get_cf_host_retry_semaphore(self, host: str) -> asyncio.Semaphore:
+        async with self._cf_locks_guard:
+            if host not in self._cf_host_retry_semaphores:
+                self._cf_host_retry_semaphores[host] = asyncio.Semaphore(
+                    max(int(self._cf_retry_max_concurrent_per_host), 1)
+                )
+            return self._cf_host_retry_semaphores[host]
+
+    def _calc_retry_sleep_seconds(self, attempt: int, *, after_cf_bypass: bool = False) -> float:
+        if after_cf_bypass:
+            base_delay = max(float(self._cf_retry_after_bypass_base_delay), 0.0)
+            jitter = random.uniform(0.0, max(float(self._cf_retry_after_bypass_jitter), 0.0))
+            return base_delay + jitter
+
+        base_delay = max(float(attempt * 3 + 2), 0.0)
+        jitter = random.uniform(0.0, max(float(self._retry_sleep_jitter), 0.0))
+        return base_delay + jitter
+
     def _merge_cookies(
         self,
         cookies: dict[str, str] | None,
@@ -129,6 +157,157 @@ class AsyncWebClient:
         if bypass_cookies:
             base.update(bypass_cookies)
         return base or None
+
+    def _build_cf_cookie_binding_key(self, cookies: dict[str, str] | None) -> str:
+        if not cookies:
+            return ""
+
+        cf_clearance = str(cookies.get("cf_clearance", "")).strip()
+        if cf_clearance:
+            return f"cf_clearance={cf_clearance}"
+
+        pairs = sorted((str(k), str(v)) for k, v in cookies.items() if k and v is not None)
+        if not pairs:
+            return ""
+        return "&".join(f"{k}={v}" for k, v in pairs)
+
+    def _remember_cf_cookie_user_agent(self, host: str, cookies: dict[str, str] | None, user_agent: str) -> None:
+        if not host:
+            return
+
+        normalized_user_agent = (user_agent or "").strip()
+        if not normalized_user_agent:
+            return
+
+        binding_key = self._build_cf_cookie_binding_key(cookies)
+        if not binding_key:
+            return
+
+        host_bindings = self._cf_cookie_user_agent_bindings.setdefault(host, {})
+        host_binding_timestamps = self._cf_cookie_user_agent_binding_timestamps.setdefault(host, {})
+        host_bindings[binding_key] = normalized_user_agent
+        host_binding_timestamps[binding_key] = time.monotonic()
+        self._prune_cf_cookie_user_agent_bindings_for_host(host)
+        self._prune_cf_cookie_user_agent_bindings_global()
+
+    def _prune_cf_cookie_user_agent_bindings_for_host(self, host: str) -> None:
+        if not host:
+            return
+
+        host_bindings = self._cf_cookie_user_agent_bindings.get(host)
+        if not host_bindings:
+            self._cf_cookie_user_agent_bindings.pop(host, None)
+            self._cf_cookie_user_agent_binding_timestamps.pop(host, None)
+            return
+
+        host_binding_timestamps = self._cf_cookie_user_agent_binding_timestamps.setdefault(host, {})
+        now = time.monotonic()
+        ttl = max(0.0, float(self._cf_cookie_binding_ttl))
+        removed_expired = 0
+        removed_overflow = 0
+
+        if ttl > 0:
+            for binding_key in list(host_bindings):
+                ts = host_binding_timestamps.get(binding_key)
+                if ts is None:
+                    host_binding_timestamps[binding_key] = now
+                    ts = now
+                if now - ts > ttl:
+                    host_bindings.pop(binding_key, None)
+                    host_binding_timestamps.pop(binding_key, None)
+                    removed_expired += 1
+
+        max_entries_per_host = max(int(self._cf_cookie_binding_max_entries_per_host), 1)
+        overflow = len(host_bindings) - max_entries_per_host
+        if overflow > 0:
+            ordered_keys = sorted(host_bindings, key=lambda key: host_binding_timestamps.get(key, 0.0))
+            for binding_key in ordered_keys[:overflow]:
+                host_bindings.pop(binding_key, None)
+                host_binding_timestamps.pop(binding_key, None)
+                removed_overflow += 1
+
+        if not host_bindings:
+            self._cf_cookie_user_agent_bindings.pop(host, None)
+            self._cf_cookie_user_agent_binding_timestamps.pop(host, None)
+
+        if removed_expired or removed_overflow:
+            self._log_cf(f"🧹 清理 cookie-UA 绑定: 过期 {removed_expired}，超限 {removed_overflow}", host)
+
+    def _prune_cf_cookie_user_agent_bindings_global(self) -> None:
+        max_entries_total = max(int(self._cf_cookie_binding_max_entries_total), 1)
+
+        all_entries: list[tuple[float, str, str]] = []
+        now = time.monotonic()
+        for host, host_bindings in self._cf_cookie_user_agent_bindings.items():
+            host_binding_timestamps = self._cf_cookie_user_agent_binding_timestamps.setdefault(host, {})
+            for binding_key in host_bindings:
+                ts = host_binding_timestamps.get(binding_key)
+                if ts is None:
+                    host_binding_timestamps[binding_key] = now
+                    ts = now
+                all_entries.append((ts, host, binding_key))
+
+        overflow = len(all_entries) - max_entries_total
+        if overflow <= 0:
+            return
+
+        all_entries.sort(key=lambda item: item[0])
+        removed = 0
+        touched_hosts: set[str] = set()
+        for _, host, binding_key in all_entries[:overflow]:
+            host_bindings = self._cf_cookie_user_agent_bindings.get(host)
+            host_binding_timestamps = self._cf_cookie_user_agent_binding_timestamps.get(host)
+            if not host_bindings or not host_binding_timestamps:
+                continue
+
+            if binding_key in host_bindings:
+                host_bindings.pop(binding_key, None)
+                host_binding_timestamps.pop(binding_key, None)
+                removed += 1
+                touched_hosts.add(host)
+
+            if not host_bindings:
+                self._cf_cookie_user_agent_bindings.pop(host, None)
+                self._cf_cookie_user_agent_binding_timestamps.pop(host, None)
+
+        if removed > 0:
+            self._log_cf(f"🧹 全局清理 cookie-UA 绑定: 移除 {removed} 条，涉及主机 {len(touched_hosts)}")
+
+    def _resolve_cf_cookie_user_agent(self, host: str, cookies: dict[str, str] | None) -> str:
+        if not host:
+            return ""
+
+        self._prune_cf_cookie_user_agent_bindings_for_host(host)
+
+        binding_key = self._build_cf_cookie_binding_key(cookies)
+        if not binding_key:
+            return ""
+
+        return self._cf_cookie_user_agent_bindings.get(host, {}).get(binding_key, "").strip()
+
+    def _clear_cf_host_binding(self, host: str) -> None:
+        if not host:
+            return
+        self._cf_host_cookies.pop(host, None)
+        self._cf_host_user_agents.pop(host, None)
+
+    def _apply_cf_host_binding(self, host: str, cookies: dict[str, str], user_agent: str) -> str:
+        resolved_user_agent = (user_agent or "").strip()
+        if not resolved_user_agent:
+            resolved_user_agent = self._resolve_cf_cookie_user_agent(host, cookies)
+            if resolved_user_agent:
+                self._log_cf("♻️ bypass 未返回 UA，复用已绑定 cookie-UA", host)
+
+        self._cf_host_cookies[host] = cookies
+        if resolved_user_agent:
+            self._cf_host_user_agents[host] = resolved_user_agent
+            self._remember_cf_cookie_user_agent(host, cookies, resolved_user_agent)
+        else:
+            self._cf_host_user_agents.pop(host, None)
+
+        self._cf_last_refresh_at[host] = time.monotonic()
+        self._cf_host_challenge_hits[host] = 0
+        return resolved_user_agent
 
     def _extract_header_case_insensitive(self, headers: dict[str, Any], key: str) -> str:
         key_lower = key.lower()
@@ -357,14 +536,8 @@ class AsyncWebClient:
                     use_proxy=use_proxy,
                 )
                 if cookies:
-                    self._cf_host_cookies[host] = cookies
-                    if user_agent:
-                        self._cf_host_user_agents[host] = user_agent
-                    else:
-                        self._cf_host_user_agents.pop(host, None)
-                    self._cf_last_refresh_at[host] = time.monotonic()
-                    self._cf_host_challenge_hits[host] = 0
-                    return cookies, user_agent, ""
+                    resolved_user_agent = self._apply_cf_host_binding(host, cookies, user_agent)
+                    return cookies, resolved_user_agent, ""
 
             if not should_force_refresh:
                 for bypass_target in bypass_targets:
@@ -375,14 +548,8 @@ class AsyncWebClient:
                         use_proxy=use_proxy,
                     )
                     if cookies:
-                        self._cf_host_cookies[host] = cookies
-                        if user_agent:
-                            self._cf_host_user_agents[host] = user_agent
-                        else:
-                            self._cf_host_user_agents.pop(host, None)
-                        self._cf_last_refresh_at[host] = time.monotonic()
-                        self._cf_host_challenge_hits[host] = 0
-                        return cookies, user_agent, ""
+                        resolved_user_agent = self._apply_cf_host_binding(host, cookies, user_agent)
+                        return cookies, resolved_user_agent, ""
 
             return {}, "", error
 
@@ -426,18 +593,30 @@ class AsyncWebClient:
             u = httpx.URL(url)
             host = u.host or ""
             prepared_headers = self._prepare_headers(url, dict(headers or {}))
-            bound_user_agent = self._cf_host_user_agents.get(host, "") if host else ""
-            if bound_user_agent:
+            host_bound_cookies = self._cf_host_cookies.get(host) if host else None
+            if host and not host_bound_cookies and self._cf_host_user_agents.get(host):
+                self._log_cf("⚠️ 检测到无 cookie 的 UA 绑定，已清理", host)
+                self._cf_host_user_agents.pop(host, None)
+
+            bound_user_agent = self._resolve_cf_cookie_user_agent(host, host_bound_cookies) if host else ""
+            if not bound_user_agent and host and host_bound_cookies:
+                fallback_bound_user_agent = self._cf_host_user_agents.get(host, "").strip()
+                if fallback_bound_user_agent:
+                    bound_user_agent = fallback_bound_user_agent
+                    self._remember_cf_cookie_user_agent(host, host_bound_cookies, bound_user_agent)
+
+            if bound_user_agent and host_bound_cookies:
                 request_user_agent = self._extract_header_case_insensitive(prepared_headers, "user-agent")
                 if request_user_agent.strip() and request_user_agent.strip() != bound_user_agent:
                     self._log_cf("🧩 使用 bypass 绑定 UA 覆盖请求头 UA", host)
                 self._set_header_case_insensitive(prepared_headers, "User-Agent", bound_user_agent)
 
-            await self.limiters.get(u.host).acquire()
+            limiter = self.limiters.get(u.host)
             retry_count = self.retry
             error_msg = ""
             bypass_round = 0
             force_refresh_used = False
+            host_retry_semaphore = await self._get_cf_host_retry_semaphore(host) if host else None
 
             if enable_cf_bypass and self._cf_bypass_enabled and host and host in self._cf_host_cookies:
                 self._log_cf("🍪 使用缓存 bypass cookies", host)
@@ -446,22 +625,40 @@ class AsyncWebClient:
                 # 增强的重试策略: 对网络错误和特定状态码都进行重试
                 retry = False
                 should_sleep_before_retry = True
+                sleep_after_cf_bypass = False
                 try:
+                    await limiter.acquire()
                     req_headers = dict(prepared_headers)
                     req_cookies = self._merge_cookies(cookies, host)
-                    resp: Response = await self.curl_session.request(
-                        method,
-                        url,
-                        proxy=self.proxy if use_proxy else None,
-                        headers=req_headers,
-                        cookies=req_cookies,
-                        params=params,
-                        data=data,
-                        json=json_data,
-                        timeout=timeout or not_set,
-                        stream=stream,
-                        allow_redirects=allow_redirects,
-                    )
+                    if host_retry_semaphore is not None:
+                        async with host_retry_semaphore:
+                            resp: Response = await self.curl_session.request(
+                                method,
+                                url,
+                                proxy=self.proxy if use_proxy else None,
+                                headers=req_headers,
+                                cookies=req_cookies,
+                                params=params,
+                                data=data,
+                                json=json_data,
+                                timeout=timeout or not_set,
+                                stream=stream,
+                                allow_redirects=allow_redirects,
+                            )
+                    else:
+                        resp = await self.curl_session.request(
+                            method,
+                            url,
+                            proxy=self.proxy if use_proxy else None,
+                            headers=req_headers,
+                            cookies=req_cookies,
+                            params=params,
+                            data=data,
+                            json=json_data,
+                            timeout=timeout or not_set,
+                            stream=stream,
+                            allow_redirects=allow_redirects,
+                        )
 
                     if enable_cf_bypass and self._cf_bypass_enabled and host and self._is_cf_challenge_response(resp):
                         self._log_cf(f"🛑 检测到 Cloudflare 挑战页: {method} {url}", host)
@@ -469,13 +666,13 @@ class AsyncWebClient:
                         if bypass_round >= self._cf_request_bypass_rounds:
                             error_msg = f"Cloudflare 挑战页持续存在，bypass 已达上限 ({self._cf_request_bypass_rounds})"
                             retry = False
-                            self._cf_host_cookies.pop(host, None)
+                            self._clear_cf_host_binding(host)
                             self._log_cf(f"🚫 {error_msg}", host)
                         else:
                             current_force_refresh = bypass_round > 0 and not force_refresh_used
                             if current_force_refresh:
                                 self._log_cf("🧨 再次命中挑战，尝试强制刷新 bypass cookies", host)
-                                self._cf_host_cookies.pop(host, None)
+                                self._clear_cf_host_binding(host)
 
                             bypass_cookies, bypass_user_agent, bypass_error = await self._try_bypass_cloudflare(
                                 host=host,
@@ -489,7 +686,8 @@ class AsyncWebClient:
 
                             if bypass_cookies:
                                 retry = attempt < retry_count - 1
-                                should_sleep_before_retry = force_refresh_used
+                                should_sleep_before_retry = True
+                                sleep_after_cf_bypass = True
                                 error_msg = "Cloudflare 挑战页"
                                 if bypass_user_agent:
                                     self._set_header_case_insensitive(prepared_headers, "User-Agent", bypass_user_agent)
@@ -538,7 +736,10 @@ class AsyncWebClient:
                 self._log(f"🔴 {method} {url} 失败: {error_msg} ({attempt + 1}/{retry_count})")
                 # 重试前等待
                 if should_sleep_before_retry and attempt < retry_count - 1:
-                    await asyncio.sleep(attempt * 3 + 2)
+                    sleep_seconds = self._calc_retry_sleep_seconds(attempt, after_cf_bypass=sleep_after_cf_bypass)
+                    if sleep_after_cf_bypass and host:
+                        self._log_cf(f"⏳ bypass 后退避 {sleep_seconds:.2f}s", host)
+                    await asyncio.sleep(sleep_seconds)
             return None, f"{method} {url} 失败: {error_msg}"
         except Exception as e:
             error_msg = f"{method} {url} 未知错误:  {str(e)}"
