@@ -2,9 +2,11 @@ import asyncio
 import os
 import re
 import shutil
+import stat
 import time
 import traceback
 from pathlib import Path
+from uuid import uuid4
 
 import aiofiles
 import aiofiles.os
@@ -24,6 +26,8 @@ from ..utils.file import copy_file_async, copy_file_sync, delete_file_async, del
 LARGE_LIST_SORT_THRESHOLD = 50000
 _large_list_warned: set[str] = set()
 _success_list_save_lock = asyncio.Lock()
+_SUCCESS_REPLACE_RETRY_MAX = 8
+_SUCCESS_REPLACE_RETRY_BASE_SLEEP = 0.15
 
 
 def _path_lines_for_write(paths: list[Path] | set[Path], list_name: str):
@@ -36,6 +40,44 @@ def _path_lines_for_write(paths: list[Path] | set[Path], list_name: str):
         return
     for path_str in sorted(str(path) for path in paths):
         yield path_str + "\n"
+
+
+def _build_success_tmp_path(success_path: Path) -> Path:
+    return success_path.with_name(f"{success_path.name}.{os.getpid()}.{uuid4().hex}.tmp")
+
+
+def _ensure_file_writable(path: Path) -> None:
+    if not path.exists():
+        return
+    current_mode = path.stat().st_mode
+    if not (current_mode & stat.S_IWRITE):
+        path.chmod(current_mode | stat.S_IWRITE)
+
+
+async def _replace_success_file_with_retry(success_tmp_path: Path, success_path: Path) -> None:
+    try:
+        await asyncio.to_thread(_ensure_file_writable, success_path)
+    except Exception:
+        signal.show_log_text(" ⚠ success.txt 文件属性检查失败，将继续尝试保存。")
+
+    for attempt in range(1, _SUCCESS_REPLACE_RETRY_MAX + 1):
+        try:
+            await asyncio.to_thread(os.replace, success_tmp_path, success_path)
+            return
+        except PermissionError:
+            if attempt == 1:
+                signal.show_log_text(" ⚠ success.txt 正在被占用，正在重试保存...")
+            if attempt >= _SUCCESS_REPLACE_RETRY_MAX:
+                raise
+            await asyncio.sleep(_SUCCESS_REPLACE_RETRY_BASE_SLEEP * attempt)
+
+
+async def _cleanup_success_tmp_file(success_tmp_path: Path) -> None:
+    try:
+        if await aiofiles.os.path.exists(success_tmp_path):
+            await aiofiles.os.remove(success_tmp_path)
+    except Exception:
+        pass
 
 
 async def move_other_file(number: str, folder_old_path: Path, folder_new_path: Path, file_name: str, naming_rule: str):
@@ -152,16 +194,20 @@ async def save_success_list(old_path: Path | None = None, new_path: Path | None 
                 Flags.success_list.add(new_path.resolve())
     if get_used_time(Flags.success_save_time) > 5 or not old_path:
         Flags.success_save_time = time.time()
+        success_tmp_path = Path()
         try:
             async with _success_list_save_lock:
                 success_path = resources.u("success.txt")
-                success_tmp_path = success_path.with_name(success_path.name + ".tmp")
+                success_tmp_path = _build_success_tmp_path(success_path)
                 success_list_snapshot = list(Flags.success_list)
                 async with aiofiles.open(success_tmp_path, "w", encoding="utf-8", errors="ignore") as f:
                     await f.writelines(_path_lines_for_write(success_list_snapshot, "成功列表"))
-                await asyncio.to_thread(os.replace, success_tmp_path, success_path)
+                await _replace_success_file_with_retry(success_tmp_path, success_path)
         except Exception as e:
             signal.show_log_text(f"  Save success list Error {str(e)}\n {traceback.format_exc()}")
+        finally:
+            if success_tmp_path:
+                await _cleanup_success_tmp_file(success_tmp_path)
         signal.view_success_file_settext.emit(f"查看 ({len(Flags.success_list)})")
 
 
@@ -264,10 +310,11 @@ async def check_and_clean_files() -> None:
 def get_success_list() -> None:
     """This function is intended to be sync"""
     Flags.success_save_time = time.time()
-    if os.path.isfile(resources.u("success.txt")):
-        with open(resources.u("success.txt"), encoding="utf-8", errors="ignore") as f:
+    success_path = resources.u("success.txt")
+    if os.path.isfile(success_path):
+        with open(success_path, encoding="utf-8", errors="ignore") as f:
             Flags.success_list = {p for path in f if (line := path.strip()) and (p := Path(line)).suffix}
-            executor.run(save_success_list())
+        executor.run(save_success_list())
     signal.view_success_file_settext.emit(f"查看 ({len(Flags.success_list)})")
 
 

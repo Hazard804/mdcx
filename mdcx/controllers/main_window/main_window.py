@@ -1197,8 +1197,11 @@ class MyMAinWindow(QMainWindow):
         box.setDefaultButton(QMessageBox.No)
         reply = box.exec()
         if reply == QMessageBox.Yes:
-            with open(resources.u("success.txt"), "w", encoding="utf-8", errors="ignore") as f:
-                f.write(self.Ui.textBrowser_show_success_list.toPlainText().replace("暂无成功刮削的文件", "").strip())
+            success_text = self.Ui.textBrowser_show_success_list.toPlainText().replace("暂无成功刮削的文件", "").strip()
+            Flags.success_list = {
+                p for path in success_text.splitlines() if (line := path.strip()) and (p := Path(line)).suffix
+            }
+            executor.run(save_success_list())
             get_success_list()
             self.Ui.widget_show_success.hide()
 
