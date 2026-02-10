@@ -52,6 +52,19 @@ def git_ref_exists(ref: str) -> bool:
     return result.returncode == 0
 
 
+def git_is_ancestor(ancestor: str, descendant: str) -> bool:
+    """检查 ancestor 是否为 descendant 的祖先提交。"""
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    return result.returncode == 0
+
+
 def get_latest_tag(pattern: str) -> str | None:
     """获取匹配模式的最新tag"""
     command = ["git", "tag", "-l", pattern, "--sort=-v:refname"]
@@ -64,9 +77,9 @@ def get_latest_tag(pattern: str) -> str | None:
     return output.split("\n")[0]
 
 
-def get_commit_log_for_head_tag(head_tag: str) -> str:
-    """获取最近一个历史 tag 到当前 tag 的提交日志（排除当前 tag 本身）"""
-    command = ["git", "tag", "-l", "--sort=-v:refname"]
+def get_commit_log_for_head_tag(head_tag: str, pattern: str) -> str:
+    """获取匹配 pattern 的最近历史 tag 到当前 tag 的提交日志。"""
+    command = ["git", "tag", "-l", pattern, "--sort=-v:refname"]
     output = run_git_command(command)
     tags = [tag for tag in output.split("\n") if tag]
 
@@ -80,7 +93,11 @@ def get_commit_log_for_head_tag(head_tag: str) -> str:
 
     if head_tag not in tags:
         if git_ref_exists(head_tag):
-            command = ["git", "log", "--pretty=format:%h %s", f"{tags[0]}..{head_tag}"]
+            for tag in tags:
+                if git_is_ancestor(tag, head_tag):
+                    command = ["git", "log", "--pretty=format:%h %s", f"{tag}..{head_tag}"]
+                    return run_git_command(command)
+            command = ["git", "log", "--pretty=format:%h %s", head_tag]
             return run_git_command(command)
 
         console.print(f"[yellow]tag '{head_tag}' 不存在，回退为基于 HEAD 生成。[/yellow]")
@@ -90,8 +107,9 @@ def get_commit_log_for_head_tag(head_tag: str) -> str:
     for tag in tags:
         if tag == head_tag:
             continue
-        previous_tag = tag
-        break
+        if git_is_ancestor(tag, head_tag):
+            previous_tag = tag
+            break
 
     if previous_tag:
         command = ["git", "log", "--pretty=format:%h %s", f"{previous_tag}..{head_tag}"]
@@ -157,7 +175,7 @@ def main(
 
     if tag:
         console.print(f"[yellow]使用发布 tag 模式: {tag}[/yellow]")
-        commit_log = get_commit_log_for_head_tag(tag)
+        commit_log = get_commit_log_for_head_tag(tag, pattern=pattern)
     else:
         # 获取最新的匹配tag
         console.print(f"[yellow]正在查找匹配模式 '{pattern}' 的最新tag...[/yellow]")

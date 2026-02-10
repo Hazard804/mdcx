@@ -5,7 +5,6 @@ on:
     types: [published]
   push:
     tags:
-      - 20*
       - 220*
   workflow_dispatch:
     inputs:
@@ -100,7 +99,7 @@ jobs:
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             tag="${{ github.event.inputs.tag }}"
           fi
-          uv run changelog --tag "$tag" --output changelog.md
+          uv run changelog --tag "$tag" --pattern "220*" --output changelog.md
           delimiter="__MDCX_CHANGELOG_EOF__"
           {
             echo "CHANGELOG<<$delimiter"
