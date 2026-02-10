@@ -22,6 +22,11 @@ from ..utils.language import is_japanese
 from .utils import render_name_template
 
 
+def get_external_id_tag_name(site: Website | str) -> str:
+    site_name = re.sub(r"^\d+", "", str(site))
+    return f"{site_name or 'site'}id"
+
+
 async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, output_dir: Path, update=False) -> bool:
     start_time = time.time()
     download_files = manager.config.download_files
@@ -313,7 +318,8 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
         # external id
         for site, u in data.external_ids.items():
             if u:
-                print(f"  <{site}id>{u}</{site}id>", file=code)
+                tag_name = get_external_id_tag_name(site)
+                print(f"  <{tag_name}>{u}</{tag_name}>", file=code)
         # 没有时使用搜索关键词填充 javdbsearchid # todo 允许配置其他网站的后备字段, 允许控制是否输出该字段
         if not data.external_ids.get(Website.JAVDB):
             print(f"  <javdbsearchid>{number}</javdbsearchid>", file=code)

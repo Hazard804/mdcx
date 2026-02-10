@@ -21,8 +21,13 @@ def get_actor_photo(actor):
 
 
 def get_title(html, web_number):
-    result = html.xpath('//h1[@class="fullvideo-title h5 mb-2"]/text()')
-    return result[0].replace(web_number, "").strip() if result else ""
+    result = html.xpath('string(//h1[contains(@class, "fullvideo-title")])')
+    title = re.sub(r"\s+", " ", result).strip()
+    if not title:
+        return ""
+    if web_number:
+        title = re.sub(rf"^{re.escape(web_number)}\s*", "", title, count=1, flags=re.IGNORECASE).strip()
+    return title
 
 
 def get_actor(html, title, file_path):
@@ -70,12 +75,14 @@ def get_cover(html):
 
 
 def get_outline(html):
-    outline, originalplot = "", ""
-    result = html.xpath('//div[@class="video-introduction-images-text"]/p/text()')
+    outline = ""
+    result = html.xpath('//div[contains(@class, "video-introduction-images-text")]')
     if result:
-        outline = result[-1]
-        originalplot = result[0]
-    return outline, originalplot
+        parts = [re.sub(r"\s+", " ", text).strip() for text in result[0].xpath(".//text()")]
+        parts = [text for text in parts if text]
+        if parts:
+            outline = "\n".join(parts)
+    return outline, outline
 
 
 def get_year(release):
