@@ -175,7 +175,7 @@ class Scraper:
             movie_list = await get_movie_list(file_mode, movie_path, ignore_dirs)
         else:
             signal.show_log_text("\n ⏰ Start time: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        Flags.remain_list = movie_list
+        Flags.remain_list = movie_list.copy()
         Flags.can_save_remain = True
 
         task_count = len(movie_list)
