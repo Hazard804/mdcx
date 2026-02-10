@@ -23,6 +23,7 @@ from ..utils.file import copy_file_async, copy_file_sync, delete_file_async, del
 
 LARGE_LIST_SORT_THRESHOLD = 50000
 _large_list_warned: set[str] = set()
+_success_list_save_lock = asyncio.Lock()
 
 
 def _path_lines_for_write(paths: list[Path] | set[Path], list_name: str):
@@ -152,8 +153,13 @@ async def save_success_list(old_path: Path | None = None, new_path: Path | None 
     if get_used_time(Flags.success_save_time) > 5 or not old_path:
         Flags.success_save_time = time.time()
         try:
-            async with aiofiles.open(resources.u("success.txt"), "w", encoding="utf-8", errors="ignore") as f:
-                await f.writelines(_path_lines_for_write(Flags.success_list, "成功列表"))
+            async with _success_list_save_lock:
+                success_path = resources.u("success.txt")
+                success_tmp_path = success_path.with_name(success_path.name + ".tmp")
+                success_list_snapshot = list(Flags.success_list)
+                async with aiofiles.open(success_tmp_path, "w", encoding="utf-8", errors="ignore") as f:
+                    await f.writelines(_path_lines_for_write(success_list_snapshot, "成功列表"))
+                await asyncio.to_thread(os.replace, success_tmp_path, success_path)
         except Exception as e:
             signal.show_log_text(f"  Save success list Error {str(e)}\n {traceback.format_exc()}")
         signal.view_success_file_settext.emit(f"查看 ({len(Flags.success_list)})")

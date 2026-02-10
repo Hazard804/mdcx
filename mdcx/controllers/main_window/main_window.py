@@ -5,6 +5,7 @@ import threading
 import time
 import traceback
 import webbrowser
+from collections import deque
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 from urllib.parse import quote_plus
@@ -112,6 +113,9 @@ class MyMAinWindow(QMainWindow):
         self.m_DragPosition: QPoint  # 鼠标拖动位置
         self.logs_counts = 0  # 日志次数（每1w次清屏）
         self.req_logs_counts = 0  # 日志次数（每1w次清屏）
+        self.main_log_queue: deque[str] = deque()
+        self.main_log_batch_size = 80
+        self.main_log_max_count = 10000
         self.file_main_open_path = Path()  # 主界面打开的文件路径
         self.json_array: dict[str, ShowData] = {}  # 主界面右侧结果树状数据
 
@@ -124,6 +128,7 @@ class MyMAinWindow(QMainWindow):
 
         self.timer = QTimer()  # 初始化一个定时器，用于显示日志
         self.timer.timeout.connect(self.show_detail_log)
+        self.timer.timeout.connect(self._flush_main_log_queue)
         self.timer.start(100)  # 设置间隔100毫秒
         self.timer_scrape = QTimer()  # 初始化一个定时器，用于间隔刮削
         self.timer_scrape.timeout.connect(self.auto_scrape)
@@ -1290,10 +1295,48 @@ class MyMAinWindow(QMainWindow):
                 with open(filename, "w", encoding="utf-8") as f:
                     f.write(self.Ui.textBrowser_log_main_3.toPlainText().strip())
 
+    def _write_main_logs_to_file(self, logs: list[str]):
+        if not logs:
+            return
+        text = "\n".join(logs) + "\n"
+        try:
+            Flags.log_txt.write(text.encode("utf-8"))
+        except Exception:
+            log_folder = manager.data_folder / "Log"
+            if not os.path.exists(log_folder):
+                os.makedirs(log_folder, exist_ok=True)
+            log_name = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + ".txt"
+            log_name = log_folder / log_name
+            try:
+                Flags.log_txt = open(log_name, "wb", buffering=0)
+                Flags.log_txt.write(text.encode("utf-8"))
+                self.main_log_queue.appendleft(f"创建日志文件: {log_name}")
+            except Exception:
+                signal_qt.show_traceback_log(traceback.format_exc())
+
+    def _flush_main_log_queue(self):
+        if not self.main_log_queue:
+            return
+        logs: list[str] = []
+        while self.main_log_queue and len(logs) < self.main_log_batch_size:
+            logs.append(self.main_log_queue.popleft())
+        if manager.config.save_log:
+            self._write_main_logs_to_file(logs)
+        try:
+            self.logs_counts += len(logs)
+            if self.logs_counts >= self.main_log_max_count:
+                self.logs_counts = len(logs)
+                self.main_logs_clear.emit("")
+                self.main_logs_show.emit(add_html(" 🗑️ 日志过多，已清屏！"))
+            self.main_logs_show.emit(add_html("\n".join(logs)))
+        except Exception:
+            signal_qt.show_traceback_log(traceback.format_exc())
+            self.Ui.textBrowser_log_main.append(traceback.format_exc())
+
     # 显示详细日志
     def show_detail_log(self):
         text = signal_qt.get_log()
-        if text:
+        if text and manager.config.show_web_log:
             self.main_req_logs_show.emit(add_html(text))
             if self.req_logs_counts < 10000:
                 self.req_logs_counts += 1
@@ -1306,34 +1349,7 @@ class MyMAinWindow(QMainWindow):
     def show_log_text(self, text):
         if not text:
             return
-        text = str(text)
-        if manager.config.save_log:  # 保存日志
-            try:
-                Flags.log_txt.write((text + "\n").encode("utf-8"))
-            except Exception:
-                log_folder = manager.data_folder / "Log"
-                if not os.path.exists(log_folder):
-                    os.makedirs(log_folder)
-                log_name = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + ".txt"
-                log_name = log_folder / log_name
-
-                Flags.log_txt = open(log_name, "wb", buffering=0)
-                signal_qt.show_log_text(f"创建日志文件: {log_name}\n")
-                signal_qt.show_log_text(text)
-                return
-        try:
-            self.main_logs_show.emit(add_html(text))
-            if self.logs_counts < 10000:
-                self.logs_counts += 1
-            else:
-                self.logs_counts = 0
-                self.main_logs_clear.emit("")
-                self.main_logs_show.emit(add_html(" 🗑️ 日志过多，已清屏！"))
-                # self.show_traceback_log(self.Ui.textBrowser_log_main.document().lineCount())
-
-        except Exception:
-            signal_qt.show_traceback_log(traceback.format_exc())
-            self.Ui.textBrowser_log_main.append(traceback.format_exc())
+        self.main_log_queue.append(str(text))
 
     # endregion
 

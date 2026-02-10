@@ -110,8 +110,8 @@ def Init_Ui(self: "MyMAinWindow"):
     if Website.AVBASE.value not in supported_websites:
         supported_websites.append(Website.AVBASE.value)
     self.Ui.comboBox_custom_website.addItems(supported_websites)
-    # self.Ui.textBrowser_log_main.document().setMaximumBlockCount(100000)     # 限制日志页最大行数rowCount
-    # self.Ui.textBrowser_log_main_2.document().setMaximumBlockCount(30000)     # 限制日志页最大行数rowCount
+    self.Ui.textBrowser_log_main.document().setMaximumBlockCount(6000)
+    self.Ui.textBrowser_log_main_2.document().setMaximumBlockCount(3000)
     self.Ui.textBrowser_log_main.viewport().installEventFilter(self)  # 注册事件用于识别点击控件时隐藏失败列表面板
     self.Ui.textBrowser_log_main_2.viewport().installEventFilter(self)
     self.Ui.pushButton_save_failed_list.setIcon(QIcon(resources.save_failed_list_icon))

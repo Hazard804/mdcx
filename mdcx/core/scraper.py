@@ -416,7 +416,16 @@ class Scraper:
             scrape_info_begin = f"{count:d}/{count_all:d} ({progress_percentage}) round({Flags.count_claw}) {split_path(file_path)[1]}    新的刮削线程"
             scrape_info_begin = "\n\n\n" + "👇" * 50 + "\n" + scrape_info_begin
             scrape_info_after = f"\n 🕷 {get_current_time()} {count}/{count_all} {split_path(file_path)[1]} 刮削完成！用时 {used_time} 秒！"
-            signal.show_log_text(scrape_info_begin + LogBuffer.log().get() + scrape_info_after)
+            if manager.config.show_web_log:
+                signal.show_log_text(scrape_info_begin + LogBuffer.log().get() + scrape_info_after)
+            else:
+                fail_reason = LogBuffer.error().get()
+                if fail_reason:
+                    signal.show_log_text(
+                        scrape_info_begin + f"\n 🔴 [Failed] Reason: {fail_reason}" + scrape_info_after
+                    )
+                else:
+                    signal.show_log_text(scrape_info_begin + scrape_info_after)
             remain_count = Flags.scrape_started - count
             if Flags.scrape_started == count_all:
                 signal.show_log_text(f" 🕷 剩余正在刮削的线程：{remain_count}")
