@@ -400,6 +400,14 @@ class AvbaseCrawler(BaseCrawler):
         raw = str(raw).strip()
         if not raw:
             return ""
+
+        if match := re.search(r"(\d{1,2})[:：](\d{1,2})[:：](\d{1,2})", raw):
+            hours, minutes, seconds = (int(group) for group in match.groups())
+            total_minutes = hours * 60 + minutes
+            if total_minutes == 0 and seconds > 0:
+                return "1"
+            return str(total_minutes)
+
         if match := re.search(r"\d+", raw):
             return match.group()
         return raw

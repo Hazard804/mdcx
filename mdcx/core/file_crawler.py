@@ -105,6 +105,15 @@ class FileScraper:
         self.config = config
         self.crawler_provider = crawler_provider
 
+    @staticmethod
+    def _is_invalid_runtime(value: object) -> bool:
+        runtime = str(value).strip()
+        if not runtime:
+            return False
+        if re.fullmatch(r"0+(?:\.0+)?", runtime):
+            return True
+        return False
+
     async def _call_crawler(
         self, task_input: CrawlerInput, website: Website, timeout: float | None = 30
     ) -> CrawlerResponse:
@@ -208,8 +217,12 @@ class FileScraper:
                         continue
 
                 # 检查字段数据
-                if not getattr(site_data, field.value, None):
+                field_value = getattr(site_data, field.value, None)
+                if not field_value:
                     reduced.field_log += f"\n    🔴 {site:<15} (未找到)"
+                    continue
+                if field == CrawlerResultFields.RUNTIME and self._is_invalid_runtime(field_value):
+                    reduced.field_log += f"\n    🟡 {site:<15} (runtime=0, 舍弃)"
                     continue
 
                 # 添加来源信息
@@ -224,7 +237,7 @@ class FileScraper:
                     reduced.amazon_orginaltitle_actor = site_data.actor.split(",")[0]
 
                 # 保存数据
-                setattr(reduced, field.value, getattr(site_data, field.value))
+                setattr(reduced, field.value, field_value)
                 reduced.field_log += f"\n    🟢 {site}\n     ↳{getattr(reduced, field.value)}"
                 # 找到有效数据，跳出循环继续处理下一个字段
                 break
