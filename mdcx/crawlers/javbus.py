@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import re
 import time
+from datetime import date
 
 from lxml import etree
 
@@ -67,12 +68,22 @@ def getRelease(html):  # 获取发行日期
     return result
 
 
-def getYear(release):
+def getValidRelease(release):
+    release = release.replace("/", "-").replace(".", "-").strip()
+    if not release:
+        return ""
+    if not (match := re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", release)):
+        return ""
+    year, month, day = (int(part) for part in match.groups())
     try:
-        result = str(re.search(r"\d{4}", release).group())
-        return result
-    except Exception:
-        return release[:4]
+        return date(year, month, day).strftime("%Y-%m-%d")
+    except ValueError:
+        return ""
+
+
+def getYear(release):
+    release = getValidRelease(release)
+    return release[:4] if release else ""
 
 
 def getMosaic(html):
@@ -261,7 +272,11 @@ async def main(
         actor_photo = getActorPhoto(html_info, javbus_url)
         cover_url = getCover(html_info, javbus_url)  # 获取cover
         poster_url = get_poster_url(cover_url)
-        release = getRelease(html_info)
+        release_raw = getRelease(html_info)
+        release = getValidRelease(release_raw)
+        if release_raw and not release:
+            debug_info = f"发行日期无效，已忽略: {release_raw}"
+            LogBuffer.info().write(debug_info)
         year = getYear(release)
         tag = getTag(html_info)
         mosaic = getMosaic(html_info)

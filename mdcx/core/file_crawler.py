@@ -1,4 +1,5 @@
 import re
+from datetime import date
 from itertools import chain
 from typing import TYPE_CHECKING
 
@@ -114,6 +115,30 @@ class FileScraper:
             return True
         return False
 
+    @staticmethod
+    def _normalize_release(value: object) -> str:
+        release = str(value).strip()
+        if not release:
+            return ""
+        release = release.replace("/", "-").replace(".", "-")
+        if not (match := re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", release)):
+            return ""
+        year, month, day = (int(part) for part in match.groups())
+        try:
+            return date(year, month, day).strftime("%Y-%m-%d")
+        except ValueError:
+            return ""
+
+    @staticmethod
+    def _normalize_year(value: object) -> str:
+        year = str(value).strip()
+        if not year:
+            return ""
+        if not (match := re.search(r"\d{4}", year)):
+            return ""
+        year = match.group()
+        return "" if year == "0000" else year
+
     async def _call_crawler(
         self, task_input: CrawlerInput, website: Website, timeout: float | None = 30
     ) -> CrawlerResponse:
@@ -224,6 +249,18 @@ class FileScraper:
                 if field == CrawlerResultFields.RUNTIME and self._is_invalid_runtime(field_value):
                     reduced.field_log += f"\n    🟡 {site:<15} (runtime=0, 舍弃)"
                     continue
+                if field == CrawlerResultFields.RELEASE:
+                    normalized_release = self._normalize_release(field_value)
+                    if not normalized_release:
+                        reduced.field_log += f"\n    🟡 {site:<15} (release无效, 舍弃: {field_value})"
+                        continue
+                    field_value = normalized_release
+                if field == CrawlerResultFields.YEAR:
+                    normalized_year = self._normalize_year(field_value)
+                    if not normalized_year:
+                        reduced.field_log += f"\n    🟡 {site:<15} (year无效, 舍弃: {field_value})"
+                        continue
+                    field_value = normalized_year
 
                 # 添加来源信息
                 reduced.field_sources[field] = site.value
@@ -260,9 +297,19 @@ class FileScraper:
         reduced.thumb_list = list(dict.fromkeys(reduced.thumb_list))  # 保序
         reduced.actor_amazon = list(set(reduced.actor_amazon))
 
+        # 处理 release
+        if normalized_release := self._normalize_release(reduced.release):
+            reduced.release = normalized_release
+        else:
+            reduced.release = ""
+
         # 处理 year
-        if not reduced.year and (r := re.search(r"\d{4}", reduced.release)):
-            reduced.year = r.group()
+        if normalized_year := self._normalize_year(reduced.year):
+            reduced.year = normalized_year
+        elif reduced.release:
+            reduced.year = reduced.release[:4]
+        else:
+            reduced.year = ""
 
         # 处理 mosaic
         for site, result in all_res.items():
