@@ -27,6 +27,35 @@ class _FakeCrawlerProvider:
         return self._website_crawlers[site]
 
 
+class _RecordingCrawler:
+    def __init__(self, site: Website, records: list[tuple[str, str]], should_raise: bool = False):
+        self._site = site
+        self._records = records
+        self._should_raise = should_raise
+
+    async def run(self, task_input: CrawlerInput) -> CrawlerResponse:
+        self._records.append((self._site.value, task_input.number))
+        if self._should_raise:
+            raise RuntimeError("boom")
+
+        data = CrawlerResult.empty()
+        data.title = "ok"
+        data.source = self._site.value
+        data.external_id = f"{self._site.value}:id"
+        return CrawlerResponse(
+            debug_info=CrawlerDebugInfo(execution_time=0.01),
+            data=data,
+        )
+
+
+class _RecordingCrawlerProvider:
+    def __init__(self, crawlers: dict[Website, _RecordingCrawler]):
+        self._website_crawlers = crawlers
+
+    async def get(self, site: Website):
+        return self._website_crawlers[site]
+
+
 class _FakeConfig:
     def get_field_config(self, field: CrawlerResultFields) -> FieldConfig:
         if field in (CrawlerResultFields.RUNTIME, CrawlerResultFields.RELEASE, CrawlerResultFields.YEAR):
@@ -100,3 +129,49 @@ async def test_call_crawlers_release_skip_invalid_and_fill_year(monkeypatch: pyt
     assert result.release == "2024-01-02"
     assert result.year == "2024"
     assert result.field_sources[CrawlerResultFields.RELEASE] == Website.JAVDB.value
+
+
+@pytest.mark.asyncio
+async def test_call_crawler_restore_number_for_mgstage():
+    records: list[tuple[str, str]] = []
+    provider = _RecordingCrawlerProvider(
+        {
+            Website.DMM: _RecordingCrawler(Website.DMM, records),
+            Website.MGSTAGE: _RecordingCrawler(Website.MGSTAGE, records),
+        }
+    )
+    scraper = FileScraper(_FakeConfig(), provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "200GANA-3327"
+    task_input.short_number = "GANA-3327"
+
+    await scraper._call_crawler(task_input, Website.DMM)
+    assert task_input.number == "200GANA-3327"
+
+    await scraper._call_crawler(task_input, Website.MGSTAGE)
+    assert task_input.number == "200GANA-3327"
+
+    assert records == [
+        (Website.DMM.value, "GANA-3327"),
+        (Website.MGSTAGE.value, "200GANA-3327"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_call_crawler_restore_number_when_exception():
+    records: list[tuple[str, str]] = []
+    provider = _RecordingCrawlerProvider(
+        {
+            Website.DMM: _RecordingCrawler(Website.DMM, records, should_raise=True),
+        }
+    )
+    scraper = FileScraper(_FakeConfig(), provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "200GANA-3327"
+    task_input.short_number = "GANA-3327"
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await scraper._call_crawler(task_input, Website.DMM)
+
+    assert task_input.number == "200GANA-3327"
+    assert records == [(Website.DMM.value, "GANA-3327")]

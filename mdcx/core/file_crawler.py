@@ -155,17 +155,21 @@ class FileScraper:
             Exception: 爬虫函数抛出的异常
         """
         short_number = task_input.short_number
+        original_number = task_input.number
 
         # 259LUXU-1111， mgstage 和 avsex 之外使用 LUXU-1111（素人番号时，short_number有值，不带前缀数字；反之，short_number为空)
         if short_number and website != "mgstage" and website != "avsex":
             task_input.number = short_number
 
-        c = await self.crawler_provider.get(website)
+        try:
+            c = await self.crawler_provider.get(website)
 
-        # 移除外层超时限制，让内层的 GatherGroup 处理超时和重试
-        # 原有的超时机制已由各个 HTTP 请求单独处理
-        r = await c.run(task_input)
-        return r
+            # 移除外层超时限制，让内层的 GatherGroup 处理超时和重试
+            # 原有的超时机制已由各个 HTTP 请求单独处理
+            r = await c.run(task_input)
+            return r
+        finally:
+            task_input.number = original_number
 
     async def _call_crawlers(self, task_input: CrawlerInput, type_sites: set[Website]) -> CrawlersResult | None:
         """
