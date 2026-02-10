@@ -70,6 +70,59 @@ class Scraper:
     def __init__(self, crawler_provider: "CrawlerProviderProtocol"):
         self.crawler_provider = crawler_provider
 
+    async def _run_tasks_with_limit(self, movie_list: list[Path], task_count: int, thread_number: int) -> None:
+        task_iter = iter(enumerate(movie_list, 1))
+        running_tasks: set[asyncio.Task[None]] = set()
+
+        def _submit_next_task() -> bool:
+            try:
+                index, each_file = next(task_iter)
+            except StopIteration:
+                return False
+            running_tasks.add(asyncio.create_task(self.process_one_file((each_file, index, task_count))))
+            return True
+
+        for _ in range(min(thread_number, task_count)):
+            _submit_next_task()
+
+        try:
+            while running_tasks:
+                done, pending = await asyncio.wait(running_tasks, return_when=asyncio.FIRST_COMPLETED)
+                running_tasks = set(pending)
+
+                stop_requested = False
+                fatal_error: Exception | None = None
+                done_count = 0
+                for done_task in done:
+                    done_count += 1
+                    try:
+                        done_task.result()
+                    except StopScrape:
+                        stop_requested = True
+                    except asyncio.CancelledError:
+                        stop_requested = True
+                    except Exception as e:
+                        if fatal_error is None:
+                            fatal_error = e
+
+                if stop_requested or fatal_error is not None:
+                    for pending_task in running_tasks:
+                        pending_task.cancel()
+                    if running_tasks:
+                        await asyncio.gather(*running_tasks, return_exceptions=True)
+                    if fatal_error is not None:
+                        raise fatal_error
+                    return
+
+                for _ in range(done_count):
+                    _submit_next_task()
+        except asyncio.CancelledError:
+            for pending_task in running_tasks:
+                pending_task.cancel()
+            if running_tasks:
+                await asyncio.gather(*running_tasks, return_exceptions=True)
+            raise
+
     async def run(self, file_mode: FileMode, movie_list: list[Path] | None) -> None:
         try:
             await self._run(file_mode, movie_list)
@@ -128,10 +181,6 @@ class Scraper:
         task_count = len(movie_list)
         Flags.total_count = task_count
 
-        task_list = []
-        for i, each in enumerate(movie_list, 1):
-            task_list.append((each, i, task_count))
-
         if task_count:
             Flags.count_claw += 1
             if manager.config.main_mode == 4:
@@ -145,20 +194,16 @@ class Scraper:
                     f'<font color="brown"> 🍯 间歇刮削 已启用，连续刮削 {manager.config.rest_count} 个文件后，将自动休息 {Flags.rest_time_convert} 秒...</font>'
                 )
 
+            if task_count > thread_number * 1000:
+                signal.show_log_text(f" ⚠ 待刮削任务较多（{task_count}），已启用渐进式任务调度以降低内存峰值。")
+
             Flags.next_start_time = time.time()
 
-            # 创建信号量来限制并发数量
-            semaphore = asyncio.Semaphore(thread_number)
-
-            async def limited_scrape_exec_thread(task):
-                async with semaphore:
-                    await self.process_one_file(task)
-
-            # 异步并发
-            await asyncio.gather(*[limited_scrape_exec_thread(task) for task in task_list])
+            # 异步并发（按并发数渐进投喂任务，避免大列表一次性创建海量协程）
+            await self._run_tasks_with_limit(movie_list, task_count, thread_number)
             signal.label_result.emit(f" 刮削中：0 成功：{Flags.succ_count} 失败：{Flags.fail_count}")
             await save_success_list()  # 保存成功列表
-            if signal.stop:
+            if signal.stop or Flags.stop_requested:
                 return
 
         signal.show_log_text("================================================================================")
@@ -777,7 +822,7 @@ class Scraper:
         return res, other
 
     def _check_stop(self, show_name: str) -> None:
-        if signal.stop:
+        if signal.stop or Flags.stop_requested:
             Flags.now_kill += 1
             signal.show_log_text(
                 f" 🕷 {get_current_time()} 已停止刮削：{Flags.now_kill}/{Flags.total_kills} {show_name}"
@@ -795,6 +840,8 @@ class Scraper:
 
 
 def start_new_scrape(file_mode: FileMode, movie_list: list[Path] | None = None) -> None:
+    Flags.stop_requested = False
+    signal.stop = False
     signal.change_buttons_status.emit()
     signal.exec_set_processbar.emit(0)
     try:
@@ -812,8 +859,8 @@ def get_remain_list() -> bool:
     remain_list_path = resources.u("remain.txt")
     if not remain_list_path.is_file():
         return False
-    remains = remain_list_path.read_text(encoding="utf-8").strip()
-    remains = [p for path in remains.split("\n") if path.strip() and (p := Path(path.strip())).suffix]
+    with open(remain_list_path, encoding="utf-8", errors="ignore") as f:
+        remains = [p for path in f if (line := path.strip()) and (p := Path(line)).suffix]
     Flags.remain_list = remains
     if not len(Flags.remain_list) or Switch.REMAIN_TASK not in manager.config.switch_on:
         return False
@@ -824,10 +871,14 @@ def get_remain_list() -> bool:
     box.button(QMessageBox.Cancel).setText("取消")
     box.setDefaultButton(QMessageBox.No)
     reply = box.exec()
-    if reply == QMessageBox.Cancel:
-        return True  # 不刮削
-    if reply == QMessageBox.No:
+    if reply == QMessageBox.Yes:
+        signal.show_log_text("🍯 🍯 🍯 NOTE: 用户选择继续刮削剩余任务。")
+    elif reply == QMessageBox.No:
+        signal.show_log_text("🍯 🍯 🍯 NOTE: 用户选择从头刮削。")
         return False  # 从头刮削
+    else:
+        signal.show_log_text("🍯 🍯 🍯 NOTE: 已取消本次刮削启动。")
+        return True  # 不刮削（包括点取消、ESC、右上角关闭）
 
     movie_path = manager.config.media_path
     if movie_path == "":

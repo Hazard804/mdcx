@@ -74,6 +74,7 @@ class _Flags:
     scrape_start_time: float = 0.0
     success_list: set[Path] = field(default_factory=set)
     stop_other: bool = True  # 非刮削线程停止标识
+    stop_requested: bool = False  # 手动停止刮削请求标识
 
     # show
     log_txt: Any = None  # 日志文件对象
@@ -109,6 +110,7 @@ class _Flags:
         self.json_get_status = {}
         self.json_data_dic = {}
         self.img_path = ""
+        self.stop_requested = False
 
 
 Flags = _Flags()

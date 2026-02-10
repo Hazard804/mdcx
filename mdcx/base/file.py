@@ -21,6 +21,21 @@ from ..signals import signal
 from ..utils import executor, get_current_time, get_used_time
 from ..utils.file import copy_file_async, copy_file_sync, delete_file_async, delete_file_sync, move_file_async
 
+LARGE_LIST_SORT_THRESHOLD = 50000
+_large_list_warned: set[str] = set()
+
+
+def _path_lines_for_write(paths: list[Path] | set[Path], list_name: str):
+    if len(paths) > LARGE_LIST_SORT_THRESHOLD:
+        if list_name not in _large_list_warned:
+            signal.show_log_text(f" ⚠ {list_name} 数量较大（{len(paths)}），保存时将跳过排序以降低内存占用。")
+            _large_list_warned.add(list_name)
+        for path in paths:
+            yield str(path) + "\n"
+        return
+    for path_str in sorted(str(path) for path in paths):
+        yield path_str + "\n"
+
 
 async def move_other_file(number: str, folder_old_path: Path, folder_new_path: Path, file_name: str, naming_rule: str):
     # 软硬链接模式不移动
@@ -138,7 +153,7 @@ async def save_success_list(old_path: Path | None = None, new_path: Path | None 
         Flags.success_save_time = time.time()
         try:
             async with aiofiles.open(resources.u("success.txt"), "w", encoding="utf-8", errors="ignore") as f:
-                await f.writelines(sorted(str(p) + "\n" for p in Flags.success_list))
+                await f.writelines(_path_lines_for_write(Flags.success_list, "成功列表"))
         except Exception as e:
             signal.show_log_text(f"  Save success list Error {str(e)}\n {traceback.format_exc()}")
         signal.view_success_file_settext.emit(f"查看 ({len(Flags.success_list)})")
@@ -149,7 +164,7 @@ def save_remain_list() -> None:
     if Flags.can_save_remain and Switch.REMAIN_TASK in manager.config.switch_on:
         try:
             with open(resources.u("remain.txt"), "w", encoding="utf-8", errors="ignore") as f:
-                f.writelines(sorted(str(p) + "\n" for p in Flags.remain_list))
+                f.writelines(_path_lines_for_write(Flags.remain_list, "剩余任务列表"))
                 Flags.can_save_remain = False
         except Exception as e:
             signal.show_log_text(f"save remain list error: {str(e)}\n {traceback.format_exc()}")
@@ -245,8 +260,7 @@ def get_success_list() -> None:
     Flags.success_save_time = time.time()
     if os.path.isfile(resources.u("success.txt")):
         with open(resources.u("success.txt"), encoding="utf-8", errors="ignore") as f:
-            paths = f.readlines()
-            Flags.success_list = {p for path in paths if path.strip() and (p := Path(path.strip())).suffix}
+            Flags.success_list = {p for path in f if (line := path.strip()) and (p := Path(line)).suffix}
             executor.run(save_success_list())
     signal.view_success_file_settext.emit(f"查看 ({len(Flags.success_list)})")
 

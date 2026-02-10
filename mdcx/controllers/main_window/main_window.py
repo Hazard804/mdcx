@@ -678,6 +678,8 @@ class MyMAinWindow(QMainWindow):
             if reply != QMessageBox.Yes:
                 return
         if self.Ui.pushButton_start_cap.text() == "■ 停止":
+            Flags.stop_requested = True
+            signal_qt.stop = True
             executor.run(save_success_list())
             Flags.rest_time_convert_ = Flags.rest_time_convert
             Flags.rest_time_convert = 0
@@ -728,6 +730,8 @@ class MyMAinWindow(QMainWindow):
         except Exception:
             signal_qt.show_traceback_log(traceback.format_exc())
             signal_qt.show_log_text(traceback.format_exc())
+        finally:
+            signal_qt.stop = False
         print(threading.enumerate())
 
     def show_stop_info_thread(
@@ -759,7 +763,6 @@ class MyMAinWindow(QMainWindow):
             while each.is_alive():
                 pass
 
-        signal_qt.stop = False
         self.stop_used_time = get_used_time(start_time)
         signal_qt.show_log_text(f" 🕷 {get_current_time()} 已停止线程：{Flags.total_kills}/{Flags.total_kills}")
         signal_qt.show_traceback_log(f"所有线程已停止！！！({self.stop_used_time}s)\n ⛔️ 刮削已手动停止！\n")
