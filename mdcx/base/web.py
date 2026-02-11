@@ -150,9 +150,9 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
         "accept-encoding": "gzip, deflate, br",
         "Host": "www.amazon.co.jp",
     }
-    html_info, error = await manager.computed.async_client.get_text(req_url, encoding="Shift_JIS")
+    html_info, error = await manager.computed.async_client.get_text(req_url, encoding="utf-8")
     if html_info is None:
-        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="Shift_JIS")
+        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
     if html_info is None:
         session_id = ""
         ubid_acbjp = ""
@@ -164,12 +164,12 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
             "cookie": f"session-id={session_id}; ubid_acbjp={ubid_acbjp}",
         }
         headers.update(headers_o)
-        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="Shift_JIS")
+        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
     if html_info is None:
         return False, error
     if "HTTP 503" in html_info:
         headers = {"Host": "www.amazon.co.jp"}
-        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="Shift_JIS")
+        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
     if html_info is None:
         return False, error
     return True, html_info

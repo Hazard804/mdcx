@@ -38,6 +38,18 @@ async def get_big_pic_by_amazon(result: CrawlersResult, originaltitle_amazon: st
     if not originaltitle_amazon or not actor_amazon:
         return ""
     hd_pic_url = ""
+    actor_keyword_set = set()
+    for actor in actor_amazon:
+        if not actor:
+            continue
+        actor = actor.strip()
+        if actor:
+            actor_keyword_set.add(actor)
+        for alias in re.findall(r"[^\(\)\（\）]+", actor):
+            alias = alias.strip()
+            if alias:
+                actor_keyword_set.add(alias)
+    actor_keywords = list(actor_keyword_set)
     originaltitle_amazon = re.sub(r"【.*】", "", originaltitle_amazon)
     originaltitle_amazon_list = [originaltitle_amazon]
     for originaltitle_amazon in originaltitle_amazon_list:
@@ -59,7 +71,7 @@ async def get_big_pic_by_amazon(result: CrawlersResult, originaltitle_amazon: st
                 if each_name not in originaltitle_amazon_list and (
                     len(each_name) > 8
                     or (not each_name.encode("utf-8").isalnum() and len(each_name) > 4)
-                    and each_name not in actor_amazon
+                    and each_name not in actor_keywords
                 ):
                     originaltitle_amazon_list.append(each_name)
             continue
@@ -86,37 +98,32 @@ async def get_big_pic_by_amazon(result: CrawlersResult, originaltitle_amazon: st
                     if each_name not in originaltitle_amazon_list and (
                         len(each_name) > 8
                         or (not each_name.encode("utf-8").isalnum() and len(each_name) > 4)
-                        and each_name not in actor_amazon
+                        and each_name not in actor_keywords
                     ):
                         originaltitle_amazon_list.append(each_name)
 
             # 标题不带演员名匹配
-            for each_actor in actor_amazon:
+            for each_actor in actor_keywords:
                 originaltitle_amazon_half_no_actor = originaltitle_amazon_half_no_actor.replace(each_actor.upper(), "")
 
-            # 检查搜索结果
+            # 检查搜索结果（新版 Amazon 结构）
             actor_result_list = set()
             title_result_list = []
-            # s-card-container s-overflow-hidden aok-relative puis-wide-grid-style puis-wide-grid-style-t2 puis-expand-height puis-include-content-margin puis s-latency-cf-section s-card-border
-            pic_card = html.xpath('//div[@class="a-section a-spacing-base"]')
+            pic_card = html.xpath('//div[@data-component-type="s-search-result" and @data-asin]')
             for each in pic_card:  # tek-077
-                pic_ver_list = each.xpath(
-                    'div//a[@class="a-size-base a-link-normal s-underline-text s-underline-link-text s-link-style a-text-bold"]/text()'
-                )
-                pic_title_list = each.xpath(
-                    'div//h2[@class="a-size-base-plus a-spacing-none a-color-base a-text-normal"]/span/text()'
-                )
-                pic_url_list = each.xpath('div//div[@class="a-section aok-relative s-image-square-aspect"]/img/@src')
-                detail_url_list = each.xpath('div//a[@class="a-link-normal s-no-outline"]/@href')
-                if len(pic_ver_list) and len(pic_url_list) and (len(pic_title_list) and len(detail_url_list)):
-                    pic_ver = pic_ver_list[0]  # 图片版本
+                pic_ver_list = each.xpath('.//a[contains(@class, "a-text-bold")]/text()')
+                pic_title_list = each.xpath(".//h2//a//span/text() | .//h2//span/text()")
+                pic_url_list = each.xpath('.//img[contains(@class, "s-image")]/@src')
+                detail_url_list = each.xpath('.//h2//a/@href | .//a[contains(@class, "s-no-outline")]/@href')
+                if len(pic_url_list) and (len(pic_title_list) and len(detail_url_list)):
+                    pic_ver = pic_ver_list[0] if pic_ver_list else ""  # 图片版本
                     pic_title = pic_title_list[0]  # 图片标题
                     pic_url = pic_url_list[0]  # 图片链接
                     detail_url = detail_url_list[0]  # 详情页链接（有时带有演员名）
-                    if pic_ver in ["DVD", "Software Download"] and ".jpg" in pic_url:  # 无图时是.gif
+                    if (pic_ver in ["DVD", "Software Download"] or not pic_ver) and ".jpg" in pic_url:  # 无图时是.gif
                         pic_title_half = convert_half(re.sub(r"【.*】", "", pic_title))
                         pic_title_half_no_actor = pic_title_half
-                        for each_actor in actor_amazon:
+                        for each_actor in actor_keywords:
                             pic_title_half_no_actor = pic_title_half_no_actor.replace(each_actor, "")
 
                         # 判断标题是否命中
@@ -132,7 +139,7 @@ async def get_big_pic_by_amazon(result: CrawlersResult, originaltitle_amazon: st
                             url = re.sub(r"\._[_]?AC_[^\.]+\.", ".", pic_url)
 
                             # 判断演员是否在标题里，避免同名标题误匹配 MOPP-023
-                            for each_actor in actor_amazon:
+                            for each_actor in actor_keywords:
                                 if each_actor in temp_detail_url:
                                     actor_result_list.add(url)
                                     if "写真付き" not in pic_title:  # NACR-206
@@ -185,7 +192,7 @@ async def get_big_pic_by_amazon(result: CrawlersResult, originaltitle_amazon: st
                         ).replace(" ", "")
                         detail_info_3 = str(html.xpath('//div[@id="productDescription"]//text()')).replace(" ", "")
                         all_info = detail_actor + detail_info_1 + detail_info_2 + detail_info_3
-                        for each_actor in actor_amazon:
+                        for each_actor in actor_keywords:
                             if each_actor in all_info:
                                 w, h = await get_imgsize(each[0])
                                 if w > 720 or not w:
