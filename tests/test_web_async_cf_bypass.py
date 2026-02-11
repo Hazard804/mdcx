@@ -710,3 +710,23 @@ async def test_request_acquires_limiter_for_each_attempt(monkeypatch):
     assert call_count == 3
     assert acquire_count == 3
     assert sleep_calls == [2.0, 5.0]
+
+
+def test_sanitize_url_keeps_query_and_encodes_spaces():
+    client = AsyncWebClient(timeout=1)
+    url = "https://api.theporndb.net/movies?q=blacked ARIA LEE&per_page=100"
+
+    sanitized_url, sanitized = client._sanitize_url(url)
+
+    assert sanitized is True
+    assert sanitized_url == "https://api.theporndb.net/movies?q=blacked%20ARIA%20LEE&per_page=100"
+
+
+def test_sanitize_url_still_removes_polluted_suffix():
+    client = AsyncWebClient(timeout=1)
+    url = 'https://x.com?a=1">https://x.com?a=1'
+
+    sanitized_url, sanitized = client._sanitize_url(url)
+
+    assert sanitized is True
+    assert sanitized_url == "https://x.com?a=1"

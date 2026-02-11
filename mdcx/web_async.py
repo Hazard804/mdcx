@@ -324,10 +324,15 @@ class AsyncWebClient:
         if not cleaned:
             return cleaned, False
         # 过滤类似 https://x.com?a=1">https://x.com?a=1 这类污染字符串
-        match = re.match(r"^(https?://[^\s\"'<>]+)", cleaned)
+        # 允许保留空格，随后交给 URL 解析器做编码，避免查询参数在空格处被截断。
+        match = re.match(r"^(https?://[^\"'<>]+)", cleaned)
         if not match:
             return cleaned, False
-        normalized = match.group(1)
+        normalized = match.group(1).strip()
+        try:
+            normalized = str(httpx.URL(normalized))
+        except Exception:
+            pass
         return normalized, normalized != cleaned
 
     def _log_cf(self, message: str, host: str = "") -> None:
