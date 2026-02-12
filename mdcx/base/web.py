@@ -148,9 +148,10 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
     """
     headers = {
         "accept-encoding": "gzip, deflate, br",
+        "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
         "Host": "www.amazon.co.jp",
     }
-    html_info, error = await manager.computed.async_client.get_text(req_url, encoding="utf-8")
+    html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
     if html_info is None:
         html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
     if html_info is None:
@@ -168,7 +169,10 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
     if html_info is None:
         return False, error
     if "HTTP 503" in html_info:
-        headers = {"Host": "www.amazon.co.jp"}
+        headers = {
+            "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Host": "www.amazon.co.jp",
+        }
         html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
     if html_info is None:
         return False, error

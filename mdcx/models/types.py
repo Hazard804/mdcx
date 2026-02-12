@@ -343,6 +343,9 @@ class CrawlersResult(BaseCrawlerResult):
     amazon_orginaltitle_actor: str  # 用于 Amazon 搜索的原始标题中的演员
     thumb_list: list[tuple[str, str]]  # 所有来源的缩略图URL列表
     originaltitle_amazon: str  # 用于 Amazon 搜索的原始标题
+    amazon_raw_director: str  # Amazon 标题清洗用导演（未映射）
+    amazon_raw_studio: str  # Amazon 标题清洗用制作商（未映射）
+    amazon_raw_publisher: str  # Amazon 标题清洗用发行商（未映射）
 
     # 用于 log
     site_log: str
@@ -368,6 +371,9 @@ class CrawlersResult(BaseCrawlerResult):
             amazon_orginaltitle_actor="",
             thumb_list=[],
             originaltitle_amazon="",
+            amazon_raw_director="",
+            amazon_raw_studio="",
+            amazon_raw_publisher="",
             site_log="",
             field_log="",
             field_sources=dict.fromkeys(CrawlerResultFields, ""),

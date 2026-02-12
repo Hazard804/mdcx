@@ -492,6 +492,9 @@ class FileScraper:
                     res.originaltitle_amazon = re.sub(end_actor, "", res.originaltitle_amazon)
                 except Exception:
                     pass
+        res.amazon_raw_director = res.director
+        res.amazon_raw_studio = res.studio
+        res.amazon_raw_publisher = res.publisher
 
         # VR 时下载小封面
         if "VR" in number:
