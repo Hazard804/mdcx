@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
+import random
 import re
 import threading
 import time
@@ -20,6 +21,107 @@ from ..models.log_buffer import LogBuffer
 from ..signals import signal
 from ..utils import executor
 from ..utils.file import check_pic_async
+
+
+class _AdaptiveRequestThrottle:
+    def __init__(
+        self,
+        *,
+        base_spacing: float,
+        max_spacing: float,
+        cooldown_base: float,
+        cooldown_max: float,
+        throttle_burst_window: float = 2.2,
+        same_burst_extension: float | None = None,
+    ):
+        self.base_spacing = max(float(base_spacing), 0.0)
+        self.max_spacing = max(float(max_spacing), self.base_spacing)
+        self.cooldown_base = max(float(cooldown_base), 0.0)
+        self.cooldown_max = max(float(cooldown_max), self.cooldown_base)
+        self.throttle_burst_window = max(float(throttle_burst_window), 0.0)
+        default_extension = max(self.base_spacing * 3, self.cooldown_base * 0.5)
+        extension = default_extension if same_burst_extension is None else same_burst_extension
+        self.same_burst_extension = min(self.cooldown_max, max(float(extension), 0.0))
+        self._lock = asyncio.Lock()
+        self._next_allowed_at = 0.0
+        self._request_spacing = self.base_spacing
+        self._penalty_level = 0
+        self._cooldown_until = 0.0
+        self._burst_until = 0.0
+        self._last_penalty_at = 0.0
+
+    async def wait_turn(self) -> float:
+        delay = 0.0
+        async with self._lock:
+            now = time.monotonic()
+            delay = max(self._next_allowed_at - now, 0.0)
+            scheduled_at = max(now, self._next_allowed_at)
+            jitter = random.uniform(0.0, min(max(self._request_spacing * 0.15, 0.0), 0.08))
+            self._next_allowed_at = scheduled_at + self._request_spacing + jitter
+        if delay > 0:
+            await asyncio.sleep(delay)
+        return delay
+
+    async def register_result(self, *, throttled: bool) -> tuple[float, int, bool]:
+        cooldown = 0.0
+        escalated = False
+        async with self._lock:
+            now = time.monotonic()
+            if throttled:
+                # 并发场景下，同一波 Amazon 限流会让多个请求几乎同时返回 429。
+                # 这些响应只维持冷却，不再连续升级 penalty level。
+                same_burst = now <= self._burst_until
+                if same_burst:
+                    cooldown = max(self._cooldown_until - now, 0.0)
+                    if cooldown <= 0:
+                        cooldown = self.same_burst_extension
+                    self._cooldown_until = max(self._cooldown_until, now + cooldown)
+                    self._burst_until = max(self._burst_until, self._cooldown_until + self.throttle_burst_window)
+                    self._next_allowed_at = max(self._next_allowed_at, self._cooldown_until)
+                else:
+                    escalated = True
+                    self._penalty_level = min(self._penalty_level + 1, 6)
+                    growth_base = self._request_spacing if self._request_spacing > 0 else max(self.base_spacing, 0.12)
+                    self._request_spacing = min(self.max_spacing, max(self.base_spacing, growth_base * 1.65))
+                    cooldown = min(self.cooldown_max, self.cooldown_base * (1.8 ** (self._penalty_level - 1)))
+                    cooldown += random.uniform(0.1, 0.5)
+                    self._cooldown_until = now + cooldown
+                    self._burst_until = self._cooldown_until + self.throttle_burst_window
+                    self._last_penalty_at = now
+                    self._next_allowed_at = max(self._next_allowed_at, self._cooldown_until)
+            else:
+                if self._penalty_level > 0:
+                    self._penalty_level -= 1
+                if self._request_spacing > self.base_spacing:
+                    self._request_spacing = max(self.base_spacing, self._request_spacing * 0.82)
+                else:
+                    self._request_spacing = self.base_spacing
+                if (
+                    self._penalty_level == 0
+                    and self._request_spacing == self.base_spacing
+                    and now >= self._cooldown_until
+                ):
+                    self._cooldown_until = 0.0
+                    self._burst_until = 0.0
+                    self._last_penalty_at = 0.0
+        return cooldown, self._penalty_level, escalated
+
+    async def reset(self):
+        async with self._lock:
+            self._next_allowed_at = 0.0
+            self._request_spacing = self.base_spacing
+            self._penalty_level = 0
+            self._cooldown_until = 0.0
+            self._burst_until = 0.0
+            self._last_penalty_at = 0.0
+
+
+_amazon_request_throttle = _AdaptiveRequestThrottle(
+    base_spacing=0.18,
+    max_spacing=1.6,
+    cooldown_base=1.4,
+    cooldown_max=8.0,
+)
 
 
 @overload
@@ -146,14 +248,43 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
     """
     获取 Amazon 数据
     """
+
+    def _is_amazon_rate_limited(html_content: str | None, error_text: str | None) -> bool:
+        combined = f"{error_text or ''}\n{html_content or ''}".lower()
+        if "429" in combined:
+            return True
+        if "too many requests" in combined:
+            return True
+        if "http 503" in combined:
+            return True
+        if "automated access" in combined:
+            return True
+        return False
+
+    async def _request_with_amazon_throttle(request_headers: dict[str, str]) -> tuple[str | None, str]:
+        waited = await _amazon_request_throttle.wait_turn()
+        html_info, error = await manager.computed.async_client.get_text(
+            req_url, headers=request_headers, encoding="utf-8"
+        )
+        throttled = _is_amazon_rate_limited(html_info, error)
+        cooldown, penalty_level, escalated = await _amazon_request_throttle.register_result(throttled=throttled)
+        if throttled:
+            if escalated:
+                signal.add_log(f"🟡 Amazon 命中限流，动态退避 {cooldown:.2f}s (level={penalty_level}) {req_url}")
+            elif cooldown >= 0.8:
+                signal.add_log(f"🟡 Amazon 限流冷却延续 {cooldown:.2f}s {req_url}")
+        elif waited >= 0.6:
+            signal.add_log(f"🟡 Amazon 请求自适应等待 {waited:.2f}s {req_url}")
+        return html_info, error
+
     headers = {
         "accept-encoding": "gzip, deflate, br",
         "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
         "Host": "www.amazon.co.jp",
     }
-    html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
+    html_info, error = await _request_with_amazon_throttle(headers)
     if html_info is None:
-        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
+        html_info, error = await _request_with_amazon_throttle(headers)
     if html_info is None:
         session_id = ""
         ubid_acbjp = ""
@@ -165,7 +296,7 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
             "cookie": f"session-id={session_id}; ubid_acbjp={ubid_acbjp}",
         }
         headers.update(headers_o)
-        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
+        html_info, error = await _request_with_amazon_throttle(headers)
     if html_info is None:
         return False, error
     if "HTTP 503" in html_info:
@@ -173,7 +304,7 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
             "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
             "Host": "www.amazon.co.jp",
         }
-        html_info, error = await manager.computed.async_client.get_text(req_url, headers=headers, encoding="utf-8")
+        html_info, error = await _request_with_amazon_throttle(headers)
     if html_info is None:
         return False, error
     return True, html_info

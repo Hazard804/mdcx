@@ -658,3 +658,296 @@ async def test_get_big_pic_by_amazon_retry_with_title_without_series_when_no_act
     assert "系列名" in queries
     assert "主标题" in queries
     assert queries.index("系列名") < queries.index("主标题")
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_prefers_title_with_number_query(monkeypatch: pytest.MonkeyPatch):
+    title = "互いに素性を知った美魔女ママ友と箱ヘルで出逢い、裏引き不倫。"
+    numbered_title = f"{title} DASS-907"
+    html_no_result = """
+    <html>
+      <body>キーワードが正しく入力されていても一致する商品がない場合は、別の言葉をお試しください。</body>
+    </html>
+    """
+    html_match = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000NUM">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000NUM"><span>互いに素性を知った美魔女ママ友と箱ヘルで出逢い、裏引き不倫。</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000NUM"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81number._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = """
+    <html>
+      <body>
+        <span id="productTitle">互いに素性を知った美魔女ママ友と箱ヘルで出逢い、裏引き不倫。</span>
+        <div id="detailBulletsWrapper_feature_div">製造元リファレンス : DASS-907</div>
+      </body>
+    </html>
+    """
+    queries: list[str] = []
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000NUM" in req_url:
+            return True, html_detail
+        query = _extract_search_query(req_url)
+        queries.append(query)
+        if query == numbered_title:
+            return True, html_match
+        return True, html_no_result
+
+    async def fake_get_imgsize(url: str):
+        return 801, 1200
+
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "DASS-907"
+    pic_url = await get_big_pic_by_amazon(result, title, ["演员A"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81number.jpg"
+    assert queries[0] == numbered_title
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_prefers_single_actor_candidate_over_multi_actor_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    html_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000WRONG">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000WRONG"><span>作品标题 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000WRONG"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81wrong._AC_UL320_.jpg" />
+        </div>
+        <div data-component-type="s-search-result" data-asin="B000RIGHT">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000RIGHT"><span>作品标题 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000RIGHT"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81right._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_wrong_detail = """
+    <html>
+      <body>
+        <span id="productTitle">作品标题 演员A</span>
+        <div id="bylineInfo_feature_div">
+          <a>演员A</a>
+          <a>演员B</a>
+        </div>
+      </body>
+    </html>
+    """
+    html_right_detail = """
+    <html>
+      <body>
+        <span id="productTitle">作品标题 演员A</span>
+        <div id="bylineInfo_feature_div">
+          <a>演员A</a>
+        </div>
+      </body>
+    </html>
+    """
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000WRONG" in req_url:
+            return True, html_wrong_detail
+        if "/dp/B000RIGHT" in req_url:
+            return True, html_right_detail
+        return True, html_search
+
+    async def fake_get_imgsize(url: str):
+        if "81wrong" in url:
+            return 1200, 1700
+        if "81right" in url:
+            return 801, 1200
+        return 0, 0
+
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    pic_url = await get_big_pic_by_amazon(result, "作品标题", ["演员A"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81right.jpg"
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_prefers_dvd_over_bluray_for_same_work(monkeypatch: pytest.MonkeyPatch):
+    html_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000DVD">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000DVD"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000DVD"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81dvd._AC_UL320_.jpg" />
+        </div>
+        <div data-component-type="s-search-result" data-asin="B000BLURAY">
+          <a class="a-text-bold">Blu-ray</a>
+          <h2><a href="/dp/B000BLURAY"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000BLURAY"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81bluray2._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = """
+    <html>
+      <body>
+        <span id="productTitle">标题测试 演员A</span>
+        <div id="bylineInfo_feature_div"><a>演员A</a></div>
+        <div id="detailBulletsWrapper_feature_div">製造元リファレンス : ABC-123</div>
+      </body>
+    </html>
+    """
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000DVD" in req_url or "/dp/B000BLURAY" in req_url:
+            return True, html_detail
+        return True, html_search
+
+    async def fake_get_imgsize(url: str):
+        if "81dvd" in url:
+            return 801, 1200
+        if "81bluray2" in url:
+            return 1200, 1200
+        return 0, 0
+
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "ABC-123"
+    pic_url = await get_big_pic_by_amazon(result, "标题测试", ["演员A"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81dvd.jpg"
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_supports_no_actor_when_detail_contains_number(monkeypatch: pytest.MonkeyPatch):
+    title = "互いに素性を知った美魔女ママ友と箱ヘルで出逢い、裏引き不倫。"
+    html_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000NOACTOR">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000NOACTOR"><span>互いに素性を知った美魔女ママ友と箱ヘルで出逢い、裏引き不倫。</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000NOACTOR"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81noactor._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = """
+    <html>
+      <body>
+        <span id="productTitle">互いに素性を知った美魔女ママ友と箱ヘルで出逢い、裏引き不倫。</span>
+        <div id="detailBulletsWrapper_feature_div">製造元リファレンス : DASS-907</div>
+      </body>
+    </html>
+    """
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000NOACTOR" in req_url:
+            return True, html_detail
+        return True, html_search
+
+    async def fake_get_imgsize(url: str):
+        return 801, 1200
+
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "DASS-907"
+    pic_url = await get_big_pic_by_amazon(result, title, ["未知演员"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81noactor.jpg"
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_retries_actor_fragment_when_full_title_only_hits_actor_noise(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    title = "新人NO.1STYLE 枫ふうあAVデビュー"
+    fragment = "枫ふうあAVデビュー"
+    html_actor_noise = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000NOISE">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000NOISE"><span>枫ふうあ BEST SELECTION</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000NOISE"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81noise._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_fragment_match = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000FRAGMENT">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000FRAGMENT"><span>枫ふうあAVデビュー</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000FRAGMENT"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81fragment._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_noise_detail = """
+    <html>
+      <body>
+        <span id="productTitle">枫ふうあ BEST SELECTION</span>
+        <div id="bylineInfo_feature_div"><a>枫ふうあ</a></div>
+      </body>
+    </html>
+    """
+    html_fragment_detail = """
+    <html>
+      <body>
+        <span id="productTitle">枫ふうあAVデビュー</span>
+        <div id="bylineInfo_feature_div"><a>枫ふうあ</a></div>
+      </body>
+    </html>
+    """
+    queries: list[str] = []
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000NOISE" in req_url:
+            return True, html_noise_detail
+        if "/dp/B000FRAGMENT" in req_url:
+            return True, html_fragment_detail
+        query = _extract_search_query(req_url)
+        queries.append(query)
+        if query == title:
+            return True, html_actor_noise
+        if query == fragment:
+            return True, html_fragment_match
+        return True, "<html><body></body></html>"
+
+    async def fake_get_imgsize(url: str):
+        if "81fragment" in url:
+            return 801, 1200
+        if "81noise" in url:
+            return 900, 1200
+        return 0, 0
+
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    pic_url = await get_big_pic_by_amazon(result, title, ["枫ふうあ"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81fragment.jpg"
+    assert fragment in queries

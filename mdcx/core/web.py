@@ -44,43 +44,93 @@ async def get_big_pic_by_amazon(
     originaltitle_amazon_raw: str = "",
     series_raw: str = "",
 ) -> str:
-    if (not originaltitle_amazon and not originaltitle_amazon_raw) or not actor_amazon:
+    if not originaltitle_amazon and not originaltitle_amazon_raw:
         return ""
     hd_pic_url = ""
-    actor_keyword_set = set()
+    invalid_actor_names = {
+        manager.config.actor_no_name.strip(),
+        "未知演员",
+        "未知演員",
+        "女优不明",
+        "女優不明",
+        "人物不明",
+        "素人",
+        "素人(多人)",
+        "素人（多人）",
+        "素人妻",
+        "素人娘",
+        "素人(援交)",
+        "素人（援交）",
+        "素人(偷窃)",
+        "素人（偷窃）",
+        "素人(患者)",
+        "素人（患者）",
+        "S级素人",
+        "S級素人",
+    }
+
+    def is_valid_actor_name(actor_name: str) -> bool:
+        actor_name = re.sub(r"\s+", " ", actor_name).strip()
+        if not actor_name:
+            return False
+        return actor_name not in invalid_actor_names
+
+    actor_groups: list[set[str]] = []
+    actor_group_key_set: set[tuple[str, ...]] = set()
+    actor_keyword_set: set[str] = set()
+    actor_search_keywords: list[str] = []
     for actor in actor_amazon:
         if not actor:
             continue
-        actor = actor.strip()
-        if actor:
-            actor_keyword_set.add(actor)
-        for alias in re.findall(r"[^\(\)\（\）]+", actor):
-            alias = alias.strip()
-            if alias:
-                actor_keyword_set.add(alias)
+        actor = re.sub(r"\s+", " ", actor).strip()
+        if not is_valid_actor_name(actor):
+            continue
+        group: set[str] = set()
+        alias_list = [alias.strip() for alias in re.findall(r"[^\(\)\（\）]+", actor) if alias.strip()]
+        for each in alias_list + [actor]:
+            each = re.sub(r"\s+", " ", each).strip()
+            if not is_valid_actor_name(each):
+                continue
+            group.add(each)
+            actor_keyword_set.add(each)
+            if each not in actor_search_keywords:
+                actor_search_keywords.append(each)
+        if group:
+            group_key = tuple(sorted(group))
+            if group_key not in actor_group_key_set:
+                actor_groups.append(group)
+                actor_group_key_set.add(group_key)
+
     actor_keywords = list(actor_keyword_set)
-    actor_keywords_sorted = sorted(set(actor_keywords), key=len, reverse=True)
+    actor_keywords_sorted = sorted(actor_keywords, key=len, reverse=True)
+    actor_groups_normalized = [{convert_half(alias).upper() for alias in group} for group in actor_groups]
+    has_valid_actor = bool(actor_groups_normalized)
+    expected_actor_count = len(actor_groups_normalized)
+    if not has_valid_actor:
+        LogBuffer.log().write("\n 🔎 Amazon搜索：未找到有效演员，切换为标题/番号模式")
 
-    def build_actor_search_keywords() -> list[str]:
-        actor_search_list: list[str] = []
-        for actor in actor_amazon:
-            if not actor:
-                continue
-            actor = actor.strip()
-            if not actor:
-                continue
-            alias_list = [alias.strip() for alias in re.findall(r"[^\(\)\（\）]+", actor) if alias.strip()]
-            candidate_list = []
-            if alias_list:
-                candidate_list.extend(alias_list)
-            candidate_list.append(actor)
-            for each in candidate_list:
-                each = re.sub(r"\s+", " ", each).strip()
-                if each and each not in actor_search_list:
-                    actor_search_list.append(each)
-        return actor_search_list
+    def build_number_regex(number_text: str) -> re.Pattern[str] | None:
+        normalized_number = convert_half(number_text or "").upper().strip()
+        if not normalized_number:
+            return None
+        token_list = re.findall(r"[A-Z0-9]+", normalized_number)
+        if not token_list:
+            return None
+        pattern = r"(?<![A-Z0-9])" + r"[^A-Z0-9]*".join(re.escape(token) for token in token_list) + r"(?![A-Z0-9])"
+        return re.compile(pattern, flags=re.IGNORECASE)
 
-    actor_search_keywords = build_actor_search_keywords()
+    number_regex = build_number_regex(result.number)
+
+    def text_has_target_number(text: str) -> bool:
+        if not number_regex or not text:
+            return False
+        return bool(number_regex.search(convert_half(text).upper()))
+
+    def count_actor_group_matches(text: str) -> int:
+        if not actor_groups_normalized or not text:
+            return 0
+        normalized_text = convert_half(re.sub(r"\s+", " ", text or "")).upper()
+        return sum(1 for group in actor_groups_normalized if any(alias in normalized_text for alias in group))
 
     def strip_actor_suffix(base_title: str) -> str:
         title = base_title.strip()
@@ -116,6 +166,7 @@ async def get_big_pic_by_amazon(
     search_queue: list[tuple[str, str, bool]] = []
     search_keyword_set: set[str] = set()
     split_keyword_added = False
+    actor_fragment_added = False
 
     def append_search_keyword(keyword: str, *, fallback_series: str = "", is_initial_query: bool = False):
         keyword = re.sub(r"\s+", " ", keyword).strip()
@@ -123,8 +174,18 @@ async def get_big_pic_by_amazon(
             search_queue.append((keyword, fallback_series, is_initial_query))
             search_keyword_set.add(keyword)
 
-    append_search_keyword(originaltitle_amazon, fallback_series=series, is_initial_query=True)
-    append_search_keyword(originaltitle_amazon_raw, fallback_series=series_raw, is_initial_query=True)
+    def append_title_search_variants(keyword: str, *, fallback_series: str = "", is_initial_query: bool = False):
+        keyword = re.sub(r"\s+", " ", keyword).strip()
+        if not keyword:
+            return
+        if result.number and not text_has_target_number(keyword):
+            append_search_keyword(
+                f"{keyword} {result.number}", fallback_series=fallback_series, is_initial_query=is_initial_query
+            )
+        append_search_keyword(keyword, fallback_series=fallback_series, is_initial_query=is_initial_query)
+
+    append_title_search_variants(originaltitle_amazon, fallback_series=series, is_initial_query=True)
+    append_title_search_variants(originaltitle_amazon_raw, fallback_series=series_raw, is_initial_query=True)
 
     def append_split_keyword(base_title: str):
         for each_name in base_title.split(" "):
@@ -142,13 +203,31 @@ async def get_big_pic_by_amazon(
         split_keyword_added = True
         append_split_keyword(originaltitle_amazon_raw)
 
+    def append_actor_fragment_keywords_from_titles():
+        nonlocal actor_fragment_added
+        if actor_fragment_added or not actor_keywords_sorted:
+            return
+        actor_fragment_added = True
+        trim_chars = " 　-—｜|/／・,，、：:()（）[]【】"
+        for base_title in [originaltitle_amazon_raw, originaltitle_amazon]:
+            normalized_base_title = re.sub(r"\s+", " ", base_title).strip()
+            if not normalized_base_title:
+                continue
+            for actor in actor_keywords_sorted:
+                index = normalized_base_title.find(actor)
+                if index <= 0:
+                    continue
+                fragment = normalized_base_title[index:].strip(trim_chars)
+                if fragment and fragment != normalized_base_title:
+                    append_title_search_variants(fragment)
+
     def append_series_fallback_keywords(base_title: str, fallback_series: str):
         if not fallback_series:
             return
         append_search_keyword(fallback_series)
         if fallback_series in base_title:
             stripped_title = re.sub(re.escape(fallback_series), " ", base_title, count=1)
-            append_search_keyword(stripped_title)
+            append_title_search_variants(stripped_title)
 
     no_result_tips = (
         "キーワードが正しく入力されていても一致する商品がない場合は、別の言葉をお試しください。",
@@ -243,6 +322,8 @@ async def get_big_pic_by_amazon(
         wildcard_token = "MDCXWILDCARDTOKEN"
         title = re.sub(r"[●○◯〇◎◉◆◇■□△▲▽▼※＊*]", wildcard_token, title)
         normalized = convert_half(title).lower()
+        if number_regex:
+            normalized = number_regex.sub(" ", normalized.upper()).lower()
         normalized = re.sub(r"【.*?】", "", normalized)
         normalized = re.sub(r"[［\[]\s*(?:dvd|blu[- ]?ray|software\s+download)\s*[］\]]", "", normalized, flags=re.I)
         normalized = normalized.replace(wildcard_token.lower(), wildcard_placeholder)
@@ -322,14 +403,34 @@ async def get_big_pic_by_amazon(
             score = max(score, 0.92)
         return score
 
-    def is_supported_pic_ver(pic_ver: str) -> bool:
+    expected_titles: list[str] = []
+    expected_title_set: set[str] = set()
+    for title_text, fallback_series in [(originaltitle_amazon_raw, series_raw), (originaltitle_amazon, series)]:
+        title_text = re.sub(r"\s+", " ", title_text).strip()
+        if title_text and title_text not in expected_title_set:
+            expected_titles.append(title_text)
+            expected_title_set.add(title_text)
+        if fallback_series and fallback_series in title_text:
+            stripped_title = re.sub(re.escape(fallback_series), " ", title_text, count=1)
+            stripped_title = re.sub(r"\s+", " ", stripped_title).strip()
+            if stripped_title and stripped_title not in expected_title_set:
+                expected_titles.append(stripped_title)
+                expected_title_set.add(stripped_title)
+
+    def get_media_priority(pic_ver: str) -> int:
         if not pic_ver:
-            return True
+            return 2
         version_text = pic_ver.strip().lower()
-        return any(
-            each in version_text
-            for each in ["dvd", "blu-ray", "blu ray", "software download", "ブルーレイ", "ブルーレイディスク"]
-        )
+        if "dvd" in version_text:
+            return 3
+        if "software download" in version_text:
+            return 2
+        if any(each in version_text for each in ["blu-ray", "blu ray", "ブルーレイ", "ブルーレイディスク"]):
+            return 1
+        return 0
+
+    def is_supported_pic_ver(pic_ver: str) -> bool:
+        return get_media_priority(pic_ver) > 0 or not pic_ver
 
     async def search_amazon(title: str) -> tuple[bool, str]:
         url_search = (
@@ -342,9 +443,8 @@ async def get_big_pic_by_amazon(
     async def search_amazon_by_actor_fallback() -> str:
         if not actor_search_keywords:
             return ""
-        confidence_threshold = 0.72
-        expected_titles = [title for title in [originaltitle_amazon_raw, originaltitle_amazon] if title]
-        best_match: tuple[float, int, str, str, str] | None = None
+        confidence_threshold = 0.75
+        best_match: tuple[tuple[int, float, int, int], str, str, str] | None = None
         best_rejected_candidate: tuple[float, str, str, str] | None = None
 
         def update_best_rejected(score: float, actor_name: str, pic_title: str, reason: str):
@@ -389,8 +489,13 @@ async def get_big_pic_by_amazon(
                 url = re.sub(r"\._[_]?AC_[^\.]+\.", ".", pic_url)
                 width, _ = await get_imgsize(url)
                 width = width or 0
-                current_match = (confidence, width, url, pic_title, actor_name)
-                if best_match is None or current_match[:2] > best_match[:2]:
+                current_match = (
+                    (1 if text_has_target_number(pic_title) else 0, confidence, get_media_priority(pic_ver), width),
+                    url,
+                    pic_title,
+                    actor_name,
+                )
+                if best_match is None or current_match[0] > best_match[0]:
                     best_match = current_match
 
         if not best_match:
@@ -403,9 +508,10 @@ async def get_big_pic_by_amazon(
             else:
                 LogBuffer.log().write("\n 🟡 Amazon兜底未命中：演员搜索无可评估候选结果")
             return ""
-        confidence, width, matched_url, matched_title, matched_actor = best_match
+        (number_match, confidence, media_priority, width), matched_url, matched_title, matched_actor = best_match
         LogBuffer.log().write(
-            f"\n 🟢 Amazon兜底命中：演员({matched_actor}) 置信度({confidence:.2f}) 标题({matched_title})"
+            f"\n 🟢 Amazon兜底命中：演员({matched_actor}) 置信度({confidence:.2f}) 番号命中({bool(number_match)})"
+            f" 标题({matched_title})"
         )
         if width > 600 or not width:
             return matched_url
@@ -413,157 +519,251 @@ async def get_big_pic_by_amazon(
         result.poster_from = "Amazon"
         return ""
 
+    def normalize_detail_url(detail_url: str) -> str:
+        if not detail_url:
+            return ""
+        absolute_url = urllib.parse.urljoin("https://www.amazon.co.jp", detail_url)
+        decoded_url = urllib.parse.unquote_plus(absolute_url)
+        if matched := re.search(r"/dp/([^/?&#]+)", decoded_url):
+            return f"https://www.amazon.co.jp/dp/{matched.group(1)}"
+        return ""
+
+    def build_candidate_key(detail_url: str, pic_url: str) -> str:
+        normalized_detail_url = normalize_detail_url(detail_url)
+        if normalized_detail_url:
+            return normalized_detail_url
+        return re.sub(r"\._[_]?AC_[^\.]+\.", ".", pic_url)
+
+    async def enrich_candidate(candidate: dict[str, object]):
+        if candidate["detail_checked"] or not candidate["detail_url"]:
+            candidate["detail_checked"] = True
+            return
+        success, html_detail = await get_amazon_data(str(candidate["detail_url"]))
+        candidate["detail_checked"] = True
+        if not success or not html_detail:
+            return
+        html = etree.fromstring(html_detail, etree.HTMLParser())
+        detail_actor_names: list[str] = []
+        for each_xpath in [
+            '//span[contains(@class, "author")]/a/text()',
+            '//div[@id="bylineInfo_feature_div"]//a/text()',
+            '//div[@id="bylineInfo"]//a/text()',
+        ]:
+            detail_actor_names.extend(text.strip() for text in html.xpath(each_xpath) if text and text.strip())
+        detail_actor_names = list(dict.fromkeys(detail_actor_names))
+        detail_texts: list[str] = []
+        for each_xpath in [
+            '//span[@id="productTitle"]/text()',
+            '//ul[@class="a-unordered-list a-vertical a-spacing-mini"]//text()',
+            '//div[@id="detailBulletsWrapper_feature_div"]//text()',
+            '//div[@id="detailBullets_feature_div"]//text()',
+            '//table[@id="productDetails_detailBullets_sections1"]//text()',
+            '//div[@id="prodDetails"]//text()',
+            '//div[@id="productOverview_feature_div"]//text()',
+            '//div[@id="productDescription"]//text()',
+        ]:
+            detail_texts.extend(text.strip() for text in html.xpath(each_xpath) if text and text.strip())
+        detail_title = next((text for text in detail_texts if text), "")
+        if detail_title:
+            candidate["title_confidence"] = max(
+                float(candidate["title_confidence"]),
+                max(calculate_title_confidence(each_title, detail_title) for each_title in expected_titles),
+            )
+        detail_blob = " ".join(detail_actor_names + detail_texts)
+        candidate["detail_actor_count"] = len(detail_actor_names)
+        candidate["detail_actor_matches"] = max(
+            int(candidate["detail_actor_matches"]),
+            int(candidate["quick_actor_matches"]),
+            count_actor_group_matches(detail_blob),
+        )
+        candidate["detail_number_match"] = text_has_target_number(detail_blob)
+
+    def candidate_actor_match_count(candidate: dict[str, object]) -> int:
+        return max(int(candidate["quick_actor_matches"]), int(candidate["detail_actor_matches"]))
+
+    def candidate_number_match(candidate: dict[str, object]) -> bool:
+        return bool(candidate["quick_number_match"] or candidate["detail_number_match"])
+
+    def candidate_score(candidate: dict[str, object]) -> float:
+        title_confidence = float(candidate["title_confidence"])
+        actor_match_count = candidate_actor_match_count(candidate)
+        actor_ratio = actor_match_count / expected_actor_count if expected_actor_count else 0.0
+        score = title_confidence * 100
+        if candidate_number_match(candidate):
+            score += 120
+        if has_valid_actor:
+            score += actor_ratio * 20
+        if (
+            expected_actor_count == 1
+            and int(candidate["detail_actor_count"]) > 1
+            and not candidate_number_match(candidate)
+        ):
+            score -= 12
+        score += int(candidate["media_priority"]) * 2
+        return score
+
+    def is_candidate_acceptable(candidate: dict[str, object]) -> bool:
+        title_confidence = float(candidate["title_confidence"])
+        actor_match_count = candidate_actor_match_count(candidate)
+        detail_actor_count = int(candidate["detail_actor_count"])
+        number_match = candidate_number_match(candidate)
+        if number_match:
+            return title_confidence >= 0.55
+        if has_valid_actor:
+            if expected_actor_count == 1:
+                if detail_actor_count > 1:
+                    return title_confidence >= 0.92
+                return (actor_match_count >= 1 and title_confidence >= 0.78) or title_confidence >= 0.93
+            required_actor_matches = min(expected_actor_count, max(2, (expected_actor_count + 1) // 2))
+            return title_confidence >= 0.76 and actor_match_count >= required_actor_matches
+        return title_confidence >= 0.88
+
+    def candidate_sort_key(candidate: dict[str, object]) -> tuple[float, int, int]:
+        return (candidate_score(candidate), int(candidate["media_priority"]), int(candidate["width"]))
+
+    candidate_pool: dict[str, dict[str, object]] = {}
     query_index = 0
     while query_index < len(search_queue):
         current_title, current_series, is_initial_query = search_queue[query_index]
         success, html_search = await search_amazon(current_title)
 
-        # 没有结果，尝试拆词，重新搜索
         if not success or (is_initial_query and is_no_result(html_search)):
             if is_initial_query:
                 append_series_fallback_keywords(current_title, current_series)
                 append_split_keyword_from_replaced_title()
+                append_actor_fragment_keywords_from_titles()
             query_index += 1
             continue
 
-        # 有结果时，检查结果
         if result and html_search:
             html = etree.fromstring(html_search, etree.HTMLParser())
-            originaltitle_amazon_half = convert_half(current_title)
-            originaltitle_amazon_half_no_actor = originaltitle_amazon_half
-            actor_matched = False
-
-            # 标题缩短匹配（如无结果，则使用缩小标题再次搜索）
-            if is_initial_query and is_no_result(html_search):
-                append_series_fallback_keywords(current_title, current_series)
-                short_originaltitle_amazon = html.xpath(
-                    '//div[@class="a-section a-spacing-base a-spacing-top-base"]/span[@class="a-size-base a-color-base"]/text()'
-                )
-                if short_originaltitle_amazon:
-                    short_originaltitle_amazon = short_originaltitle_amazon[0].upper().replace(" DVD", "")
-                    if short_originaltitle_amazon in current_title.upper():
-                        append_search_keyword(short_originaltitle_amazon)
-                        short_originaltitle_amazon = convert_half(short_originaltitle_amazon)
-                        if short_originaltitle_amazon in originaltitle_amazon_half:
-                            originaltitle_amazon_half = short_originaltitle_amazon
-                append_split_keyword_from_replaced_title()
-
-            # 标题不带演员名匹配
-            for each_actor in actor_keywords:
-                originaltitle_amazon_half_no_actor = originaltitle_amazon_half_no_actor.replace(each_actor.upper(), "")
-
-            # 检查搜索结果（新版 Amazon 结构）
-            actor_result_list = set()
-            title_result_list = []
+            query_has_signal = False
             pic_card = html.xpath('//div[@data-component-type="s-search-result" and @data-asin]')
-            for each in pic_card:  # tek-077
+            for each in pic_card:
                 pic_ver_list = each.xpath('.//a[contains(@class, "a-text-bold")]/text()')
                 pic_title_list = each.xpath(".//h2//a//span/text() | .//h2//span/text()")
                 pic_url_list = each.xpath('.//img[contains(@class, "s-image")]/@src')
                 detail_url_list = each.xpath('.//h2//a/@href | .//a[contains(@class, "s-no-outline")]/@href')
-                if len(pic_url_list) and (len(pic_title_list) and len(detail_url_list)):
-                    pic_ver = pic_ver_list[0] if pic_ver_list else ""  # 图片版本
-                    pic_title = pic_title_list[0]  # 图片标题
-                    pic_url = pic_url_list[0]  # 图片链接
-                    detail_url = detail_url_list[0]  # 详情页链接（有时带有演员名）
-                    if is_supported_pic_ver(pic_ver) and ".jpg" in pic_url:  # 无图时是.gif
-                        pic_title_half = convert_half(re.sub(r"【.*】", "", pic_title))
-                        pic_title_half_no_actor = pic_title_half
-                        for each_actor in actor_keywords:
-                            pic_title_half_no_actor = pic_title_half_no_actor.replace(each_actor, "")
+                if not (pic_url_list and pic_title_list and detail_url_list):
+                    continue
+                pic_ver = pic_ver_list[0] if pic_ver_list else ""
+                pic_title = pic_title_list[0]
+                pic_url = pic_url_list[0]
+                detail_url = detail_url_list[0]
+                if not (is_supported_pic_ver(pic_ver) and ".jpg" in pic_url):
+                    continue
+                title_confidence = max(
+                    max(calculate_title_confidence(each_title, pic_title) for each_title in expected_titles),
+                    calculate_title_confidence(current_title, pic_title),
+                )
+                collect_threshold = 0.45 if text_has_target_number(current_title) else 0.58
+                quick_number_match = text_has_target_number(pic_title)
+                quick_actor_matches = count_actor_group_matches(pic_title)
+                if title_confidence < collect_threshold and not quick_number_match:
+                    continue
+                if title_confidence >= 0.8 or quick_number_match:
+                    query_has_signal = True
+                url = re.sub(r"\._[_]?AC_[^\.]+\.", ".", pic_url)
+                each_key = build_candidate_key(detail_url, url)
+                normalized_detail_url = normalize_detail_url(detail_url)
+                media_priority = get_media_priority(pic_ver)
+                candidate = candidate_pool.get(each_key)
+                if candidate is None:
+                    candidate_pool[each_key] = {
+                        "url": url,
+                        "detail_url": normalized_detail_url,
+                        "pic_title": pic_title,
+                        "pic_ver": pic_ver,
+                        "media_priority": media_priority,
+                        "title_confidence": title_confidence,
+                        "quick_actor_matches": quick_actor_matches,
+                        "detail_actor_matches": 0,
+                        "quick_number_match": quick_number_match,
+                        "detail_number_match": False,
+                        "detail_actor_count": 0,
+                        "detail_checked": False,
+                        "width": 0,
+                    }
+                else:
+                    if title_confidence > float(candidate["title_confidence"]) or (
+                        title_confidence == float(candidate["title_confidence"])
+                        and media_priority > int(candidate["media_priority"])
+                    ):
+                        candidate["url"] = url
+                        candidate["pic_title"] = pic_title
+                        candidate["pic_ver"] = pic_ver
+                        candidate["media_priority"] = media_priority
+                    if normalized_detail_url and (
+                        not candidate["detail_url"]
+                        or "/dp/" in normalized_detail_url
+                        and "/dp/" not in str(candidate["detail_url"])
+                    ):
+                        candidate["detail_url"] = normalized_detail_url
+                    candidate["title_confidence"] = max(float(candidate["title_confidence"]), title_confidence)
+                    candidate["quick_actor_matches"] = max(int(candidate["quick_actor_matches"]), quick_actor_matches)
+                    candidate["quick_number_match"] = bool(candidate["quick_number_match"] or quick_number_match)
 
-                        # 判断标题是否命中
-                        if (
-                            originaltitle_amazon_half[:15] in pic_title_half
-                            or originaltitle_amazon_half_no_actor[:15] in pic_title_half_no_actor
-                        ):
-                            detail_url = urllib.parse.unquote_plus(detail_url)
-                            temp_title = re.findall(r"(.+)keywords=", detail_url)
-                            temp_detail_url = (
-                                temp_title[0] + pic_title_half if temp_title else detail_url + pic_title_half
-                            )
-                            url = re.sub(r"\._[_]?AC_[^\.]+\.", ".", pic_url)
+            if is_initial_query and not query_has_signal:
+                append_series_fallback_keywords(current_title, current_series)
+                append_split_keyword_from_replaced_title()
+                append_actor_fragment_keywords_from_titles()
 
-                            # 判断演员是否在标题里，避免同名标题误匹配 MOPP-023
-                            for each_actor in actor_keywords:
-                                if each_actor in temp_detail_url:
-                                    actor_matched = True
-                                    actor_result_list.add(url)
-                                    if "写真付き" not in pic_title:  # NACR-206
-                                        w, h = await get_imgsize(url)
-                                        if w > 600 or not w:
-                                            hd_pic_url = url
-                                            return hd_pic_url
-                                        else:
-                                            result.poster = pic_url  # 用于 Google 搜图
-                                            result.poster_from = "Amazon"
-                                    break
-                            else:
-                                title_result_list.append([url, "https://www.amazon.co.jp" + detail_url])
-
-            # 命中演员有多个结果时返回最大的（不等于1759/1758）
-            if len(actor_result_list):
-                pic_w = 0
-                for each in actor_result_list:
-                    new_pic_w, _ = await get_imgsize(each)
-                    if new_pic_w > pic_w:
-                        if new_pic_w >= 1770 or (1750 > new_pic_w > 600):  # 不要小图 FCDSS-001，截短的图（1758/1759）
-                            pic_w = new_pic_w
-                            hd_pic_url = each
-                        else:
-                            result.poster = each  # 用于 Google 搜图
-                            result.poster_from = "Amazon"
-
-                if hd_pic_url:
-                    return hd_pic_url
-
-            # 当搜索结果命中了标题，没有命中演员时，尝试去详情页获取演员信息
-            elif (
-                len(title_result_list) <= 20
-                and "s-pagination-item s-pagination-next s-pagination-button s-pagination-separator" not in html_search
-            ):
-                for each in title_result_list[:4]:
-                    try:
-                        url_new = "https://www.amazon.co.jp" + re.findall(r"(/dp/[^/]+)", each[1])[0]
-                    except Exception:
-                        url_new = each[1]
-                    success, html_detail = await get_amazon_data(url_new)
-                    if success and html_detail:
-                        html = etree.fromstring(html_detail, etree.HTMLParser())
-                        detail_actor = str(html.xpath('//span[@class="author notFaded"]/a/text()')).replace(" ", "")
-                        detail_info_1 = str(
-                            html.xpath('//ul[@class="a-unordered-list a-vertical a-spacing-mini"]//text()')
-                        ).replace(" ", "")
-                        detail_info_2 = str(
-                            html.xpath('//div[@id="detailBulletsWrapper_feature_div"]//text()')
-                        ).replace(" ", "")
-                        detail_info_3 = str(html.xpath('//div[@id="productDescription"]//text()')).replace(" ", "")
-                        all_info = detail_actor + detail_info_1 + detail_info_2 + detail_info_3
-                        for each_actor in actor_keywords:
-                            if each_actor in all_info:
-                                actor_matched = True
-                                w, h = await get_imgsize(each[0])
-                                if w > 720 or not w:
-                                    return each[0]
-                                else:
-                                    result.poster = each[0]  # 用于 Google 搜图
-                                    result.poster_from = "Amazon"
-
-            # 有很多结果时（有下一页按钮），加演员名字重新搜索
             if (
                 "s-pagination-item s-pagination-next s-pagination-button s-pagination-separator" in html_search
-                or len(title_result_list) > 5
+                or len(pic_card) > 5
             ):
                 amazon_orginaltitle_actor = result.amazon_orginaltitle_actor
-                if amazon_orginaltitle_actor and amazon_orginaltitle_actor not in current_title:
+                if has_valid_actor and amazon_orginaltitle_actor and amazon_orginaltitle_actor not in current_title:
                     append_search_keyword(f"{current_title} {amazon_orginaltitle_actor}")
-
-            if is_initial_query and not actor_matched:
-                append_series_fallback_keywords(current_title, current_series)
 
         query_index += 1
 
-    if not hd_pic_url and result.poster_from != "Amazon":
+    if candidate_pool:
+        preliminary_candidates = sorted(candidate_pool.values(), key=candidate_sort_key, reverse=True)
+        for each_candidate in preliminary_candidates[: min(6, len(preliminary_candidates))]:
+            await enrich_candidate(each_candidate)
+        accepted_candidates = [candidate for candidate in candidate_pool.values() if is_candidate_acceptable(candidate)]
+        if accepted_candidates:
+            accepted_candidates = sorted(accepted_candidates, key=candidate_sort_key, reverse=True)
+            measured_candidates = accepted_candidates[: min(6, len(accepted_candidates))]
+            for each_candidate in measured_candidates:
+                width, _ = await get_imgsize(str(each_candidate["url"]))
+                each_candidate["width"] = width or 0
+            hd_candidates = [
+                candidate
+                for candidate in measured_candidates
+                if int(candidate["width"]) >= 1770
+                or 1750 > int(candidate["width"]) > 600
+                or not int(candidate["width"])
+            ]
+            if hd_candidates:
+                best_candidate = sorted(hd_candidates, key=candidate_sort_key, reverse=True)[0]
+                LogBuffer.log().write(
+                    f"\n 🟢 Amazon命中：标题置信度({float(best_candidate['title_confidence']):.2f}) "
+                    f"番号命中({candidate_number_match(best_candidate)}) "
+                    f"演员命中({candidate_actor_match_count(best_candidate)}/{expected_actor_count or 0}) "
+                    f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
+                )
+                return str(best_candidate["url"])
+            best_fallback_candidate = measured_candidates[0]
+            result.poster = str(best_fallback_candidate["url"])
+            result.poster_from = "Amazon"
+            LogBuffer.log().write(
+                f"\n 🟡 Amazon命中低清图：标题置信度({float(best_fallback_candidate['title_confidence']):.2f}) "
+                f"番号命中({candidate_number_match(best_fallback_candidate)}) "
+                f"介质({best_fallback_candidate['pic_ver'] or 'unknown'}) 标题({best_fallback_candidate['pic_title']})"
+            )
+        else:
+            best_rejected_candidate = sorted(candidate_pool.values(), key=candidate_sort_key, reverse=True)[0]
+            LogBuffer.log().write(
+                f"\n 🟡 Amazon搜索未命中：最高候选分({candidate_score(best_rejected_candidate):.2f}) "
+                f"标题置信度({float(best_rejected_candidate['title_confidence']):.2f}) "
+                f"番号命中({candidate_number_match(best_rejected_candidate)}) "
+                f"演员命中({candidate_actor_match_count(best_rejected_candidate)}/{expected_actor_count or 0}) "
+                f"标题({best_rejected_candidate['pic_title']})"
+            )
+
+    if not hd_pic_url and result.poster_from != "Amazon" and not candidate_pool:
         hd_pic_url = await search_amazon_by_actor_fallback()
 
     return hd_pic_url
