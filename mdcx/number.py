@@ -6,6 +6,15 @@ import unicodedata
 from .manual import ManualConfig
 
 
+def strip_escape_strings(filename: str, escape_string_list: list[str], replace_char: str = "") -> str:
+    filename = filename.upper()
+    # 长字符串优先替换，避免 ".COM@" 抢先命中后破坏 "489155.COM@" 这类更具体的规则。
+    sorted_escape_strings = sorted((string for string in escape_string_list if string), key=len, reverse=True)
+    for string in sorted_escape_strings:
+        filename = filename.replace(string.upper(), replace_char)
+    return filename
+
+
 def is_uncensored(number: str) -> bool:
     if re.match(r"n\d{4}", number) or re.search(r"[^.]+\.\d{2}\.\d{2}\.\d{2}", number):
         return True
@@ -250,10 +259,7 @@ def get_file_number(filepath: str, escape_string_list: list[str]) -> str:
 
 # pure version of models.base.remove_escape_string
 def remove_escape_string1(filename: str, escape_string_list: list[str], replace_char: str = "") -> str:
-    filename = filename.upper()
-    for string in escape_string_list:
-        if string:
-            filename = filename.replace(string.upper(), replace_char)
+    filename = strip_escape_strings(filename, escape_string_list, replace_char)
     short_strings = [
         "4K",
         "4KS",

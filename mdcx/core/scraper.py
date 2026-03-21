@@ -653,7 +653,7 @@ class Scraper:
             replace_word(res)
 
         # 更新视频分辨率
-        definition, codec = await get_video_size(file_path)
+        definition, codec = await get_video_size(file_path, file_info.number)
         file_info.definition, file_info.codec = definition, codec
         add_definition_tag(res, definition, codec)
 

@@ -13,7 +13,7 @@ from ..gen.field_enums import CrawlerResultFields
 from ..manual import ManualConfig
 from ..models.log_buffer import LogBuffer
 from ..models.types import BaseCrawlerResult, CrawlersResult, FileInfo
-from ..number import get_number_first_letter, get_number_letters
+from ..number import get_number_first_letter, get_number_letters, strip_escape_strings
 from ..signals import signal
 from ..utils import get_new_release, get_used_time, split_path
 from ..utils.video import get_video_metadata
@@ -148,7 +148,37 @@ def show_movie_info(file_info: FileInfo, result: CrawlersResult):
         LogBuffer.log().write(f"\n     {key:<13}: {value}")
 
 
-async def get_video_size(file_path: Path):
+def _normalize_path_for_definition(file_path: Path, file_number: str = "") -> str:
+    normalized = strip_escape_strings(file_path.as_posix(), manager.config.string)
+    number_candidates = {file_number.upper()} if file_number else set()
+
+    if file_number:
+        short_number = re.findall(r"\d{3,}([A-Z]+-\d+)", file_number.upper())
+        number_candidates.update(short_number)
+
+    for each in sorted((candidate for candidate in number_candidates if candidate), key=len, reverse=True):
+        normalized = normalized.replace(each, "-")
+
+    return normalized
+
+
+def _detect_height_from_path(file_path: Path, file_number: str = "") -> int:
+    normalized = _normalize_path_for_definition(file_path, file_number)
+    pattern_height_map = (
+        ((r"(?<![A-Z0-9])8K(?![A-Z0-9])",), 4000),
+        ((r"(?<![A-Z0-9])4K(?![A-Z0-9])", r"(?<![A-Z0-9])UHD(?![A-Z0-9])"), 2000),
+        ((r"(?<![A-Z0-9])1440P(?![A-Z0-9])", r"(?<![A-Z0-9])QHD(?![A-Z0-9])"), 1440),
+        ((r"(?<![A-Z0-9])1080P(?![A-Z0-9])", r"(?<![A-Z0-9])FHD(?![A-Z0-9])"), 1080),
+        ((r"(?<![A-Z0-9])960P(?![A-Z0-9])",), 960),
+        ((r"(?<![A-Z0-9])720P(?![A-Z0-9])", r"(?<![A-Z0-9])HD(?![A-Z0-9])"), 720),
+    )
+    for patterns, height in pattern_height_map:
+        if any(re.search(pattern, normalized) for pattern in patterns):
+            return height
+    return 0
+
+
+async def get_video_size(file_path: Path, file_number: str = ""):
     """
     获取视频分辨率和编码格式
 
@@ -174,19 +204,7 @@ async def get_video_size(file_path: Path):
         except Exception as e:
             signal.show_log_text(f" 🔴 无法获取视频分辨率! 文件地址: {file_path}  错误信息: {e}")
     elif hd_get == "path":
-        file_path_temp = file_path.as_posix().upper()
-        if "8K" in file_path_temp:
-            height = 4000
-        elif "4K" in file_path_temp or "UHD" in file_path_temp:
-            height = 2000
-        elif "1440P" in file_path_temp or "QHD" in file_path_temp:
-            height = 1440
-        elif "1080P" in file_path_temp or "FHD" in file_path_temp:
-            height = 1080
-        elif "960P" in file_path_temp:
-            height = 960
-        elif "720P" in file_path_temp or "HD" in file_path_temp:
-            height = 720
+        height = _detect_height_from_path(file_path, file_number)
 
     hd_name = manager.config.hd_name
     if not height:
