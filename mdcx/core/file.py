@@ -8,7 +8,7 @@ import aiofiles
 import aiofiles.os
 
 from ..base.number import remove_escape_string
-from ..config.enums import CDChar, MarkType, Switch
+from ..config.enums import CDChar, Switch
 from ..config.manager import manager
 from ..consts import IS_MAC, IS_WINDOWS
 from ..models.enums import FileMode
@@ -208,9 +208,9 @@ def _get_folder_path(success_folder: Path, file_info: FileInfo, res: CrawlersRes
     if not folder_name:
         return success_folder, ""
 
-    show_4k = MarkType.HD in manager.config.mark_type
+    show_4k = manager.config.folder_hd
     show_cnword = manager.config.folder_cnword
-    show_moword = MarkType.SUB in manager.config.mark_type
+    show_moword = manager.config.folder_moword
     should_escape_result = True
     folder_new_name, folder_name, number, originaltitle, outline, title = render_name_template(
         folder_name,
@@ -280,9 +280,9 @@ def _generate_file_name(cd_part, file_info: FileInfo, res: CrawlersResult) -> st
         file_name_template = manager.config.naming_file
 
     # 获取文件信息
-    show_4k = MarkType.HD in manager.config.mark_type
+    show_4k = manager.config.file_hd
     show_cnword = manager.config.file_cnword
-    show_moword = MarkType.SUB in manager.config.mark_type
+    show_moword = manager.config.file_moword
     should_escape_result = True
     file_name, file_name_template, number, originaltitle, outline, title = render_name_template(
         file_name_template,

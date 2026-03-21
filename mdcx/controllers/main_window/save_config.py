@@ -498,6 +498,10 @@ def save_config(self: "MyMAinWindow"):
         (self.Ui.radioButton_videosize_path, "path"),
         default="none",
     )
+    manager.config.folder_moword = get_checkbox(self.Ui.checkBox_foldername_mosaic)
+    manager.config.file_moword = get_checkbox(self.Ui.checkBox_filename_mosaic)
+    manager.config.folder_hd = get_checkbox(self.Ui.checkBox_foldername_4k)
+    manager.config.file_hd = get_checkbox(self.Ui.checkBox_filename_4k)
     # endregion
 
     # region subtitle

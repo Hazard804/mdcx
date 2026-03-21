@@ -711,7 +711,14 @@ def load_config(self: "MyMAinWindow"):
         self.Ui.lineEdit_wuma_style.setText(manager.config.wuma_style)
         # 版本命名规则-有码版
         self.Ui.lineEdit_youma_style.setText(manager.config.youma_style)
-        # show_moword 和 show_4k 已移除，功能已集成到命名模板中
+        # 显示版本字符-视频目录名
+        self.Ui.checkBox_foldername_mosaic.setChecked(manager.config.folder_moword)
+        # 显示版本字符-视频文件名
+        self.Ui.checkBox_filename_mosaic.setChecked(manager.config.file_moword)
+        # 显示4K字符-视频目录名
+        self.Ui.checkBox_foldername_4k.setChecked(manager.config.folder_hd)
+        # 显示4K字符-视频文件名
+        self.Ui.checkBox_filename_4k.setChecked(manager.config.file_hd)
         # 分集命名规则
         set_radio_buttons(
             manager.config.cd_name,

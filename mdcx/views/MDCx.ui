@@ -10056,7 +10056,7 @@
                       <x>0</x>
                       <y>0</y>
                       <width>760</width>
-                      <height>3300</height>
+                      <height>3420</height>
                     </rect>
                   </property>
                   <property name="sizePolicy">
@@ -10375,7 +10375,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>1900</y>
+                        <y>1990</y>
                         <width>701</width>
                         <height>441</height>
                       </rect>
@@ -11225,7 +11225,7 @@
                         <x>30</x>
                         <y>1450</y>
                         <width>701</width>
-                        <height>431</height>
+                        <height>521</height>
                       </rect>
                     </property>
                     <property name="minimumSize">
@@ -11246,32 +11246,29 @@
                     <widget class="QLabel" name="label_285">
                       <property name="geometry">
                         <rect>
-                          <x>300</x>
-                          <y>480</y>
-                          <width>130</width>
+                          <x>157</x>
+                          <y>479</y>
+                          <width>511</width>
                           <height>16</height>
                         </rect>
                       </property>
                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                           <horstretch>0</horstretch>
                           <verstretch>0</verstretch>
                         </sizepolicy>
                       </property>
                       <property name="minimumSize">
                         <size>
-                          <width>130</width>
+                          <width>0</width>
                           <height>0</height>
                         </size>
                       </property>
-                      <property name="layoutDirection">
-                        <enum>Qt::RightToLeft</enum>
+                      <property name="styleSheet">
+                        <string notr="true">color: rgb(8, 128, 128);</string>
                       </property>
                       <property name="text">
-                        <string />
-                      </property>
-                      <property name="alignment">
-                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                        <string>指命名时在番号后添加版本命名字符。你也可以使用 moword 字段来调整添加位置</string>
                       </property>
                     </widget>
                     <widget class="QLineEdit" name="lineEdit_youma_style">
@@ -11736,9 +11733,9 @@
                       <property name="geometry">
                         <rect>
                           <x>21</x>
-                          <y>479</y>
+                          <y>437</y>
                           <width>130</width>
-                          <height>16</height>
+                          <height>30</height>
                         </rect>
                       </property>
                       <property name="sizePolicy">
@@ -11750,17 +11747,67 @@
                       <property name="minimumSize">
                         <size>
                           <width>130</width>
-                          <height>0</height>
+                          <height>30</height>
                         </size>
                       </property>
                       <property name="layoutDirection">
-                        <enum>Qt::RightToLeft</enum>
+                        <enum>Qt::LeftToRight</enum>
                       </property>
                       <property name="text">
-                        <string />
+                        <string>添加马赛克命名字符：</string>
                       </property>
                       <property name="alignment">
                         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                      </property>
+                    </widget>
+                    <widget class="QCheckBox" name="checkBox_foldername_mosaic">
+                      <property name="geometry">
+                        <rect>
+                          <x>160</x>
+                          <y>440</y>
+                          <width>100</width>
+                          <height>30</height>
+                        </rect>
+                      </property>
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                        <size>
+                          <width>100</width>
+                          <height>30</height>
+                        </size>
+                      </property>
+                      <property name="text">
+                        <string>视频目录名</string>
+                      </property>
+                    </widget>
+                    <widget class="QCheckBox" name="checkBox_filename_mosaic">
+                      <property name="geometry">
+                        <rect>
+                          <x>410</x>
+                          <y>440</y>
+                          <width>206</width>
+                          <height>30</height>
+                        </rect>
+                      </property>
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                        <size>
+                          <width>100</width>
+                          <height>30</height>
+                        </size>
+                      </property>
+                      <property name="text">
+                        <string>视频文件名</string>
                       </property>
                     </widget>
                   </widget>
@@ -11768,7 +11815,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>2360</y>
+                        <y>2450</y>
                         <width>701</width>
                         <height>121</height>
                       </rect>
@@ -11875,7 +11922,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>2500</y>
+                        <y>2590</y>
                         <width>701</width>
                         <height>121</height>
                       </rect>
@@ -12330,9 +12377,9 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>2640</y>
+                        <y>2730</y>
                         <width>701</width>
-                        <height>221</height>
+                        <height>301</height>
                       </rect>
                     </property>
                     <property name="minimumSize">
@@ -12552,12 +12599,115 @@
                         </property>
                       </widget>
                     </widget>
+                    <widget class="QLabel" name="label_357">
+                      <property name="geometry">
+                        <rect>
+                          <x>31</x>
+                          <y>218</y>
+                          <width>130</width>
+                          <height>30</height>
+                        </rect>
+                      </property>
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                        <size>
+                          <width>130</width>
+                          <height>30</height>
+                        </size>
+                      </property>
+                      <property name="layoutDirection">
+                        <enum>Qt::LeftToRight</enum>
+                      </property>
+                      <property name="text">
+                        <string>添加 4K 字符：</string>
+                      </property>
+                      <property name="alignment">
+                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                      </property>
+                    </widget>
+                    <widget class="QCheckBox" name="checkBox_filename_4k">
+                      <property name="geometry">
+                        <rect>
+                          <x>420</x>
+                          <y>221</y>
+                          <width>206</width>
+                          <height>30</height>
+                        </rect>
+                      </property>
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                        <size>
+                          <width>100</width>
+                          <height>30</height>
+                        </size>
+                      </property>
+                      <property name="text">
+                        <string>视频文件名</string>
+                      </property>
+                    </widget>
+                    <widget class="QLabel" name="label_358">
+                      <property name="geometry">
+                        <rect>
+                          <x>167</x>
+                          <y>260</y>
+                          <width>511</width>
+                          <height>16</height>
+                        </rect>
+                      </property>
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="styleSheet">
+                        <string notr="true">color: rgb(8, 128, 128);</string>
+                      </property>
+                      <property name="text">
+                        <string>指命名时在番号后添加 4K（仅4K）。你也可以使用 4K 字段来调整添加位置</string>
+                      </property>
+                    </widget>
+                    <widget class="QCheckBox" name="checkBox_foldername_4k">
+                      <property name="geometry">
+                        <rect>
+                          <x>170</x>
+                          <y>221</y>
+                          <width>100</width>
+                          <height>30</height>
+                        </rect>
+                      </property>
+                      <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                        </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                        <size>
+                          <width>100</width>
+                          <height>30</height>
+                        </size>
+                      </property>
+                      <property name="text">
+                        <string>视频目录名</string>
+                      </property>
+                    </widget>
                   </widget>
                   <widget class="QGroupBox" name="groupBox_67">
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>2880</y>
+                        <y>3050</y>
                         <width>701</width>
                         <height>271</height>
                       </rect>

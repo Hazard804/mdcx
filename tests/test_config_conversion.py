@@ -62,3 +62,7 @@ def test_from_legacy():
     assert Website.JAVDB in config.site_configs
     assert config.get_site_url(Website.JAVDB) == "https://test.com"
     assert config.wuma_style == "test_value"
+    assert config.folder_moword is True
+    assert config.file_moword is True
+    assert config.folder_hd is True
+    assert config.file_hd is True

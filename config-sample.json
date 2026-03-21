@@ -671,6 +671,10 @@
   "trailer_simple_name": true,
   "hd_name": "height",
   "hd_get": "path",
+  "folder_moword": true,
+  "file_moword": true,
+  "folder_hd": true,
+  "file_hd": true,
   "cnword_char": [
     "-C",
     "字幕",
