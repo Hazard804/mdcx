@@ -167,7 +167,9 @@ class ConfigV1:
     wanted_website: str = r"javlibrary,javdb"
 
     # translate
-    translate_by: str = r"youdao,google,deepl,"
+    translate_by: str = r"youdao,google,baidu,deepl,"
+    baidu_appid: str = r""
+    baidu_key: str = r""
     deepl_key: str = r""
     llm_url: str = r"https://api.llm.com/v1"
     llm_model: str = r"gpt-3.5-turbo"

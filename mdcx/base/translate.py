@@ -6,7 +6,9 @@ import time
 from typing import Literal, cast
 from urllib.parse import quote
 
+from ..config.enums import Language
 from ..config.manager import manager
+from ..config.models import Translator
 from ..signals import signal
 
 
@@ -164,3 +166,110 @@ async def google_translate(title: str, outline: str) -> tuple[str, str, str | No
     if r1 is None or r2 is None:
         return "", "", f"google 翻译失败! {e1} {e2}"
     return r1, r2, None
+
+
+def get_translator_skip_reason(translator: Translator) -> str | None:
+    translate_config = manager.config.translate_config
+
+    def _missing_reason(fields: list[tuple[str, str]]) -> str | None:
+        missing = [name for name, value in fields if not value.strip()]
+        if not missing:
+            return None
+        return f"{'、'.join(missing)} 未配置"
+
+    if translator == Translator.BAIDU:
+        return _missing_reason([("APP ID", translate_config.baidu_appid), ("密钥", translate_config.baidu_key)])
+    if translator == Translator.DEEPL:
+        return _missing_reason([("DeepLX URL", translate_config.deepl_key)])
+    if translator == Translator.LLM:
+        return _missing_reason([("LLM Model", translate_config.llm_model), ("LLM API Key", translate_config.llm_key)])
+    return None
+
+
+def get_baidu_target_language(language: Language | str) -> str:
+    if language == Language.ZH_CN or language == Language.ZH_CN.value:
+        return "zh"
+    if language == Language.ZH_TW or language == Language.ZH_TW.value:
+        return "zh"
+    if language == Language.EN or language == Language.EN.value:
+        return "en"
+    if language == Language.JP or language == Language.JP.value:
+        return "jp"
+    return "zh"
+
+
+async def _baidu_translate_message(msg: str, target_lang: str) -> tuple[list[str] | None, str]:
+    if not msg:
+        return [], ""
+
+    translate_config = manager.config.translate_config
+    salt = str(int(time.time() * 1000)) + str(random.randint(0, 9))
+    sign = hashlib.md5(f"{translate_config.baidu_appid}{msg}{salt}{translate_config.baidu_key}".encode()).hexdigest()
+    data = {
+        "q": msg,
+        "from": "auto",
+        "to": target_lang,
+        "appid": translate_config.baidu_appid,
+        "salt": salt,
+        "sign": sign,
+    }
+    response, error = await manager.computed.async_client.post_json(
+        "https://fanyi-api.baidu.com/api/trans/vip/translate",
+        data=data,
+    )
+    if response is None:
+        return None, f"百度翻译请求失败: {error}"
+
+    response = cast("dict", response)
+    if error_code := response.get("error_code"):
+        error_msg = response.get("error_msg", "")
+        return None, f"百度翻译失败! {error_code} {error_msg}".strip()
+
+    trans_result = response.get("trans_result")
+    if not trans_result:
+        return None, f"百度翻译返回数据异常: {response}"
+
+    return [str(item.get("dst", "")) for item in trans_result], ""
+
+
+def _merge_baidu_result(lines: list[str], title: str, outline: str) -> tuple[str, str]:
+    title_result = title
+    outline_result = outline
+
+    if title:
+        title_result = lines[0] if lines else title
+        if outline:
+            outline_result = "\n".join(lines[1:]).strip("\n")
+    elif outline:
+        outline_result = "\n".join(lines).strip("\n")
+
+    return title_result, outline_result
+
+
+async def baidu_translate(
+    title: str,
+    outline: str,
+    title_target_lang: str = "zh",
+    outline_target_lang: str = "zh",
+) -> tuple[str, str, str | None]:
+    if not title and not outline:
+        return "", "", None
+
+    if title_target_lang == outline_target_lang:
+        msg = f"{title}\n{outline}" if title and outline else title or outline
+        lines, error = await _baidu_translate_message(msg, title_target_lang)
+        if lines is None:
+            return "", "", error
+        title_result, outline_result = _merge_baidu_result(lines, title, outline)
+        return title_result, outline_result, None
+
+    (title_lines, title_error), (outline_lines, outline_error) = await asyncio.gather(
+        _baidu_translate_message(title, title_target_lang),
+        _baidu_translate_message(outline, outline_target_lang),
+    )
+    if title_lines is None or outline_lines is None:
+        return "", "", " ".join(filter(None, [title_error, outline_error]))
+
+    title_result = "\n".join(title_lines).strip("\n") if title else ""
+    outline_result = "\n".join(outline_lines).strip("\n") if outline else ""
+    return title_result, outline_result, None

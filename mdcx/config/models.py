@@ -56,9 +56,17 @@ def str_to_list(v: str | list[Any] | None, sep: Literal[",", "|"] = ",", unique:
 
 class TranslateConfig(BaseModel):
     translate_by: list[Translator] = Field(
-        default_factory=lambda: [Translator.YOUDAO, Translator.GOOGLE, Translator.DEEPL, Translator.LLM],
+        default_factory=lambda: [
+            Translator.YOUDAO,
+            Translator.GOOGLE,
+            Translator.BAIDU,
+            Translator.DEEPL,
+            Translator.LLM,
+        ],
         title="翻译服务",
     )
+    baidu_appid: str = Field(default="", title="百度 APP ID")
+    baidu_key: str = Field(default="", title="百度密钥")
     deepl_key: str = Field(default="", title="Deepl密钥")
     llm_url: HttpUrl = Field(default=HttpUrl("https://api.llm.com/v1"), title="LLM API Host")
     llm_model: str = Field(default="gpt-3.5-turbo", title="模型 ID")
@@ -889,7 +897,7 @@ class Config(BaseModel):
             for name, info in model_fields.items():
                 assert info.annotation is not None, f"Field {name} has no annotation"
                 # 处理嵌套
-                if issubclass(info.annotation, BaseModel):
+                if isinstance(info.annotation, type) and issubclass(info.annotation, BaseModel):
                     sub_dict = handle_dict(info.annotation.model_fields, data)
                     data[name] = sub_dict
                     continue

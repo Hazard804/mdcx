@@ -134,7 +134,12 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
                     outline += f"\n\n{originalplot}"
                 elif OutlineShow.SHOW_JP_ZH in outline_show:
                     outline = f"{originalplot}\n\n{outline}"
-                outline_from = data.outline_from.capitalize().replace("Youdao", "有道").replace("Llm", "LLM")
+                outline_from = (
+                    data.outline_from.capitalize()
+                    .replace("Youdao", "有道")
+                    .replace("Baidu", "百度")
+                    .replace("Llm", "LLM")
+                )
                 if OutlineShow.SHOW_FROM in outline_show and outline_from:
                     outline += f"\n\n由 {outline_from} 提供翻译"
             if NfoInclude.OUTLINE_NO_CDATA in nfo_include_new:

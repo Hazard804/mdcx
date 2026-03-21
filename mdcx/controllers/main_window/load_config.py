@@ -467,9 +467,14 @@ def load_config(self: "MyMAinWindow"):
             manager.config.translate_config.translate_by,
             (self.Ui.checkBox_youdao, Translator.YOUDAO),
             (self.Ui.checkBox_google, Translator.GOOGLE),
+            (self.Ui.checkBox_baidu, Translator.BAIDU),
             (self.Ui.checkBox_deepl, Translator.DEEPL),
             (self.Ui.checkBox_llm, Translator.LLM),
         )
+
+        # baidu config
+        self.Ui.lineEdit_baidu_appid.setText(manager.config.translate_config.baidu_appid)
+        self.Ui.lineEdit_baidu_key.setText(manager.config.translate_config.baidu_key)
 
         # deepl_key
         self.Ui.lineEdit_deepl_key.setText(manager.config.translate_config.deepl_key)

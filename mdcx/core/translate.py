@@ -1,4 +1,3 @@
-import asyncio
 import random
 import re
 import time
@@ -6,7 +5,15 @@ import traceback
 
 import zhconv
 
-from ..base.translate import deepl_translate, google_translate, llm_translate, youdao_translate
+from ..base.translate import (
+    baidu_translate,
+    deepl_translate,
+    get_baidu_target_language,
+    get_translator_skip_reason,
+    google_translate,
+    llm_translate,
+    youdao_translate,
+)
 from ..base.web import get_actorname, get_yesjav_title
 from ..config.enums import FieldRule, Language, TagInclude
 from ..config.manager import manager
@@ -290,14 +297,22 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
     ):
         start_time = time.time()
         translate_by_list = manager.config.translate_config.translate_by.copy()
-        if not cd_part:
-            random.shuffle(translate_by_list)
-
-        async def _task(each: Translator):
+        random.shuffle(translate_by_list)
+        for each in translate_by_list:
+            if skip_reason := get_translator_skip_reason(each):
+                LogBuffer.log().write(f"\n 🟡 Translation skipped!({each.capitalize()}) {skip_reason}")
+                continue
             if each == Translator.YOUDAO:  # 使用有道翻译
                 t, o, r = await youdao_translate(trans_title, trans_outline)
             elif each == Translator.LLM:  # 使用 llm 翻译
                 t, o, r = await llm_translate(trans_title, trans_outline)
+            elif each == Translator.BAIDU:  # 使用百度翻译
+                t, o, r = await baidu_translate(
+                    trans_title,
+                    trans_outline,
+                    get_baidu_target_language(title_language),
+                    get_baidu_target_language(outline_language),
+                )
             elif each == Translator.DEEPL:  # 使用deepl翻译
                 t, o, r = await deepl_translate(trans_title, trans_outline, "JA")
             else:  # 使用 google 翻译
@@ -306,21 +321,18 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
                 LogBuffer.log().write(
                     f"\n 🔴 Translation failed!({each.capitalize()})({get_used_time(start_time)}s) Error: {r}"
                 )
-            else:
-                if t:
-                    json_data.title = t
-                if o:
-                    json_data.outline = o
-                LogBuffer.log().write(f"\n 🍀 Translation done!({each.capitalize()})({get_used_time(start_time)}s)")
-                json_data.outline_from = each
-                return "break"
-
-        res = await asyncio.gather(*[_task(each) for each in translate_by_list])
-        for r in res:
-            if r == "break":
-                break
+                continue
+            if t:
+                json_data.title = t
+            if o:
+                json_data.outline = o
+            LogBuffer.log().write(f"\n 🍀 Translation done!({each.capitalize()})({get_used_time(start_time)}s)")
+            json_data.outline_from = each
+            break
         else:
-            LogBuffer.log().write(f"\n 🔴 Translation failed! {translate_by} 不可用！({get_used_time(start_time)}s)")
+            LogBuffer.log().write(
+                f"\n 🔴 Translation failed! {translate_by} 均失败或不可用！({get_used_time(start_time)}s)"
+            )
 
     # 简繁转换
     if title_language == "zh_cn":

@@ -128,6 +128,7 @@ async def test_translate_title_outline_supports_english(monkeypatch: pytest.Monk
 
     monkeypatch.setattr(core_translate, "manager", _Manager())
     monkeypatch.setattr(core_translate, "llm_translate", fake_llm_translate)
+    monkeypatch.setattr(core_translate, "get_translator_skip_reason", lambda _translator: None)
 
     data = CrawlersResult.empty()
     data.title = "A western movie title"
@@ -171,6 +172,7 @@ async def test_translate_title_outline_supports_long_english_outline(monkeypatch
 
     monkeypatch.setattr(core_translate, "manager", _Manager())
     monkeypatch.setattr(core_translate, "llm_translate", fake_llm_translate)
+    monkeypatch.setattr(core_translate, "get_translator_skip_reason", lambda _translator: None)
 
     data = CrawlersResult.empty()
     data.title = "Youngermommy.24.11.09"
@@ -182,3 +184,66 @@ async def test_translate_title_outline_supports_long_english_outline(monkeypatch
     await core_translate.translate_title_outline(data, cd_part="-CD1", movie_number="Youngermommy.24.11.09")
 
     assert data.outline.startswith("CN::Ricky Spanish is on the phone")
+
+
+def test_get_baidu_target_language():
+    from mdcx.base.translate import get_baidu_target_language
+
+    assert get_baidu_target_language(Language.ZH_CN) == "zh"
+    assert get_baidu_target_language(Language.ZH_TW) == "zh"
+    assert get_baidu_target_language(Language.JP) == "jp"
+    assert get_baidu_target_language(Language.EN) == "en"
+
+
+@pytest.mark.asyncio
+async def test_translate_title_outline_skips_unconfigured_baidu_and_falls_back(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.core import translate as core_translate
+
+    class _FieldCfg:
+        def __init__(self, language: Language, translate: bool):
+            self.language = language
+            self.translate = translate
+
+    class _TranslateCfg:
+        def __init__(self):
+            self.translate_by = [Translator.BAIDU, Translator.LLM]
+            self.baidu_appid = ""
+            self.baidu_key = ""
+            self.deepl_key = ""
+            self.llm_model = "test-model"
+            self.llm_key = "test-key"
+
+    class _Cfg:
+        def __init__(self):
+            self.title_sehua = False
+            self.title_sehua_zh = False
+            self.title_yesjav = False
+            self.translate_config = _TranslateCfg()
+
+        def get_field_config(self, _field):
+            return _FieldCfg(Language.ZH_CN, True)
+
+    class _Manager:
+        def __init__(self):
+            self.config = _Cfg()
+
+    async def fake_llm_translate(title: str, outline: str):
+        return f"CN::{title}", f"CN::{outline}", ""
+
+    monkeypatch.setattr(core_translate, "manager", _Manager())
+    monkeypatch.setattr(core_translate, "llm_translate", fake_llm_translate)
+    monkeypatch.setattr(core_translate.random, "shuffle", lambda items: None)
+    monkeypatch.setattr(
+        core_translate,
+        "get_translator_skip_reason",
+        lambda translator: "APP ID、密钥 未配置" if translator == Translator.BAIDU else None,
+    )
+
+    data = CrawlersResult.empty()
+    data.title = "A western movie title"
+    data.outline = "An English overview."
+
+    await core_translate.translate_title_outline(data, cd_part="-CD1", movie_number="ABC-123")
+
+    assert data.title == "CN::A western movie title"
+    assert data.outline == "CN::An English overview."

@@ -7,13 +7,21 @@ from typing import Any
 import bs4
 import zhconv
 
-from ..base.translate import deepl_translate, google_translate, llm_translate, youdao_translate
+from ..base.translate import (
+    baidu_translate,
+    deepl_translate,
+    get_translator_skip_reason,
+    google_translate,
+    llm_translate,
+    youdao_translate,
+)
 from ..config.enums import EmbyAction
 from ..config.manager import manager
 from ..config.models import Translator
 from ..config.resources import resources
 from ..manual import ManualConfig
 from ..models.emby import EMbyActressInfo
+from ..signals import signal
 from ..utils.language import is_english
 
 
@@ -511,21 +519,33 @@ async def _process_translation(actor_info: EMbyActressInfo, overview: str, ja: b
     return overview
 
 
+def _get_actor_info_baidu_target_lang(emby_on: list[EmbyAction]) -> str:
+    return "zh"
+
+
 async def _translate_english_tag(tag_req: str, translate_by_list: list[Translator], actor_info: EMbyActressInfo) -> str:
     """翻译英文标签"""
+    target_lang = _get_actor_info_baidu_target_lang(manager.config.emby_on)
     for each in translate_by_list:
+        if skip_reason := get_translator_skip_reason(each):
+            signal.add_log(f"🟡 Translation skipped!({each.capitalize()}) {skip_reason}")
+            continue
         if each == Translator.YOUDAO:
             t, o, r = await youdao_translate(tag_req, "")
         elif each == Translator.GOOGLE:
             t, o, r = await google_translate(tag_req, "")
+        elif each == Translator.BAIDU:
+            t, o, r = await baidu_translate(tag_req, "", target_lang, target_lang)
         elif each == Translator.LLM:
             t, o, r = await llm_translate(tag_req, "")
         else:  # deepl
             t, o, r = await deepl_translate(tag_req, "", ls="EN")
 
-        if not r:
-            actor_info.taglines = [t]
-            return ""  # 清空tag_req表示已翻译
+        if r:
+            signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {r}")
+            continue
+        actor_info.taglines = [t]
+        return ""  # 清空tag_req表示已翻译
     return tag_req
 
 
@@ -533,22 +553,30 @@ async def _translate_content(
     tag: str, overview_req: str, translators: list[Translator], info: EMbyActressInfo, overview: str
 ) -> str:
     """翻译主要内容"""
+    target_lang = _get_actor_info_baidu_target_lang(manager.config.emby_on)
     for each in translators:
+        if skip_reason := get_translator_skip_reason(each):
+            signal.add_log(f"🟡 Translation skipped!({each.capitalize()}) {skip_reason}")
+            continue
         if each == Translator.YOUDAO:
             t, o, r = await youdao_translate(tag, overview_req)
         elif each == Translator.GOOGLE:
             t, o, r = await google_translate(tag, overview_req)
+        elif each == Translator.BAIDU:
+            t, o, r = await baidu_translate(tag, overview_req, target_lang, target_lang)
         elif each == Translator.LLM:
             t, o, r = await llm_translate(tag, overview_req)
         else:  # deepl
             t, o, r = await deepl_translate(tag, overview_req)
 
-        if not r:
-            if tag:
-                info.taglines = [t]
-            if overview_req:
-                overview = _clean_translated_overview(o)
-            break
+        if r:
+            signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {r}")
+            continue
+        if tag:
+            info.taglines = [t]
+        if overview_req:
+            overview = _clean_translated_overview(o)
+        break
     return overview
 
 
@@ -608,6 +636,13 @@ def _finalize_overview(
     # 语言特定处理
     if EmbyAction.ACTOR_INFO_ZH_TW in emby_on and overview:
         overview = zhconv.convert(overview, "zh-hant")
+    elif EmbyAction.ACTOR_INFO_ZH_CN in emby_on and overview:
+        overview = zhconv.convert(overview, "zh-cn")
+
+    if EmbyAction.ACTOR_INFO_ZH_TW in emby_on and actor_info.taglines:
+        actor_info.taglines = [zhconv.convert(each, "zh-hant") for each in actor_info.taglines]
+    elif EmbyAction.ACTOR_INFO_ZH_CN in emby_on and actor_info.taglines:
+        actor_info.taglines = [zhconv.convert(each, "zh-cn") for each in actor_info.taglines]
     elif EmbyAction.ACTOR_INFO_JA in emby_on:
         overview = overview.replace("== 个人资料 ==", "== 個人情報 ==")
         overview = overview.replace("== 人物介绍 ==", "== 人物紹介 ==")

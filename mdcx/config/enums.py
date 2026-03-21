@@ -234,12 +234,13 @@ class NfoInclude(Enum):
 class Translator(Enum):
     YOUDAO = "youdao"
     GOOGLE = "google"
+    BAIDU = "baidu"
     DEEPL = "deepl"
     LLM = "llm"
 
     @classmethod
     def names(cls):
-        return ["有道", "谷歌", "Deepl", "LLM"]
+        return ["有道", "谷歌", "百度", "Deepl", "LLM"]
 
 
 class ReadMode(Enum):
