@@ -1,3 +1,5 @@
+from parsel import Selector
+
 from mdcx.crawlers.dmm_new import DmmCrawler
 
 
@@ -95,3 +97,34 @@ def test_pick_best_unvalidated_trailer_skips_m3u8():
         ],
     )
     assert best == "https://x/cspl00022hhb.mp4"
+
+
+def test_extract_search_detail_urls_prefers_clean_hrefs():
+    html = Selector(
+        """
+        <html><body>
+        <a href="https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=dvdms674/?i3_ref=search&amp;i3_ord=6">mono</a>
+        <script>
+        {"detailUrl":"https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=dvdms674/?i3_"])</script><script>self.__next_f.push([1,"ref=search\\u0026i3_ord=6"}
+        </script>
+        </body></html>
+        """
+    )
+
+    assert DmmCrawler._extract_search_detail_urls(
+        html, "https://www.dmm.co.jp/search/=/searchstr=dvdms00674/sort=ranking/"
+    ) == ["https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=dvdms674/?i3_ref=search&i3_ord=6"]
+
+
+def test_extract_search_detail_urls_recovers_split_detail_url_without_href():
+    html = Selector(
+        """
+        <html><body><script>
+        {"detailUrl":"https"])</script><script>self.__next_f.push([1,"://www.dmm.co.jp/monthly/premium/-/detail/=/cid=dvdms00674/?i3_ref=search\\u0026i3_ord=4"}
+        </script></body></html>
+        """
+    )
+
+    assert DmmCrawler._extract_search_detail_urls(
+        html, "https://www.dmm.co.jp/search/=/searchstr=dvdms00674/sort=ranking/"
+    ) == ["https://www.dmm.co.jp/monthly/premium/-/detail/=/cid=dvdms00674/?i3_ref=search&i3_ord=4"]

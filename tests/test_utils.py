@@ -1,6 +1,6 @@
 import pytest
 
-from mdcx.utils import clean_list
+from mdcx.utils import add_html_plain_text, clean_list, collapse_inline_script_splits
 from mdcx.utils.language import is_english, is_japanese, is_probably_english_for_translation
 
 
@@ -50,6 +50,26 @@ def test_is_english(s, expected):
 )
 def test_clean_list(s, expected):
     assert clean_list(s) == expected
+
+
+def test_collapse_inline_script_splits_recovers_streamed_text():
+    text = 'https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=dvdms674/?i3_"])</script><script>self.__next_f.push([1,"ref=search\\u0026i3_ord=6'
+    assert (
+        collapse_inline_script_splits(text)
+        == "https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=dvdms674/?i3_ref=search\\u0026i3_ord=6"
+    )
+
+
+def test_add_html_plain_text_escapes_script_like_content_and_keeps_full_message():
+    text = (
+        'GET https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=dvdms674/?i3_"])'
+        '</script><script>self.__next_f.push([1,"ref=search&i3_ord=6'
+    )
+    rendered = add_html_plain_text(text)
+
+    assert "&lt;/script&gt;&lt;script&gt;" in rendered
+    assert "self.__next_f.push([1,&quot;ref=search&amp;i3_ord=6" in rendered
+    assert '<a href="https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=dvdms674/?i3_' in rendered
 
 
 @pytest.mark.parametrize(

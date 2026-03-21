@@ -59,7 +59,16 @@ from mdcx.tools.emby_actor_image import update_emby_actor_photo
 from mdcx.tools.emby_actor_info import creat_kodi_actors, show_emby_actor_list, update_emby_actor_info
 from mdcx.tools.missing import check_missing_number
 from mdcx.tools.subtitle import add_sub_for_all_video
-from mdcx.utils import _async_raise, add_html, executor, get_current_time, get_used_time, kill_a_thread, split_path
+from mdcx.utils import (
+    _async_raise,
+    add_html,
+    add_html_plain_text,
+    executor,
+    get_current_time,
+    get_used_time,
+    kill_a_thread,
+    split_path,
+)
 from mdcx.utils.file import delete_file_sync, open_file_thread
 from mdcx.views.MDCx import Ui_MDCx
 
@@ -1414,13 +1423,13 @@ class MyMAinWindow(QMainWindow):
     def show_detail_log(self):
         text = signal_qt.get_log()
         if text and manager.config.show_web_log:
-            self.main_req_logs_show.emit(add_html(text))
+            self.main_req_logs_show.emit(add_html_plain_text(text))
             if self.req_logs_counts < 10000:
                 self.req_logs_counts += 1
             else:
                 self.req_logs_counts = 0
                 self.req_logs_clear.emit("")
-                self.main_req_logs_show.emit(add_html(" 🗑️ 日志过多，已清屏！"))
+                self.main_req_logs_show.emit(add_html_plain_text(" 🗑️ 日志过多，已清屏！"))
 
     # 日志页面显示内容
     def show_log_text(self, text):

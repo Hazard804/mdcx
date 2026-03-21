@@ -3,6 +3,7 @@ import concurrent
 import concurrent.futures
 import contextlib
 import ctypes
+import html
 import inspect
 import random
 import re
@@ -151,6 +152,8 @@ class AsyncBackgroundExecutor:
 
 
 executor = AsyncBackgroundExecutor()  # 全局执行器
+_INLINE_SCRIPT_SPLIT_RE = re.compile(r'"\]\)\s*</script>\s*<script>\s*self\.__next_f\.push\(\[\d+,\s*"', re.IGNORECASE)
+_TEXT_URL_RE = re.compile(r'(?<!["\'=])(https?://[^\s"\'<>]+)', re.IGNORECASE)
 
 
 def get_current_time() -> str:
@@ -163,6 +166,10 @@ def get_used_time(start_time: float) -> float:
 
 def get_real_time(t) -> str:
     return time.strftime("%H:%M:%S", time.localtime(t))
+
+
+def collapse_inline_script_splits(text: str) -> str:
+    return _INLINE_SCRIPT_SPLIT_RE.sub("", str(text or ""))
 
 
 def add_html(text: str) -> str:
@@ -183,6 +190,22 @@ def add_html(text: str) -> str:
 
     # 链接放在span里，避免点击后普通文本变超链接，设置样式为pre-wrap（保留空格换行）
     return f'<span style="white-space: pre-wrap;">{text}</span>'
+
+
+def add_html_plain_text(text: str) -> str:
+    text = str(text or "")
+    parts: list[str] = []
+    last_end = 0
+
+    for match in _TEXT_URL_RE.finditer(text):
+        parts.append(html.escape(text[last_end : match.start()]))
+        each_url = match.group(1)
+        safe_href = html.escape(each_url, quote=True).replace("&#x27;", "&#39;")
+        parts.append(f'<a href="{safe_href}">{html.escape(each_url)}</a>')
+        last_end = match.end()
+
+    parts.append(html.escape(text[last_end:]))
+    return f'<span style="white-space: pre-wrap;">{"".join(parts)}</span>'
 
 
 def clean_list(a: str) -> str:

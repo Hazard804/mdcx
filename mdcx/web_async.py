@@ -18,6 +18,8 @@ from curl_cffi.requests.session import HttpMethod
 from curl_cffi.requests.utils import not_set
 from PIL import Image
 
+from .utils import collapse_inline_script_splits
+
 
 class AsyncWebLimiters:
     def __init__(self):
@@ -323,17 +325,33 @@ class AsyncWebClient:
         cleaned = (url or "").strip()
         if not cleaned:
             return cleaned, False
-        # 过滤类似 https://x.com?a=1">https://x.com?a=1 这类污染字符串
+        candidates: list[str] = []
+        collapsed = collapse_inline_script_splits(cleaned).strip()
+        if collapsed:
+            candidates.append(collapsed)
+        if cleaned not in candidates:
+            candidates.append(cleaned)
+
+        # 过滤类似 https://x.com?a=1">https://x.com?a=1 这类污染字符串，也兼容 Next.js 流式脚本分片插入。
         # 允许保留空格，随后交给 URL 解析器做编码，避免查询参数在空格处被截断。
-        match = re.match(r"^(https?://[^\"'<>]+)", cleaned)
-        if not match:
-            return cleaned, False
-        normalized = match.group(1).strip()
-        try:
-            normalized = str(httpx.URL(normalized))
-        except Exception:
-            pass
-        return normalized, normalized != cleaned
+        for source in candidates:
+            source_matches: list[str] = []
+            if match := re.match(r"^(https?://[^\"'<>]+)", source):
+                source_matches.append(match.group(1).strip())
+            if not source_matches:
+                source_matches.extend(match.group(0).strip() for match in re.finditer(r"https?://[^\s\"'<>]+", source))
+
+            for normalized in source_matches:
+                try:
+                    parsed = httpx.URL(normalized)
+                except Exception:
+                    continue
+                if not parsed.host:
+                    continue
+                normalized = str(parsed)
+                return normalized, normalized != cleaned
+
+        return cleaned, False
 
     def _log_cf(self, message: str, host: str = "") -> None:
         host_prefix = f"{host} " if host else ""

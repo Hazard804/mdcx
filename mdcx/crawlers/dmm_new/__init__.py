@@ -17,6 +17,7 @@ from mdcx.config.manager import manager
 from mdcx.config.models import Website
 from mdcx.models.types import CrawlerInput
 from mdcx.signals import signal
+from mdcx.utils import collapse_inline_script_splits
 from mdcx.utils.dataclass import update_valid
 from mdcx.utils.gather_group import GatherGroup
 from mdcx.web_async import AsyncWebClient
@@ -148,13 +149,75 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             f"https://www.dmm.com/search/=/searchstr={number_no_00}/sort=ranking/",  # 写真
         ]
 
+    @staticmethod
+    def _normalize_search_result_url(raw_url: str, *, search_url: str = "") -> str:
+        normalized = str(raw_url or "").strip()
+        if not normalized:
+            return ""
+
+        normalized = collapse_inline_script_splits(normalized)
+        normalized = html_utils.unescape(normalized)
+        try:
+            normalized = normalized.encode("utf-8").decode("unicode_escape")
+        except UnicodeDecodeError:
+            pass
+        normalized = html_utils.unescape(normalized).replace("\\/", "/").strip()
+        if search_url:
+            normalized = urljoin(search_url, normalized)
+        return normalized
+
+    @staticmethod
+    def _is_search_detail_url(url: str) -> bool:
+        normalized = str(url or "").strip()
+        if not normalized:
+            return False
+        if re.search(r"^https?://tv\.dmm\.co\.jp/list/\?[^#]*\bcontent=", normalized, flags=re.IGNORECASE):
+            return True
+        if re.search(r"^https?://tv\.dmm\.com/[^#]*[?&]seasonId=", normalized, flags=re.IGNORECASE):
+            return True
+        if re.search(r"^https?://video\.dmm\.co\.jp/av/content/\?[^#]*\bid=", normalized, flags=re.IGNORECASE):
+            return True
+        if re.search(
+            r"^https?://(?:www\.)?dmm\.(?:co\.jp|com)/[^\"'<>]+/-/detail/=/cid=[^/?#]+/",
+            normalized,
+            flags=re.IGNORECASE,
+        ):
+            return True
+        return False
+
+    @classmethod
+    def _extract_search_detail_urls(cls, html: Selector, search_url: str) -> list[str]:
+        detail_urls: list[str] = []
+        seen: set[str] = set()
+
+        def _append_candidate(raw_url: str):
+            normalized = cls._normalize_search_result_url(raw_url, search_url=search_url)
+            if not normalized or not cls._is_search_detail_url(normalized):
+                return
+            if normalized in seen:
+                return
+            seen.add(normalized)
+            detail_urls.append(normalized)
+
+        for href in html.xpath("//a[@href]/@href").getall():
+            _append_candidate(href)
+
+        raw_html = collapse_inline_script_splits(html.get() or "")
+        for pattern in (
+            r'(?:detailUrl|detail_url)\\":\\"(.*?)\\"',
+            r'"(?:detailUrl|detail_url)":"(.*?)"',
+        ):
+            for raw_url in re.findall(pattern, raw_html):
+                _append_candidate(raw_url)
+
+        return detail_urls
+
     @override
     async def _parse_search_page(self, ctx, html, search_url) -> list[str] | None:
         if "404 Not Found" in html.css("span.d-txten::text").get(""):
             raise CralwerException("404! 页面地址错误！")
 
-        # \"detailUrl\":\"https://www.dmm.co.jp/digital/videoa/-/detail/=/cid=ssni00103/?i3_ord=1\u0026i3_ref=search"
-        url_list = set(html.re(r'detailUrl\\":\\"(.*?)\\"'))
+        url_list = self._extract_search_detail_urls(html, search_url)
         if not url_list:
             ctx.debug(f"没有找到搜索结果: {ctx.input.number} {search_url=}")
             return None
@@ -163,7 +226,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         if not number_parts:
             ctx.debug(f"无法从番号 {ctx.input.number} 提取前缀和数字")
             return None
-        prefix = number_parts.group(1)
+        prefix = number_parts.group(1) or ""
         digits = number_parts.group(2)
         n1 = f"{prefix}{digits:0>5}"
         n2 = f"{prefix}{digits}"
@@ -173,8 +236,10 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             # https://tv.dmm.co.jp/list/?content=mide00726&i3_ref=search&i3_ord=1
             # https://www.dmm.co.jp/digital/videoa/-/detail/=/cid=mide00726/?i3_ref=search&i3_ord=2
             # https://www.dmm.com/mono/dvd/-/detail/=/cid=n_709mmrak089sp/?i3_ref=search&i3_ord=1
-            if re.search(rf"[^a-z]{n1}[^0-9]", u) or re.search(rf"[^a-z]{n2}[^0-9]", u):
-                res.append(u.encode("utf-8").decode("unicode_escape"))
+            if re.search(rf"[^a-z]{n1}[^0-9]", u, flags=re.IGNORECASE) or re.search(
+                rf"[^a-z]{n2}[^0-9]", u, flags=re.IGNORECASE
+            ):
+                res.append(u)
 
         return res
 
