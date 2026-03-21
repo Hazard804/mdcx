@@ -24,9 +24,12 @@ from ..utils import get_used_time
 from ..utils.file import copy_file_async
 from .actress_db import ActressDB
 from .emby_actor_image import (
+    _build_jellyfin_headers,
     _generate_server_url,
+    _get_actor_detail,
     _get_emby_actor_list,
     _get_gfriends_actor_data,
+    _is_jellyfin_server,
     update_emby_actor_photo,
 )
 from .wiki import get_detail, search_wiki
@@ -100,8 +103,8 @@ async def _process_actor_async(actor: dict, emby_on: list[EmbyAction]) -> tuple[
         server_id = actor.get("ServerId", "")
         actor_id = actor.get("Id", "")
         # 已有资料时跳过
-        actor_homepage, actor_person, _, _, _, update_url = _generate_server_url(actor)
-        res, error = await manager.computed.async_client.get_json(actor_person, use_proxy=False)
+        actor_homepage, _, _, _, _, update_url = _generate_server_url(actor)
+        res, error = await _get_actor_detail(actor)
         if res is None:
             return 0, f"🔴 {actor_name}: Emby/Jellyfin 获取演员信息错误！\n    错误信息: {error}"
 
@@ -131,8 +134,9 @@ async def _process_actor_async(actor: dict, emby_on: list[EmbyAction]) -> tuple[
         # summary
         summary = "\n    " + "\n".join(logs) if logs else ""
         if db_exist or wiki_found:
+            headers = _build_jellyfin_headers() if _is_jellyfin_server() else None
             res, error = await manager.computed.async_client.post_text(
-                update_url, json_data=actor_info.dump(), use_proxy=False
+                update_url, json_data=actor_info.dump(), headers=headers, use_proxy=False
             )
             if res is not None:
                 return (
@@ -188,10 +192,8 @@ async def show_emby_actor_list(mode: int) -> None:
         logs = ""
         for actor_js in actor_list:
             actor_name = actor_js["Name"]
-            actor_imagetages = actor_js["ImageTags"]
-            actor_homepage, actor_person, pic_url, backdrop_url, backdrop_url_0, update_url = _generate_server_url(
-                actor_js
-            )
+            actor_imagetages = actor_js.get("ImageTags")
+            actor_homepage, _, _, _, _, _ = _generate_server_url(actor_js)
             # http://192.168.5.191:8096/web/index.html#!/item?id=2146&serverId=57cdfb2560294a359d7778e7587cdc98
 
             if actor_imagetages:
@@ -214,10 +216,10 @@ async def show_emby_actor_list(mode: int) -> None:
                 count += 1
             else:
                 # http://192.168.5.191:8096/emby/Persons/梦乃爱华?api_key=ee9a2f2419704257b1dd60b975f2d64e
-                res, error = await manager.computed.async_client.get_json(actor_person, use_proxy=False)
+                res, error = await _get_actor_detail(actor_js)
                 if res is None:
                     signal.show_log_text(
-                        f"\n🔴 {count}/{total} Emby 获取演员信息错误！👩🏻 {actor_name} \n    错误信息: {error}"
+                        f"\n🔴 {count}/{total} Emby/Jellyfin 获取演员信息错误！👩🏻 {actor_name} \n    错误信息: {error}"
                     )
                     continue
                 overview = res.get("Overview")
