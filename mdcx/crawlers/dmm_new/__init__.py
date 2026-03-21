@@ -69,6 +69,134 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     def _log(message: str) -> None:
         signal.add_log(f"🎬 [DMM] {message}")
 
+    @staticmethod
+    def _dedupe_urls(urls: Sequence[str]) -> list[str]:
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for url in urls:
+            normalized = str(url or "").strip()
+            if not normalized:
+                continue
+            normalized = DmmCrawler._with_https(normalized)
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            deduped.append(normalized)
+        return deduped
+
+    @staticmethod
+    def _is_dmm_image_url(url: str) -> bool:
+        normalized = str(url or "").strip()
+        if normalized.startswith("//"):
+            normalized = "https:" + normalized
+        host = urlsplit(normalized).netloc.lower()
+        return host.endswith("dmm.co.jp") or host.endswith("dmm.com")
+
+    def _build_aws_thumb_candidates(self, ctx: DMMContext, thumb_url: str) -> list[str]:
+        normalized = self._with_https(str(thumb_url or "").strip())
+        if "pics.dmm.co.jp" not in normalized:
+            return []
+
+        candidates = [
+            normalized.replace("pics.dmm.co.jp", "awsimgsrc.dmm.co.jp/pics_dig").replace("/adult/", "/"),
+        ]
+        if ctx.number_00:
+            candidates.append(
+                f"https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/{ctx.number_00}/{ctx.number_00}pl.jpg"
+            )
+        if ctx.number_no_00:
+            candidates.append(
+                f"https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/{ctx.number_no_00}/{ctx.number_no_00}pl.jpg"
+            )
+        return self._dedupe_urls(candidates)
+
+    def _build_poster_candidates(self, thumb_url: str, poster_url: str) -> list[str]:
+        candidates: list[str] = []
+        if poster_url:
+            candidates.append(poster_url)
+        if thumb_url:
+            candidates.append(thumb_url.replace("pl.jpg", "ps.jpg"))
+        return self._dedupe_urls(candidates)
+
+    async def _validate_image_url(self, ctx: DMMContext, image_url: str, *, label: str) -> str:
+        normalized = self._with_https(str(image_url or "").strip())
+        if not normalized:
+            return ""
+        if not self._is_dmm_image_url(normalized):
+            return normalized
+
+        validated = await check_url(normalized)
+        if not validated:
+            ctx.debug(f"{label} 无效，已丢弃: {normalized}")
+            return ""
+
+        validated_url = self._with_https(str(validated).strip())
+        if validated_url != normalized:
+            ctx.debug(f"{label} 重定向: {normalized} -> {validated_url}")
+        return validated_url
+
+    async def _pick_first_valid_image(self, ctx: DMMContext, image_urls: Sequence[str], *, label: str) -> str:
+        candidates = self._dedupe_urls(image_urls)
+        for index, image_url in enumerate(candidates):
+            validated = await self._validate_image_url(ctx, image_url, label=label)
+            if validated:
+                if index > 0:
+                    self._log(f"图片[{label}回退命中]: {validated}")
+                return validated
+        if candidates:
+            self._log(f"图片[{label}]候选全部失效: {len(candidates)}")
+        return ""
+
+    async def _sanitize_image_list(self, ctx: DMMContext, image_urls: Sequence[str], *, label: str) -> list[str]:
+        candidates = self._dedupe_urls(image_urls)
+        if not candidates:
+            return []
+
+        results = await asyncio.gather(
+            *[
+                self._validate_image_url(ctx, image_url, label=f"{label}[{index + 1}]")
+                for index, image_url in enumerate(candidates)
+            ]
+        )
+        valid_urls: list[str] = []
+        for image_url in results:
+            if image_url and image_url not in valid_urls:
+                valid_urls.append(image_url)
+        if len(valid_urls) != len(candidates):
+            self._log(f"图片[{label}过滤]: 保留 {len(valid_urls)}/{len(candidates)}")
+        return valid_urls
+
+    async def _sanitize_candidate_images(
+        self,
+        ctx: DMMContext,
+        category: Category,
+        detail_url: str,
+        item: CrawlerData,
+    ) -> CrawlerData:
+        label = f"{category.value}:{detail_url}"
+        original_thumb = str(item.thumb or "") if is_valid(item.thumb) else ""
+        item.thumb = await self._pick_first_valid_image(
+            ctx,
+            [*self._build_aws_thumb_candidates(ctx, original_thumb), original_thumb],
+            label=f"{label} thumb",
+        )
+
+        original_poster = str(item.poster or "") if is_valid(item.poster) else ""
+        item.poster = await self._pick_first_valid_image(
+            ctx,
+            self._build_poster_candidates(item.thumb, original_poster),
+            label=f"{label} poster",
+        )
+
+        should_validate_extrafanart = DownloadableFile.EXTRAFANART in manager.config.download_files
+        if should_validate_extrafanart and is_valid(item.extrafanart):
+            item.extrafanart = await self._sanitize_image_list(
+                ctx,
+                list(item.extrafanart),
+                label=f"{label} extrafanart",
+            )
+        return item
+
     @classmethod
     def _canonicalize_detail_url(cls, url: str) -> str:
         normalized = cls._normalize_search_result_url(url)
@@ -456,6 +584,18 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             return None
 
         candidate_results = list(zip(task_categories, task_urls, group.results, strict=True))
+        sanitized_results = await asyncio.gather(
+            *[
+                self._sanitize_candidate_images(ctx, category, detail_url, item)
+                if not isinstance(item, Exception)
+                else asyncio.sleep(0, result=item)
+                for category, detail_url, item in candidate_results
+            ]
+        )
+        candidate_results = [
+            (category, detail_url, item)
+            for (category, detail_url, _), item in zip(candidate_results, sanitized_results, strict=True)
+        ]
         res, best_trailer = self._merge_detail_results(
             ctx,
             [(category, item) for category, _, item in candidate_results],
@@ -1015,19 +1155,21 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         res.image_download = use_direct_download
         res.originaltitle = res.title
         res.originalplot = res.outline
-        # check aws image
-        if res.thumb and "pics.dmm.co.jp" in res.thumb:
-            aws_urls = [
-                res.thumb.replace("pics.dmm.co.jp", "awsimgsrc.dmm.co.jp/pics_dig").replace("/adult/", "/"),
-                f"https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/{ctx.number_00}/{ctx.number_00}pl.jpg",
-                f"https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/{ctx.number_no_00}/{ctx.number_no_00}pl.jpg",
-            ]
-            for aws_url in aws_urls:
-                if await check_url(aws_url):
-                    self._log(f"图片[AWS高清图命中]: {aws_url}")
-                    res.thumb = aws_url
-                    break
-        res.poster = res.thumb.replace("pl.jpg", "ps.jpg")
+        original_thumb = str(res.thumb or "").strip()
+        thumb_candidates = [*self._build_aws_thumb_candidates(ctx, original_thumb), original_thumb]
+        res.thumb = await self._pick_first_valid_image(ctx, thumb_candidates, label="最终 thumb")
+        if res.thumb and res.thumb != original_thumb and "awsimgsrc.dmm.co.jp" in res.thumb:
+            self._log(f"图片[AWS高清图命中]: {res.thumb}")
+
+        original_poster = str(res.poster or "").strip()
+        res.poster = await self._pick_first_valid_image(
+            ctx,
+            self._build_poster_candidates(res.thumb, original_poster),
+            label="最终 poster",
+        )
+        if res.image_download and not res.poster:
+            self._log("图片[Poster失效]: 直下封面无可用候选，改为裁剪/回退模式")
+            res.image_download = False
 
         # 对SOD工作室进行图片大小比较（在poster赋值之后）
         if not use_youma_poster and is_sod_studio and res.poster and res.thumb:

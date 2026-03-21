@@ -8,6 +8,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, overload
 
+import aiofiles
 import aiofiles.os
 import httpx
 from lxml import etree
@@ -733,9 +734,44 @@ async def download_file_with_filepath(url: str, file_path: Path, folder_new_path
     return False
 
 
+async def download_content_with_filepath(url: str, file_path: Path, folder_new_path: Path) -> bool:
+    if not url:
+        return False
+
+    if not await aiofiles.os.path.exists(folder_new_path):
+        await aiofiles.os.makedirs(folder_new_path)
+
+    try:
+        content, error = await manager.computed.async_client.get_content(url)
+        if not content:
+            LogBuffer.log().write(f"\n 🥺 Download failed! {url} {error}")
+            return False
+
+        is_webp = file_path.suffix.lower() == ".jpg" and ".webp" in url.lower()
+        if not is_webp:
+            async with aiofiles.open(file_path, "wb") as f:
+                await f.write(content)
+            return True
+
+        byte_stream = BytesIO(content)
+        img = Image.open(byte_stream)
+        try:
+            if img.mode == "RGBA":
+                img = img.convert("RGB")
+            img.save(file_path, quality=95, subsampling=0)
+        finally:
+            img.close()
+        return True
+    except Exception:
+        pass
+
+    LogBuffer.log().write(f"\n 🥺 Download failed! {url}")
+    return False
+
+
 async def download_extrafanart_task(task: tuple[str, Path, Path, str]) -> bool:
     extrafanart_url, extrafanart_file_path, extrafanart_folder_path, extrafanart_name = task
-    if await download_file_with_filepath(extrafanart_url, extrafanart_file_path, extrafanart_folder_path):
+    if await download_content_with_filepath(extrafanart_url, extrafanart_file_path, extrafanart_folder_path):
         if await check_pic_async(extrafanart_file_path):
             return True
     else:
