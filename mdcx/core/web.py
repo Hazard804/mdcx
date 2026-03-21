@@ -132,6 +132,27 @@ async def get_big_pic_by_amazon(
         normalized_text = convert_half(re.sub(r"\s+", " ", text or "")).upper()
         return sum(1 for group in actor_groups_normalized if any(alias in normalized_text for alias in group))
 
+    def strip_trailing_media_noise(base_title: str) -> str:
+        title = re.sub(r"\s+", " ", base_title).strip()
+        if not title:
+            return ""
+        trim_chars = " 　-—｜|/／・,，、：:()（）[]【】"
+        trailing_media_noise = re.compile(
+            r"(?:[\s　\-\—\｜\|/／・,，、：:\(\)（）\[\]［］]+)?"
+            r"(?:dod|dvd|blu[- ]?ray|software\s+download|ブルーレイ(?:ディスク)?|ソフトウェアダウンロード)"
+            r"(?:[\s　\-\—\｜\|/／・,，、：:\(\)（）\[\]［］]+)?$",
+            flags=re.I,
+        )
+        while True:
+            updated, count = trailing_media_noise.subn("", title)
+            if count == 0:
+                break
+            updated = updated.strip(trim_chars)
+            if not updated or updated == title:
+                break
+            title = updated
+        return title
+
     def strip_actor_suffix(base_title: str) -> str:
         title = base_title.strip()
         if not title or not actor_keywords_sorted:
@@ -146,7 +167,10 @@ async def get_big_pic_by_amazon(
                     rf"(?:-|—|｜|/|／|・|,|，|、|：|:)\s*{escaped_actor}$",
                     rf"{escaped_actor}$",
                 ):
-                    new_title = re.sub(pattern, "", title).strip(trim_chars)
+                    new_title, count = re.subn(pattern, "", title)
+                    if count == 0:
+                        continue
+                    new_title = new_title.strip(trim_chars)
                     if new_title and new_title != title:
                         title = new_title
                         changed = True
@@ -157,12 +181,25 @@ async def get_big_pic_by_amazon(
                 break
         return title
 
-    originaltitle_amazon = re.sub(r"【.*】", "", originaltitle_amazon)
-    originaltitle_amazon_raw = re.sub(r"【.*】", "", originaltitle_amazon_raw)
-    originaltitle_amazon = strip_actor_suffix(originaltitle_amazon)
-    originaltitle_amazon_raw = strip_actor_suffix(originaltitle_amazon_raw)
-    series = re.sub(r"【.*】", "", series).strip()
-    series_raw = re.sub(r"【.*】", "", series_raw).strip()
+    def normalize_amazon_search_title(base_title: str) -> tuple[str, bool]:
+        normalized = re.sub(r"【.*】", "", base_title or "")
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        if not normalized:
+            return "", False
+        cleaned = strip_trailing_media_noise(normalized)
+        cleaned = strip_actor_suffix(cleaned)
+        cleaned = strip_trailing_media_noise(cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        return cleaned, cleaned != normalized
+
+    originaltitle_amazon, originaltitle_amazon_simplified = normalize_amazon_search_title(originaltitle_amazon)
+    originaltitle_amazon_raw, originaltitle_amazon_raw_simplified = normalize_amazon_search_title(
+        originaltitle_amazon_raw
+    )
+    series = strip_trailing_media_noise(re.sub(r"【.*】", "", series).strip())
+    series_raw = strip_trailing_media_noise(re.sub(r"【.*】", "", series_raw).strip())
+    if originaltitle_amazon_simplified or originaltitle_amazon_raw_simplified:
+        LogBuffer.log().write("\n 🔎 Amazon清洗关键词: 已移除标题尾部的演员/媒介噪音")
     search_queue: list[tuple[str, str, bool]] = []
     search_keyword_set: set[str] = set()
     split_keyword_added = False
@@ -174,18 +211,39 @@ async def get_big_pic_by_amazon(
             search_queue.append((keyword, fallback_series, is_initial_query))
             search_keyword_set.add(keyword)
 
-    def append_title_search_variants(keyword: str, *, fallback_series: str = "", is_initial_query: bool = False):
+    def append_title_search_variants(
+        keyword: str,
+        *,
+        fallback_series: str = "",
+        is_initial_query: bool = False,
+        prefer_plain_first: bool = False,
+    ):
         keyword = re.sub(r"\s+", " ", keyword).strip()
         if not keyword:
             return
         if result.number and not text_has_target_number(keyword):
-            append_search_keyword(
-                f"{keyword} {result.number}", fallback_series=fallback_series, is_initial_query=is_initial_query
-            )
+            numbered_keyword = f"{keyword} {result.number}"
+            if prefer_plain_first:
+                append_search_keyword(keyword, fallback_series=fallback_series, is_initial_query=is_initial_query)
+                append_search_keyword(
+                    numbered_keyword, fallback_series=fallback_series, is_initial_query=is_initial_query
+                )
+                return
+            append_search_keyword(numbered_keyword, fallback_series=fallback_series, is_initial_query=is_initial_query)
         append_search_keyword(keyword, fallback_series=fallback_series, is_initial_query=is_initial_query)
 
-    append_title_search_variants(originaltitle_amazon, fallback_series=series, is_initial_query=True)
-    append_title_search_variants(originaltitle_amazon_raw, fallback_series=series_raw, is_initial_query=True)
+    append_title_search_variants(
+        originaltitle_amazon,
+        fallback_series=series,
+        is_initial_query=True,
+        prefer_plain_first=originaltitle_amazon_simplified,
+    )
+    append_title_search_variants(
+        originaltitle_amazon_raw,
+        fallback_series=series_raw,
+        is_initial_query=True,
+        prefer_plain_first=originaltitle_amazon_raw_simplified,
+    )
 
     def append_split_keyword(base_title: str):
         for each_name in base_title.split(" "):
@@ -252,15 +310,19 @@ async def get_big_pic_by_amazon(
         return False
 
     media_title_keywords = [
+        "dod",
         "dvd",
         "blu-ray",
         "blu ray",
         "software download",
         "ブルーレイ",
         "ブルーレイディスク",
+        "ソフトウェアダウンロード",
         "[dvd]",
+        "[dod]",
         "[blu-ray]",
         "［dvd］",
+        "［dod］",
         "［blu-ray］",
     ]
     metadata_source_fields: list[str] = []

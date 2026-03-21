@@ -244,6 +244,68 @@ async def test_get_big_pic_by_amazon_strip_actor_suffix_before_first_search(monk
 
 
 @pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_strips_trailing_dod_noise_and_prefers_plain_title_first(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    title_with_actor_and_dod = (
+        "本番オーケー！？噂の裏ピンサロ 05 AV界随一のG乳＆美尻を味わい尽くせ！ 園田みおん （DOD）"
+    )
+    stripped_title = "本番オーケー！？噂の裏ピンサロ 05 AV界随一のG乳＆美尻を味わい尽くせ！"
+    html_match = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000DOD">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000DOD"><span>本番オーケー！？噂の裏ピンサロ 05 AV界随一のG乳＆美尻を味わい尽くせ！ 園田みおん （DOD）</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000DOD"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81dod._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = """
+    <html>
+      <body>
+        <span id="productTitle">本番オーケー！？噂の裏ピンサロ 05 AV界随一のG乳＆美尻を味わい尽くせ！ 園田みおん （DOD）</span>
+        <div id="bylineInfo_feature_div"><a>園田みおん</a></div>
+      </body>
+    </html>
+    """
+    html_no_result = """
+    <html>
+      <body>
+        <div class="s-no-results">No matches</div>
+      </body>
+    </html>
+    """
+    queries: list[str] = []
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000DOD" in req_url:
+            return True, html_detail
+        query = _extract_search_query(req_url)
+        queries.append(query)
+        if query == stripped_title:
+            return True, html_match
+        return True, html_no_result
+
+    async def fake_get_imgsize(url: str):
+        return 801, 1200
+
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "ABP-816"
+    pic_url = await get_big_pic_by_amazon(result, title_with_actor_and_dod, ["園田みおん"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81dod.jpg"
+    assert queries[0] == stripped_title
+    assert all("DOD" not in query for query in queries[:2])
+    assert f"{stripped_title} ABP-816" in queries
+
+
+@pytest.mark.asyncio
 async def test_get_big_pic_by_amazon_actor_fallback_matches_cleaned_title_confidence(
     monkeypatch: pytest.MonkeyPatch,
 ):
