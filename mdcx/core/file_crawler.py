@@ -33,6 +33,20 @@ def sprint_source(website: Website, language: Language) -> str:
     return f"{website.value} ({language.value})"
 
 
+def _normalize_release_value(value: object) -> str:
+    release = str(value).strip()
+    if not release:
+        return ""
+    release = release.replace("/", "-").replace(".", "-")
+    if not (match := re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", release)):
+        return ""
+    year, month, day = (int(part) for part in match.groups())
+    try:
+        return date(year, month, day).strftime("%Y-%m-%d")
+    except ValueError:
+        return ""
+
+
 def _deal_res(res: CrawlersResult) -> CrawlersResult:
     # 标签
     tag = re.sub(r",\d+[kKpP],", ",", res.tag)
@@ -44,17 +58,7 @@ def _deal_res(res: CrawlersResult) -> CrawlersResult:
     res.tag = tag
 
     # 发行日期
-    release = res.release
-    if release:
-        release = release.replace("/", "-").strip(". ")
-        if len(release) < 10:
-            release_list = re.findall(r"(\d{4})-(\d{1,2})-(\d{1,2})", release)
-            if release_list:
-                r_year, r_month, r_day = release_list[0]
-                r_month = "0" + r_month if len(r_month) == 1 else r_month
-                r_day = "0" + r_day if len(r_day) == 1 else r_day
-                release = r_year + "-" + r_month + "-" + r_day
-    res.release = release
+    res.release = _normalize_release_value(res.release)
 
     # 评分
     if res.score:
@@ -117,17 +121,7 @@ class FileScraper:
 
     @staticmethod
     def _normalize_release(value: object) -> str:
-        release = str(value).strip()
-        if not release:
-            return ""
-        release = release.replace("/", "-").replace(".", "-")
-        if not (match := re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", release)):
-            return ""
-        year, month, day = (int(part) for part in match.groups())
-        try:
-            return date(year, month, day).strftime("%Y-%m-%d")
-        except ValueError:
-            return ""
+        return _normalize_release_value(value)
 
     @staticmethod
     def _normalize_year(value: object) -> str:

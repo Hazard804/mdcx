@@ -1,6 +1,8 @@
 from parsel import Selector
 
-from mdcx.crawlers.dmm_new import DmmCrawler
+from mdcx.crawlers.base.types import Context, CrawlerData
+from mdcx.crawlers.dmm_new import Category, DmmCrawler
+from mdcx.models.types import CrawlerInput
 
 
 def test_build_fanza_trailer_url_from_standard_playlist():
@@ -128,3 +130,65 @@ def test_extract_search_detail_urls_recovers_split_detail_url_without_href():
     assert DmmCrawler._extract_search_detail_urls(
         html, "https://www.dmm.co.jp/search/=/searchstr=dvdms00674/sort=ranking/"
     ) == ["https://www.dmm.co.jp/monthly/premium/-/detail/=/cid=dvdms00674/?i3_ref=search&i3_ord=4"]
+
+
+def test_merge_detail_results_prefers_digital_release_over_tv():
+    ctx = Context(input=CrawlerInput.empty())
+    tv_result = CrawlerData(
+        title="tv title",
+        release="2023-07-14T01:00:00Z",
+        year="2023",
+        thumb="https://tv.example/thumb.jpg",
+        external_id="tv",
+    )
+    digital_result = CrawlerData(
+        title="digital title",
+        release="2017-09-16",
+        year="2017",
+        external_id="digital",
+    )
+
+    merged, best_trailer = DmmCrawler._merge_detail_results(
+        ctx,
+        [
+            (Category.DMM_TV, tv_result),
+            (Category.DIGITAL, digital_result),
+        ],
+    )
+
+    assert merged is not None
+    assert best_trailer == ""
+    assert merged.title == "digital title"
+    assert merged.thumb == "https://tv.example/thumb.jpg"
+    assert merged.release == "2017-09-16"
+    assert merged.year == "2017"
+    assert merged.external_id == "digital"
+
+
+def test_merge_detail_results_uses_tv_release_as_last_fallback():
+    ctx = Context(input=CrawlerInput.empty())
+    tv_result = CrawlerData(
+        title="tv title",
+        release="2023-07-14T01:00:00Z",
+        year="2023",
+        external_id="tv",
+    )
+    mono_result = CrawlerData(
+        title="mono title",
+        release="",
+        year="",
+        external_id="mono",
+    )
+
+    merged, best_trailer = DmmCrawler._merge_detail_results(
+        ctx,
+        [
+            (Category.DMM_TV, tv_result),
+            (Category.MONO, mono_result),
+        ],
+    )
+
+    assert merged is not None
+    assert best_trailer == ""
+    assert merged.release == "2023-07-14T01:00:00Z"
+    assert merged.year == "2023"

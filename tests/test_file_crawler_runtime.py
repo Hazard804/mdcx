@@ -2,10 +2,10 @@ import pytest
 
 from mdcx.config.enums import Website
 from mdcx.config.models import FieldConfig
-from mdcx.core.file_crawler import FileScraper
+from mdcx.core.file_crawler import FileScraper, _deal_res
 from mdcx.gen.field_enums import CrawlerResultFields
 from mdcx.manual import ManualConfig
-from mdcx.models.types import CrawlerDebugInfo, CrawlerInput, CrawlerResponse, CrawlerResult
+from mdcx.models.types import CrawlerDebugInfo, CrawlerInput, CrawlerResponse, CrawlerResult, CrawlersResult
 
 
 class _FakeCrawler:
@@ -86,6 +86,15 @@ def _build_result(site: Website, runtime: str = "", release: str = "", year: str
 )
 def test_is_invalid_runtime(value: str, expected: bool):
     assert FileScraper._is_invalid_runtime(value) is expected
+
+
+def test_deal_res_normalize_iso_release():
+    result = CrawlersResult.empty()
+    result.release = "2023-07-14T01:00:00Z"
+
+    normalized = _deal_res(result)
+
+    assert normalized.release == "2023-07-14"
 
 
 @pytest.mark.asyncio

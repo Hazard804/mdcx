@@ -43,6 +43,16 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     mono = MonoParser()
     digital = DigitalParser()
     rental = RentalParser()
+    _merge_priority = (
+        Category.MONTHLY,
+        Category.PRIME,
+        Category.RENTAL,
+        Category.MONO,
+        Category.FANZA_TV,
+        Category.DMM_TV,
+        Category.DIGITAL,
+    )
+    _streaming_only_categories = frozenset((Category.FANZA_TV, Category.DMM_TV))
 
     @staticmethod
     def _log(message: str) -> None:
@@ -253,6 +263,88 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             case Category.RENTAL:
                 return cls.rental
 
+    @classmethod
+    def _sanitize_detail_result(cls, category: Category, result: CrawlerData) -> CrawlerData:
+        # FANZA TV / DMM TV 提供的是上架时间，不应覆盖作品发行日期。
+        if category in cls._streaming_only_categories:
+            result.release = ""
+            result.year = ""
+        return result
+
+    @classmethod
+    def _merge_detail_results(
+        cls, ctx: Context, categorized_results: list[tuple[Category, CrawlerData | Exception]]
+    ) -> tuple[CrawlerData | None, str]:
+        merged_by_category: dict[Category, CrawlerData] = {}
+        streaming_date_fallbacks: dict[Category, tuple[str, str]] = {}
+        best_trailer = ""
+
+        for category, item in categorized_results:
+            if isinstance(item, Exception):  # 预计只会返回空值, 不会抛出异常
+                ctx.debug(f"预料之外的异常: {item}")
+                continue
+
+            if category in cls._streaming_only_categories:
+                release_fallback, year_fallback = streaming_date_fallbacks.get(category, ("", ""))
+                if not release_fallback and is_valid(item.release):
+                    release_fallback = str(item.release)
+                if not year_fallback and is_valid(item.year):
+                    year_fallback = str(item.year)
+                streaming_date_fallbacks[category] = (release_fallback, year_fallback)
+
+            result = cls._sanitize_detail_result(category, item)
+
+            if is_valid(result.trailer):
+                candidate_trailer = str(result.trailer)
+                if cls._is_hls_playlist_trailer(candidate_trailer):
+                    ctx.debug(f"跳过 m3u8 预告片候选: url={candidate_trailer}")
+                else:
+                    candidate_rank = cls._trailer_quality_rank(candidate_trailer)
+                    source_hint = f" external_id={result.external_id}" if is_valid(result.external_id) else ""
+                    ctx.debug(f"trailer 候选: rank={candidate_rank}{source_hint} url={candidate_trailer}")
+
+                    previous_best = best_trailer
+                    best_trailer = cls._pick_higher_quality_trailer(best_trailer, candidate_trailer)
+                    if best_trailer != previous_best:
+                        if previous_best:
+                            prev_rank = cls._trailer_quality_rank(previous_best)
+                            ctx.debug(
+                                f"trailer 最优更新: rank {prev_rank} -> {candidate_rank}; "
+                                f"old={previous_best}; new={best_trailer}"
+                            )
+                        else:
+                            ctx.debug(f"trailer 初始最优: rank={candidate_rank}; url={best_trailer}")
+
+            category_res = merged_by_category.get(category)
+            if category_res is None:
+                merged_by_category[category] = result
+            else:
+                merged_by_category[category] = update_valid(category_res, result, is_valid)
+
+        res = None
+        for category in cls._merge_priority:
+            category_res = merged_by_category.get(category)
+            if category_res is None:
+                continue
+            if res is None:
+                res = category_res
+            else:
+                res = update_valid(res, category_res, is_valid)
+
+        if res is not None:
+            for category in reversed(cls._merge_priority):
+                if category not in cls._streaming_only_categories:
+                    continue
+                release_fallback, year_fallback = streaming_date_fallbacks.get(category, ("", ""))
+                if not is_valid(res.release) and release_fallback:
+                    res.release = release_fallback
+                if not is_valid(res.year) and year_fallback:
+                    res.year = year_fallback
+                if is_valid(res.release) and is_valid(res.year):
+                    break
+
+        return res, best_trailer
+
     @override
     async def _detail(self, ctx: DMMContext, detail_urls: list[str]) -> CrawlerData | None:
         d = defaultdict(list)
@@ -263,11 +355,14 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         # 设置 GatherGroup 的整体超时时间，给单个请求更多时间
         # 因为我们已经在单个请求中实现了重试机制
         total_timeout = manager.config.timeout * (manager.config.retry + 1) * 2  # 给足够的时间
+        task_categories: list[Category] = []
 
         async with GatherGroup[CrawlerData](timeout=total_timeout) as group:
             for url in d[Category.FANZA_TV]:
+                task_categories.append(Category.FANZA_TV)
                 group.add(self.fetch_fanza_tv(ctx, url))
             for url in d[Category.DMM_TV]:
+                task_categories.append(Category.DMM_TV)
                 group.add(self.fetch_dmm_tv(ctx, url))
 
             for category in (
@@ -281,40 +376,13 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 if parser is None:
                     continue
                 for u in sorted(d[category]):
+                    task_categories.append(category)
                     group.add(self.fetch_and_parse(ctx, u, parser))
 
-        res = None
-        best_trailer = ""
-        for r in group.results[::-1]:
-            if isinstance(r, Exception):  # 预计只会返回空值, 不会抛出异常
-                ctx.debug(f"预料之外的异常: {r}")
-                continue
+        if not task_categories:
+            return None
 
-            if is_valid(r.trailer):
-                candidate_trailer = str(r.trailer)
-                if self._is_hls_playlist_trailer(candidate_trailer):
-                    ctx.debug(f"跳过 m3u8 预告片候选: url={candidate_trailer}")
-                    continue
-                candidate_rank = self._trailer_quality_rank(candidate_trailer)
-                source_hint = f" external_id={r.external_id}" if is_valid(r.external_id) else ""
-                ctx.debug(f"trailer 候选: rank={candidate_rank}{source_hint} url={candidate_trailer}")
-
-                previous_best = best_trailer
-                best_trailer = self._pick_higher_quality_trailer(best_trailer, candidate_trailer)
-                if best_trailer != previous_best:
-                    if previous_best:
-                        prev_rank = self._trailer_quality_rank(previous_best)
-                        ctx.debug(
-                            f"trailer 最优更新: rank {prev_rank} -> {candidate_rank}; "
-                            f"old={previous_best}; new={best_trailer}"
-                        )
-                    else:
-                        ctx.debug(f"trailer 初始最优: rank={candidate_rank}; url={best_trailer}")
-
-            if res is None:
-                res = r
-            else:
-                res = update_valid(res, r, is_valid)
+        res, best_trailer = self._merge_detail_results(ctx, list(zip(task_categories, group.results, strict=True)))
 
         if res is not None and best_trailer:
             if not is_valid(res.trailer):
