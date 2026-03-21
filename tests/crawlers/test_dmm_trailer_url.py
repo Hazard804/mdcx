@@ -1,7 +1,8 @@
 from parsel import Selector
 
 from mdcx.crawlers.base.types import Context, CrawlerData
-from mdcx.crawlers.dmm_new import Category, DmmCrawler
+from mdcx.crawlers.dmm_new import Category, DMMContext, DmmCrawler
+from mdcx.crawlers.dmm_new.parsers import MediaVariant, parse_media_variant
 from mdcx.models.types import CrawlerInput
 
 
@@ -192,3 +193,112 @@ def test_merge_detail_results_uses_tv_release_as_last_fallback():
     assert best_trailer == ""
     assert merged.release == "2023-07-14T01:00:00Z"
     assert merged.year == "2023"
+
+
+def test_parse_media_variant_prefers_active_media():
+    html = Selector(
+        """
+        <html><body>
+        <div class="area-editiontype">
+          <ul class="list-media">
+            <li class="item-media"><span class="ttl-media">DVD</span></li>
+            <li class="item-media is-active"><span class="ttl-media">Blu-ray</span></li>
+          </ul>
+        </div>
+        </body></html>
+        """
+    )
+
+    assert parse_media_variant(html) == MediaVariant.BLURAY
+
+
+def test_parse_media_variant_uses_breadcrumb_as_high_confidence_fallback():
+    html = Selector(
+        """
+        <html><body>
+        <nav class="area-breadcrumbs">
+          <ul>
+            <li class="item-breadcrumbs"><span itemprop="name">通販</span></li>
+            <li class="item-breadcrumbs"><span itemprop="name">DVD</span></li>
+          </ul>
+        </nav>
+        </body></html>
+        """
+    )
+
+    assert parse_media_variant(html) == MediaVariant.DVD
+
+
+def test_pick_preferred_image_candidate_demotes_bluray_cover():
+    ctx = DMMContext(input=CrawlerInput.empty())
+    dvd_url = "https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=pred816/?i3_ref=search&i3_ord=2"
+    bluray_url = "https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=9pred816/?i3_ref=search&i3_ord=3"
+    dvd_key = DmmCrawler._canonicalize_detail_url(dvd_url)
+    bluray_key = DmmCrawler._canonicalize_detail_url(bluray_url)
+    ctx.detail_media_variants = {
+        dvd_key: MediaVariant.DVD,
+        bluray_key: MediaVariant.BLURAY,
+    }
+
+    candidate = DmmCrawler._pick_preferred_image_candidate(
+        ctx,
+        [
+            (
+                Category.MONO,
+                bluray_url,
+                CrawlerData(
+                    thumb="https://pics.dmm.co.jp/mono/movie/adult/9pred816/9pred816pl.jpg",
+                    external_id=bluray_url,
+                ),
+            ),
+            (
+                Category.MONO,
+                dvd_url,
+                CrawlerData(
+                    thumb="https://pics.dmm.co.jp/mono/movie/adult/pred816/pred816pl.jpg",
+                    external_id=dvd_url,
+                ),
+            ),
+        ],
+        {
+            dvd_key: 0,
+            bluray_key: 1,
+        },
+    )
+
+    assert candidate is not None
+    category, variant, data = candidate
+    assert category == Category.MONO
+    assert variant == MediaVariant.DVD
+    assert data.thumb == "https://pics.dmm.co.jp/mono/movie/adult/pred816/pred816pl.jpg"
+
+
+def test_pick_preferred_image_candidate_keeps_bluray_as_fallback():
+    ctx = DMMContext(input=CrawlerInput.empty())
+    bluray_url = "https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=9pred816/?i3_ref=search&i3_ord=3"
+    bluray_key = DmmCrawler._canonicalize_detail_url(bluray_url)
+    ctx.detail_media_variants = {
+        bluray_key: MediaVariant.BLURAY,
+    }
+
+    candidate = DmmCrawler._pick_preferred_image_candidate(
+        ctx,
+        [
+            (
+                Category.MONO,
+                bluray_url,
+                CrawlerData(
+                    thumb="https://pics.dmm.co.jp/mono/movie/adult/9pred816/9pred816pl.jpg",
+                    external_id=bluray_url,
+                ),
+            ),
+        ],
+        {
+            bluray_key: 0,
+        },
+    )
+
+    assert candidate is not None
+    _, variant, data = candidate
+    assert variant == MediaVariant.BLURAY
+    assert data.thumb == "https://pics.dmm.co.jp/mono/movie/adult/9pred816/9pred816pl.jpg"

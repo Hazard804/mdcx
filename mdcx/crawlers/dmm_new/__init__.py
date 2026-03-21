@@ -4,8 +4,9 @@ import json
 import re
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import override
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 from parsel import Selector
 from patchright._impl._api_structures import SetCookieParam
@@ -30,13 +31,23 @@ from ..base import (
     GenericBaseCrawler,
     is_valid,
 )
-from .parsers import Category, DigitalParser, MonoParser, RentalParser, parse_category
+from .parsers import (
+    Category,
+    DigitalParser,
+    MediaVariant,
+    MonoParser,
+    RentalParser,
+    parse_category,
+    parse_media_variant,
+)
 from .tv import DmmTvResponse, FanzaResp, dmm_tv_com_payload, fanza_tv_payload
 
 
+@dataclass
 class DMMContext(Context):
     number_00: str | None = None
     number_no_00: str | None = None
+    detail_media_variants: dict[str, MediaVariant] = field(default_factory=dict)
 
 
 class DmmCrawler(GenericBaseCrawler[DMMContext]):
@@ -57,6 +68,60 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     @staticmethod
     def _log(message: str) -> None:
         signal.add_log(f"🎬 [DMM] {message}")
+
+    @classmethod
+    def _canonicalize_detail_url(cls, url: str) -> str:
+        normalized = cls._normalize_search_result_url(url)
+        if not normalized:
+            return ""
+
+        split = urlsplit(normalized)
+        query_pairs = [
+            (k, v) for k, v in parse_qsl(split.query, keep_blank_values=True) if k.lower() not in ("i3_ref", "i3_ord")
+        ]
+        query = urlencode(query_pairs, doseq=True)
+        return urlunsplit((split.scheme.lower(), split.netloc.lower(), split.path, query, ""))
+
+    @classmethod
+    def _image_category_rank(cls, category: Category) -> int:
+        priority = tuple(reversed(cls._merge_priority))
+        if category in priority:
+            return priority.index(category)
+        return len(priority)
+
+    @staticmethod
+    def _is_bluray_variant(variant: MediaVariant) -> bool:
+        return variant == MediaVariant.BLURAY
+
+    @classmethod
+    def _pick_preferred_image_candidate(
+        cls,
+        ctx: DMMContext,
+        candidate_results: list[tuple[Category, str, CrawlerData | Exception]],
+        detail_order: dict[str, int],
+    ) -> tuple[Category, MediaVariant, CrawlerData] | None:
+        ranked_candidates: list[tuple[tuple[int, int, int, str], Category, MediaVariant, CrawlerData]] = []
+
+        for category, detail_url, item in candidate_results:
+            if isinstance(item, Exception) or not is_valid(item.thumb):
+                continue
+
+            canonical_url = cls._canonicalize_detail_url(str(item.external_id or detail_url))
+            variant = ctx.detail_media_variants.get(canonical_url, MediaVariant.UNKNOWN)
+            sort_key = (
+                1 if cls._is_bluray_variant(variant) else 0,
+                cls._image_category_rank(category),
+                detail_order.get(canonical_url, len(detail_order)),
+                canonical_url,
+            )
+            ranked_candidates.append((sort_key, category, variant, item))
+
+        if not ranked_candidates:
+            return None
+
+        ranked_candidates.sort(key=lambda item: item[0])
+        _, category, variant, data = ranked_candidates[0]
+        return category, variant, data
 
     def __init__(self, client: AsyncWebClient, base_url: str = "", browser: Browser | None = None):
         super().__init__(client, base_url, browser)
@@ -348,21 +413,28 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     @override
     async def _detail(self, ctx: DMMContext, detail_urls: list[str]) -> CrawlerData | None:
         d = defaultdict(list)
+        detail_order: dict[str, int] = {}
         for url in detail_urls:
             category = parse_category(url)
             d[category].append(url)
+            canonical_url = self._canonicalize_detail_url(url)
+            if canonical_url and canonical_url not in detail_order:
+                detail_order[canonical_url] = len(detail_order)
 
         # 设置 GatherGroup 的整体超时时间，给单个请求更多时间
         # 因为我们已经在单个请求中实现了重试机制
         total_timeout = manager.config.timeout * (manager.config.retry + 1) * 2  # 给足够的时间
         task_categories: list[Category] = []
+        task_urls: list[str] = []
 
         async with GatherGroup[CrawlerData](timeout=total_timeout) as group:
             for url in d[Category.FANZA_TV]:
                 task_categories.append(Category.FANZA_TV)
+                task_urls.append(url)
                 group.add(self.fetch_fanza_tv(ctx, url))
             for url in d[Category.DMM_TV]:
                 task_categories.append(Category.DMM_TV)
+                task_urls.append(url)
                 group.add(self.fetch_dmm_tv(ctx, url))
 
             for category in (
@@ -377,12 +449,17 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                     continue
                 for u in sorted(d[category]):
                     task_categories.append(category)
+                    task_urls.append(u)
                     group.add(self.fetch_and_parse(ctx, u, parser))
 
         if not task_categories:
             return None
 
-        res, best_trailer = self._merge_detail_results(ctx, list(zip(task_categories, group.results, strict=True)))
+        candidate_results = list(zip(task_categories, task_urls, group.results, strict=True))
+        res, best_trailer = self._merge_detail_results(
+            ctx,
+            [(category, item) for category, _, item in candidate_results],
+        )
 
         if res is not None and best_trailer:
             if not is_valid(res.trailer):
@@ -393,6 +470,18 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         elif res is not None and is_valid(res.trailer) and self._is_hls_playlist_trailer(str(res.trailer)):
             ctx.debug(f"trailer 最终清空 m3u8 链接: old={res.trailer}")
             res.trailer = ""
+
+        preferred_image = self._pick_preferred_image_candidate(ctx, candidate_results, detail_order)
+        if res is not None and preferred_image is not None:
+            image_category, image_variant, image_source = preferred_image
+            preferred_thumb = str(image_source.thumb)
+            if not is_valid(res.thumb) or str(res.thumb) != preferred_thumb:
+                ctx.debug(
+                    "图片重选: "
+                    f"category={image_category.value} media={image_variant.value} "
+                    f"source={image_source.external_id} thumb={preferred_thumb}"
+                )
+            res.thumb = preferred_thumb
 
         return res
 
@@ -820,7 +909,12 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             return CrawlerData()
         ctx.debug(f"详情页请求成功: {detail_url=}")
 
-        parsed = await parser.parse(ctx, Selector(html), external_id=detail_url)
+        selector = Selector(text=html)
+        parsed = await parser.parse(ctx, selector, external_id=detail_url)
+
+        if parse_category(detail_url) == Category.MONO:
+            canonical_url = self._canonicalize_detail_url(detail_url)
+            ctx.detail_media_variants[canonical_url] = parse_media_variant(selector)
 
         if parse_category(detail_url) == Category.MONO and not is_valid(parsed.trailer):
             trailer_url = await self._fetch_mono_trailer(ctx, detail_url, html)

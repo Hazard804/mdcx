@@ -21,6 +21,12 @@ class Category(StrEnum):
     OTHER = "other"
 
 
+class MediaVariant(StrEnum):
+    DVD = "dvd"
+    BLURAY = "bluray"
+    UNKNOWN = "unknown"
+
+
 def parse_category(url: str) -> Category:
     """
     根据 DMM URL 判断其子类.
@@ -43,6 +49,55 @@ def parse_category(url: str) -> Category:
     else:
         # todo 其他类别
         return Category.OTHER
+
+
+def _parse_media_variant_text(text: str) -> MediaVariant:
+    normalized = str(text or "").strip().lower()
+    if not normalized:
+        return MediaVariant.UNKNOWN
+    if "blu-ray" in normalized or "blu ray" in normalized or "ブルーレイ" in normalized:
+        return MediaVariant.BLURAY
+    if re.fullmatch(r"dvd", normalized):
+        return MediaVariant.DVD
+    return MediaVariant.UNKNOWN
+
+
+def parse_media_variant(html: Selector) -> MediaVariant:
+    """
+    仅使用高置信度的结构化信息判断当前详情页是否为 Blu-ray 版本.
+    """
+    active_media = extract_text(
+        html,
+        '//div[contains(@class,"area-editiontype")]'
+        '//li[contains(@class,"item-media") and contains(@class,"is-active")]'
+        '//span[contains(@class,"ttl-media")]/text()',
+    )
+    if variant := _parse_media_variant_text(active_media):
+        if variant != MediaVariant.UNKNOWN:
+            return variant
+
+    breadcrumb_media = extract_text(
+        html,
+        '(//nav[contains(@class,"area-breadcrumbs")]//li[contains(@class,"item-breadcrumbs")]'
+        '//span[@itemprop="name"]/text())[last()]',
+    )
+    if variant := _parse_media_variant_text(breadcrumb_media):
+        if variant != MediaVariant.UNKNOWN:
+            return variant
+
+    tags = extract_all_texts(
+        html,
+        "//td[contains(text(),'ジャンル')]/following-sibling::td/a/text()",
+        "//th[contains(text(),'ジャンル')]/following-sibling::td/a/text()",
+    )
+    if any(_parse_media_variant_text(tag) == MediaVariant.BLURAY for tag in tags):
+        return MediaVariant.BLURAY
+
+    title = extract_text(html, '//h1[@id="title"]/text()', '//h1[@class="item fn bold"]/text()')
+    if _parse_media_variant_text(title) == MediaVariant.BLURAY:
+        return MediaVariant.BLURAY
+
+    return MediaVariant.UNKNOWN
 
 
 class MonoParser(DetailPageParser):
