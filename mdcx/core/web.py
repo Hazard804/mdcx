@@ -912,6 +912,11 @@ async def trailer_download(
     if DownloadableFile.TRAILER not in download_files:
         return
 
+    if ".fc2.com/" in trailer_url and "mid=" in trailer_url and "/up/" in trailer_url:
+        tips = "🟡 FC2 预告片链接为带 mid 参数的临时地址，建议仅用于当前任务立即下载，后续直接复用远程链接可能失效。"
+        LogBuffer.log().write("\n " + tips)
+        signal.add_log(tips)
+
     # 下载预告片,检测链接有效性
     content_length = await check_url(trailer_url, length=True)
     if content_length:

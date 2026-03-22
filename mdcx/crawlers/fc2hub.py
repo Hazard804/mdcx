@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import json
+import re
 import time
 
 from lxml import etree
@@ -6,6 +8,7 @@ from lxml import etree
 from ..config.enums import FieldRule, Website
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
+from ..signals import signal
 
 
 def getTitle(html):  # 获取标题
@@ -62,6 +65,43 @@ def getOutline(html):  # 获取简介
 def getMosaic(tag, title):  # 获取马赛克
     result = "无码" if "無修正" in tag or "無修正" in title else "有码"
     return result
+
+
+def getTrailerVideoId(html, number):  # 获取 FC2 视频 ID
+    result = html.xpath(
+        '//div[contains(@class, "player-api")]/@data-id'
+        ' | //iframe[contains(@data-src, "/embed/")]/@data-src'
+        ' | //iframe[contains(@src, "/embed/")]/@src'
+    )
+    for item in result:
+        item = str(item).strip()
+        if not item:
+            continue
+        if item.isdigit():
+            return item
+        matched = re.search(r"/embed/(\d+)", item)
+        if matched:
+            return matched.group(1)
+    return number
+
+
+async def getTrailer(html, number):  # 获取预告片
+    fc2_video_id = getTrailerVideoId(html, number)
+    # FC2 sample 接口返回的是带 mid 参数的临时直链，适合立即下载，不适合长期固化。
+    # 注意 path 上的 mid 参数不能丢，否则直链会返回 403。
+    req_url = f"https://adult.contents.fc2.com/api/v2/videos/{fc2_video_id}/sample"
+    response, error = await manager.computed.async_client.get_text(req_url)
+    if response is None:
+        return ""
+    try:
+        data = json.loads(response)
+    except Exception:
+        return ""
+
+    trailer_url = data.get("path")
+    if isinstance(trailer_url, str) and trailer_url.startswith("http"):
+        return trailer_url
+    return ""
 
 
 async def main(
@@ -127,6 +167,13 @@ async def main(
             tag = getTag(html_info)
             studio = getStudio(html_info)  # 获取厂商
             extrafanart = getExtraFanart(html_info)
+            trailer = await getTrailer(html_info, number)
+            debug_info = (
+                "预告片: 已获取到带时效参数的临时链接，仅适合立即下载" if trailer else "预告片: 未获取到临时下载链接"
+            )
+            LogBuffer.info().write(web_info + debug_info)
+            if trailer:
+                signal.add_log("🟡 FC2Hub 预告片链接带时效参数，仅适合立即下载，不建议长期复用远程链接。")
             mosaic = getMosaic(tag, title)
             actor = studio if FieldRule.FC2_SELLER in manager.config.fields_rule else ""
 
@@ -153,7 +200,7 @@ async def main(
                     "thumb": str(cover_url),
                     "poster": "",
                     "extrafanart": extrafanart,
-                    "trailer": "",
+                    "trailer": trailer,
                     "image_download": False,
                     "image_cut": "center",
                     "mosaic": mosaic,

@@ -8,6 +8,7 @@ from lxml import etree
 from ..config.enums import FieldRule
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
+from ..signals import signal
 
 
 def getTitle(html):  # 获取标题
@@ -150,6 +151,8 @@ def getScore(html):  # 获取评分
 
 
 async def getTrailer(number):  # 获取预告片
+    # FC2 sample 接口返回的是带 mid 参数的临时直链，适合立即下载，不适合长期固化。
+    # 注意 path 上的 mid 参数不能丢，否则直链会返回 403。
     req_url = f"https://adult.contents.fc2.com/api/v2/videos/{number}/sample"
     response, error = await manager.computed.async_client.get_text(req_url)
     if response is None:
@@ -234,6 +237,12 @@ async def main(
         runtime = getRuntime(html_info)
         score = getScore(html_info)
         trailer = await getTrailer(number)
+        debug_info = (
+            "预告片: 已获取到带时效参数的临时链接，仅适合立即下载" if trailer else "预告片: 未获取到临时下载链接"
+        )
+        LogBuffer.info().write(web_info + debug_info)
+        if trailer:
+            signal.add_log("🟡 FC2 预告片链接带时效参数，仅适合立即下载，不建议长期复用远程链接。")
         studio = getStudio(html_info)  # 使用卖家作为厂商
         mosaic = getMosaic(tag, title)
         tag = tag.replace("無修正,", "").replace("無修正", "").strip(",")
