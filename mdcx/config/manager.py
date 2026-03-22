@@ -1,9 +1,10 @@
 import json
 import os
 import os.path
+import sys
 from pathlib import Path
 
-from ..consts import MAIN_PATH, MARK_FILE
+from ..consts import IS_PYINSTALLER, MAIN_PATH, MARK_FILE
 from .computed import Computed
 from .models import Config
 from .v1 import ConfigV1, load_v1
@@ -73,7 +74,24 @@ class ConfigManager:
 
     def reset(self):
         """写入默认配置"""
+        template_path = self._get_default_template_path()
+        if template_path.is_file():
+            try:
+                template = json.loads(template_path.read_text(encoding="UTF-8"))
+                self._path.write_text(Config.model_validate(template).model_dump_json(indent=2), encoding="UTF-8")
+                return
+            except Exception:
+                pass
         self._path.write_text(Config().model_dump_json(indent=2), encoding="UTF-8")
+
+    @staticmethod
+    def _get_default_template_path() -> Path:
+        if IS_PYINSTALLER:
+            try:
+                return Path(sys._MEIPASS) / "resources" / "config" / "default_config.json"  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        return MAIN_PATH / "resources" / "config" / "default_config.json"
 
     def list_configs(self) -> list[str]:
         """列出配置文件夹中的所有配置文件名."""
