@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Form implementation generated from reading ui file '.\posterCutTool.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.6
@@ -11,7 +9,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_Dialog_cut_poster(object):
+class Ui_Dialog_cut_poster:
     def setupUi(self, Dialog_cut_poster):
         Dialog_cut_poster.setObjectName("Dialog_cut_poster")
         Dialog_cut_poster.resize(1000, 600)
