@@ -1,3 +1,4 @@
+import base64
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -43,7 +44,7 @@ async def test_get_emby_actor_list_uses_jellyfin_actor_endpoint(monkeypatch: pyt
 
 
 @pytest.mark.asyncio
-async def test_upload_actor_photo_uses_binary_body_for_jellyfin(monkeypatch: pytest.MonkeyPatch, tmp_path):
+async def test_upload_actor_photo_uses_base64_body_for_jellyfin(monkeypatch: pytest.MonkeyPatch, tmp_path):
     captured: dict = {}
     pic_path = tmp_path / "actor.jpg"
     pic_bytes = b"\xff\xd8\xfftest-bytes"
@@ -65,7 +66,7 @@ async def test_upload_actor_photo_uses_binary_body_for_jellyfin(monkeypatch: pyt
 
     assert result is True
     assert error == ""
-    assert captured["data"] == pic_bytes
+    assert captured["data"] == base64.b64encode(pic_bytes)
     assert captured["headers"] == {
         "Content-Type": "image/jpeg",
         "Authorization": 'MediaBrowser Token="secret-token"',

@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import os
 import re
@@ -112,6 +113,7 @@ async def _upload_actor_photo(url: str, pic_path: Path) -> tuple[bool, str]:
         header = {"Content-Type": "image/jpeg" if pic_path.suffix in (".jpg", ".jpeg") else "image/png"}
         if _is_jellyfin_server():
             header = _build_jellyfin_headers(header)
+            content = base64.b64encode(content)
         r, err = await manager.computed.async_client.post_content(
             url=url, data=content, headers=header, use_proxy=False
         )
