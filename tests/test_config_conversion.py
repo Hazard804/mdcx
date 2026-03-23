@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from mdcx.config.enums import Website
 from mdcx.config.models import Config
 from mdcx.config.v1 import ConfigV1
@@ -66,3 +69,14 @@ def test_from_legacy():
     assert config.file_moword is True
     assert config.folder_hd is True
     assert config.file_hd is True
+
+
+def test_default_config_template_is_valid_json_and_matches_current_model():
+    template_path = Path("resources/config/default_config.json")
+    template = json.loads(template_path.read_text(encoding="utf-8"))
+
+    config = Config.model_validate(template)
+
+    assert config.media_path == "D:\\Media\\Input"
+    assert config.softlink_path == "X:\\Media\\Softlink"
+    assert config.failed_output_folder == "D:\\Media\\Input\\failed"
