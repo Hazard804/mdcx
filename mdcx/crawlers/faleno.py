@@ -9,16 +9,41 @@ from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 
 
+def get_detail_value(html, *labels):
+    for label in labels:
+        result = html.xpath(
+            f'//div[contains(@class, "box_works01_list")]//li[contains(@class, "clearfix")][span[normalize-space()="{label}"]]/p//text()'
+        )
+        text = "".join(part.strip() for part in result if part.strip())
+        if text:
+            return text
+    return ""
+
+
+def normalize_date(date_text):
+    if not date_text:
+        return ""
+    if match := re.search(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", date_text):
+        year, month, day = match.groups()
+        return f"{year}-{int(month):02d}-{int(day):02d}"
+    return date_text.replace("/", "-").strip()
+
+
+def get_timer_date(html, keyword):
+    for timer in html.xpath('//div[contains(@class, "view_timer")]'):
+        text = "".join(part.strip() for part in timer.xpath(".//text()") if part.strip())
+        if keyword in text and (match := re.search(r"(\d{4}/\d{1,2}/\d{1,2})", text)):
+            return normalize_date(match.group(1))
+    return ""
+
+
 def get_title(html):
     result = html.xpath("//h1/text()")
     return result[0] if result else ""
 
 
 def get_actor(html):
-    actor_result = html.xpath(
-        '//div[@class="box_works01_list clearfix"]//span[text()="出演女優"]/following-sibling::p[1]/text()'
-    )
-    return ",".join(actor_result)
+    return get_detail_value(html, "出演女優")
 
 
 def get_actor_photo(actor):
@@ -35,32 +60,38 @@ def get_outline(html):
 
 
 def get_runtime(html):
-    result = html.xpath('//span[contains(text(), "収録時間")]/following-sibling::*//text()')
-    if result:
-        result = re.findall(r"\d+", result[0])
+    result = re.findall(r"\d+", get_detail_value(html, "収録時間"))
     return result[0] if result else ""
 
 
 def get_series(html):
-    result = html.xpath('//span[contains(text(), "系列")]/following-sibling::*//text()')
-    return "".join(result).strip() if result else ""
+    return get_detail_value(html, "系列", "シリーズ")
 
 
 def get_director(html):
-    result = html.xpath(
-        '//span[contains(text(), "导演") or contains(text(), "導演") or contains(text(), "監督")]/following-sibling::*//text()'
-    )
-    return result[0] if result else ""
+    return get_detail_value(html, "导演", "導演", "監督")
 
 
 def get_publisher(html):
-    result = html.xpath('//span[contains(text(), "メーカー")]/following-sibling::*//text()')
-    return result[0] if result else "FALENO"
+    result = get_detail_value(html, "メーカー", "レーベル")
+    return result if result else "FALENO"
 
 
 def get_release(html):
-    result = html.xpath('//div[@class="view_timer"]//span[text()="配信開始日"]/following-sibling::p[1]/text()')
-    return result[0].replace("/", "-") if result else ""
+    release = get_detail_value(html, "発売日")
+    if release:
+        return normalize_date(release)
+
+    # 部分旧页面没有详情列表日期，保留按钮区日期作为兜底。
+    release = get_timer_date(html, "発売")
+    if release:
+        return release
+
+    release = get_detail_value(html, "配信日", "配信開始日")
+    if release:
+        return normalize_date(release)
+
+    return get_timer_date(html, "配信")
 
 
 def get_year(release):
