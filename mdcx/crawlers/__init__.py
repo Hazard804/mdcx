@@ -22,7 +22,7 @@ from . import (
     giga,
     hdouban,
     hscangku,
-    iqqtv_new,
+    iqqtv,
     jav321,
     javbus,
     javday,
@@ -68,7 +68,7 @@ CRAWLER_FUNCS: list[tuple[Website, Callable]] = [
     (Website.GIGA, giga.main),
     (Website.HDOUBAN, hdouban.main),
     (Website.HSCANGKU, hscangku.main),
-    (Website.IQQTV, iqqtv_new.main),  # lang
+    (Website.IQQTV, iqqtv.main),  # lang
     (Website.JAV321, jav321.main),
     (Website.JAVBUS, javbus.main),
     (Website.JAVDAY, javday.main),

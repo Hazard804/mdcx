@@ -24,6 +24,38 @@ def get_v1_crawler(site: Website) -> "LegacyCrawler":
     return v1_cralwers[site]
 
 
+def _select_language_payload(
+    payloads: dict[str, dict],
+    language: Language,
+    org_language: Language,
+) -> dict:
+    if not isinstance(payloads, dict):
+        return {}
+
+    candidates: list[str] = []
+    for lang in (language, org_language):
+        if lang != Language.UNDEFINED:
+            candidates.append(lang.value)
+            if lang == Language.ZH_CN:
+                candidates.append(Language.ZH_TW.value)
+            elif lang == Language.ZH_TW:
+                candidates.append(Language.ZH_CN.value)
+
+    for fallback in (Language.JP.value, Language.ZH_CN.value, Language.ZH_TW.value, ""):
+        candidates.append(fallback)
+
+    for key in dict.fromkeys(candidates):
+        value = payloads.get(key)
+        if isinstance(value, dict):
+            return value
+
+    for value in payloads.values():
+        if isinstance(value, dict):
+            return value
+
+    return {}
+
+
 @dataclass
 class LegacyCrawler:
     fn: Callable[..., Awaitable[dict[str, dict[str, dict]]]]
@@ -83,12 +115,10 @@ class LegacyCrawler:
             ctx.debug_info.logs.extend(error)
 
         res = list(r.values())[0]
-        # 只有 iqqtv_new 和 javlibrary_new 会返回多种语言的数据, 其他所有来源只可能
-        # 1. 返回单一语言的数据, 即 {site: {language: data}}
-        # 2. 返回多语言 dict, 但实际上内部数据相同, 即 {site: {zh_cn: data, zh_tw: data, jp: data}}
-        # 因此此处只取第一个 data, 对大多数网站都无影响.
-        # 唯一受影响的是当需要 iqqtv_new 或 javlibrary_new 的多个语言的数据时, 需要多次请求
-        res = list(res.values())[0]
+        # v1 crawler 一般返回 {site: {language: data}}。
+        # 少数来源会在一次请求中返回多语言 dict，这里按请求语言精确取值；
+        # 若目标语言不存在，则回退到相近中文或首个可用结果，兼容旧行为。
+        res = _select_language_payload(res, ctx.input.language, ctx.input.org_language)
         if not res or "title" not in res or not res["title"]:
             raise CralwerException(f"v1 crawler failed: {self.site_}")
 

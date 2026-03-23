@@ -8,6 +8,9 @@ from ..config.enums import Website
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 
+_SUPPORTED_LANGUAGES = {"zh_cn", "zh_tw", "jp"}
+_OUTLINE_PREFIX_PATTERN = re.compile(r"^(?:简介|簡介|介绍|介紹|紹介)\s*[:：]?\s*")
+
 
 def get_title(html):
     result = html.xpath('//h1[@class="h4 b"]/text()')
@@ -60,14 +63,21 @@ def getCover(html):
 
 
 def getOutline(html):
-    result = html.xpath('//p[contains(., "简介") or contains(., "簡介")]/text()')
-    result = str(result[0]).strip() if result else ""
+    result = "".join(html.xpath('//div[contains(@class, "intro")]//p//text()')).strip()
+    if not result:
+        result = html.xpath(
+            'string(//p[contains(., "简介") or contains(., "簡介") or contains(., "介绍")'
+            ' or contains(., "介紹") or contains(., "紹介")])'
+        )
+    result = str(result).strip() if result else ""
     # 去掉无意义的简介(马赛克破坏版)，'克破'两字简繁同形
     if not result or "克破" in result:
         return ""
     else:
         # 去除简介中的无意义信息，中间和首尾的空白字符、简介两字、*根据分发等
-        result = re.sub(r"[\n\t]|(简|簡)介：", "", result).split("*根据分发", 1)[0].strip()
+        result = re.sub(r"[\r\n\t]", "", result)
+        result = _OUTLINE_PREFIX_PATTERN.sub("", result)
+        result = result.split("*根据分发", 1)[0].strip()
     return result
 
 
@@ -141,12 +151,17 @@ def get_real_url(html, number):
     return ""
 
 
-async def main(
+def _normalize_language(language: str) -> str:
+    return language if language in _SUPPORTED_LANGUAGES else "zh_cn"
+
+
+async def _main_single_language(
     number,
     appoint_url="",
     language="zh_cn",
     **kwargs,
 ):
+    language = _normalize_language(language)
     start_time = time.time()
     website_name = "iqqtv"
     LogBuffer.req().write(f"-> {website_name}[{language}]")
@@ -279,6 +294,34 @@ async def main(
     dic = {website_name: {language: dic}}
     LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
     return dic
+
+
+async def main(
+    number,
+    appoint_url="",
+    language="zh_cn",
+    **kwargs,
+):
+    language = _normalize_language(language)
+    appoint_url = appoint_url.replace("/cn/", "/jp/").replace("iqqtv.cloud/player", "iqqtv.cloud/jp/player")
+    json_data = await _main_single_language(number, appoint_url, "jp", **kwargs)
+    if not json_data["iqqtv"]["jp"]["title"] or language == "jp":
+        json_data["iqqtv"]["zh_cn"] = json_data["iqqtv"]["jp"]
+        json_data["iqqtv"]["zh_tw"] = json_data["iqqtv"]["jp"]
+        return json_data
+
+    if language == "zh_cn":
+        appoint_url = json_data["iqqtv"]["jp"]["website"].replace("/jp/", "/cn/")
+    else:
+        appoint_url = json_data["iqqtv"]["jp"]["website"].replace("/jp/", "/")
+
+    json_data_zh = await _main_single_language(number, appoint_url, language, **kwargs)
+    dic = json_data_zh["iqqtv"][language]
+    dic["originaltitle"] = json_data["iqqtv"]["jp"]["originaltitle"]
+    dic["originalplot"] = json_data["iqqtv"]["jp"]["originalplot"]
+    json_data["iqqtv"].update({language: dic})
+
+    return json_data
 
 
 if __name__ == "__main__":
