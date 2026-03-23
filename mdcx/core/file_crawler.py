@@ -47,6 +47,10 @@ def _normalize_release_value(value: object) -> str:
         return ""
 
 
+def _is_suren_number(file_number: str, short_number: str) -> bool:
+    return bool(short_number) or "SIRO" in file_number.upper()
+
+
 def _deal_res(res: CrawlersResult) -> CrawlersResult:
     # 标签
     tag = re.sub(r",\d+[kKpP],", ",", res.tag)
@@ -376,6 +380,7 @@ class FileScraper:
         leak = task_input.leak
         mosaic = task_input.mosaic
         short_number = task_input.short_number
+        is_suren = _is_suren_number(file_number, short_number)
         wuma = task_input.wuma
         youma = task_input.youma
 
@@ -432,7 +437,7 @@ class FileScraper:
                 res = await self._call_crawlers(task_input, self.config.website_wuma)
 
             # =======================================================================259LUXU-1111
-            elif short_number or "SIRO" in file_number.upper():
+            elif is_suren:
                 res = await self._call_crawlers(task_input, self.config.website_suren)
 
             # =======================================================================ssni00321
@@ -455,6 +460,7 @@ class FileScraper:
         if appoint_number:
             number = appoint_number
         res.number = number  # 此处设置
+        res.is_suren = is_suren
 
         # 从res获取mosaic
         if res.mosaic == "无码":

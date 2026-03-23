@@ -33,6 +33,18 @@ def test_get_file_number_normalizes_uncensored_digit_numbers(raw_number: str, ex
     assert is_uncensored(expected_number) is True
 
 
+@pytest.mark.parametrize(
+    ("raw_number", "expected_number"),
+    [
+        (r"D:/test/LUXU-1488.mp4", "259LUXU-1488"),
+        (r"D:/test/SCUTE-953.mp4", "229SCUTE-953"),
+        (r"D:/test/MAAN-673.mp4", "300MAAN-673"),
+    ],
+)
+def test_get_file_number_normalizes_suren_numbers(raw_number: str, expected_number: str):
+    assert get_file_number(raw_number, []) == expected_number
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("file_path", "file_number", "custom_strings", "expected_definition"),
@@ -80,3 +92,26 @@ async def test_get_file_info_marks_uncensored_digit_numbers(file_path: Path, exp
 
     assert file_info.number == expected_number
     assert file_info.mosaic == "无码"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("file_path", "expected_number", "expected_short_number"),
+    [
+        (Path("D:/test/LUXU-1488.mp4"), "259LUXU-1488", "LUXU-1488"),
+        (Path("D:/test/SCUTE-953.mp4"), "229SCUTE-953", "SCUTE-953"),
+        (Path("D:/test/259LUXU-1488.mp4"), "259LUXU-1488", "LUXU-1488"),
+    ],
+)
+async def test_get_file_info_extracts_suren_short_number(
+    file_path: Path, expected_number: str, expected_short_number: str
+):
+    old_file_mode = Flags.file_mode
+    Flags.file_mode = FileMode.Default
+    try:
+        file_info = await get_file_info_v2(file_path, copy_sub=False)
+    finally:
+        Flags.file_mode = old_file_mode
+
+    assert file_info.number == expected_number
+    assert file_info.short_number == expected_short_number

@@ -1091,8 +1091,10 @@ async def _get_big_poster(result: CrawlersResult, other: OtherInfo):
     hd_pic_url = ""
     poster_width = 0
 
-    # 通过原标题去 amazon 查询
-    if HDPicSource.AMAZON in manager.config.download_hd_pics and result.mosaic in [
+    # 保持原有类型白名单，仅额外排除素人番号
+    if HDPicSource.AMAZON in manager.config.download_hd_pics and result.is_suren:
+        LogBuffer.log().write("\n 🔎 Amazon搜索：检测为素人番号，已跳过")
+    elif HDPicSource.AMAZON in manager.config.download_hd_pics and result.mosaic in [
         "有码",
         "有碼",
         "流出",

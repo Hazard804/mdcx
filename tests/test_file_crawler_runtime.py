@@ -2,7 +2,7 @@ import pytest
 
 from mdcx.config.enums import Website
 from mdcx.config.models import FieldConfig
-from mdcx.core.file_crawler import FileScraper, _deal_res
+from mdcx.core.file_crawler import FileScraper, _deal_res, _is_suren_number
 from mdcx.gen.field_enums import CrawlerResultFields
 from mdcx.manual import ManualConfig
 from mdcx.models.types import CrawlerDebugInfo, CrawlerInput, CrawlerResponse, CrawlerResult, CrawlersResult
@@ -95,6 +95,20 @@ def test_deal_res_normalize_iso_release():
     normalized = _deal_res(result)
 
     assert normalized.release == "2023-07-14"
+
+
+@pytest.mark.parametrize(
+    ("file_number", "short_number", "expected"),
+    [
+        ("259LUXU-1488", "LUXU-1488", True),
+        ("435MFC-142", "MFC-142", True),
+        ("SIRO-5533", "", True),
+        ("SSIS-001", "", False),
+        ("FC2-123456", "", False),
+    ],
+)
+def test_is_suren_number_matches_current_scrape_branch(file_number: str, short_number: str, expected: bool):
+    assert _is_suren_number(file_number, short_number) is expected
 
 
 @pytest.mark.asyncio

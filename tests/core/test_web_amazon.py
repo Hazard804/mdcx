@@ -3,8 +3,10 @@ import urllib.parse
 
 import pytest
 
-from mdcx.core.web import get_big_pic_by_amazon
-from mdcx.models.types import CrawlersResult
+from mdcx.config.enums import HDPicSource
+from mdcx.config.manager import manager
+from mdcx.core.web import _get_big_poster, get_big_pic_by_amazon
+from mdcx.models.types import CrawlersResult, OtherInfo
 
 
 def _extract_search_query(req_url: str) -> str:
@@ -15,6 +17,103 @@ def _extract_search_query(req_url: str) -> str:
 
 def _normalize_search_query(query: str) -> str:
     return re.sub(r" \[(DVD|Blu-ray)\]$", "", query)
+
+
+@pytest.mark.asyncio
+async def test_get_big_poster_uses_amazon_only_for_non_suren_censored(monkeypatch: pytest.MonkeyPatch):
+    called = False
+
+    async def fake_get_big_pic_by_amazon(*args, **kwargs):
+        nonlocal called
+        called = True
+        return "https://m.media-amazon.com/images/I/81poster.jpg"
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "有码"
+    result.originaltitle_amazon = "测试标题"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert called is True
+    assert result.poster == "https://m.media-amazon.com/images/I/81poster.jpg"
+    assert result.poster_from == "Amazon"
+
+
+@pytest.mark.asyncio
+async def test_get_big_poster_keeps_original_amazon_whitelist(monkeypatch: pytest.MonkeyPatch):
+    called = False
+
+    async def fake_get_big_pic_by_amazon(*args, **kwargs):
+        nonlocal called
+        called = True
+        return "https://m.media-amazon.com/images/I/81poster.jpg"
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "流出"
+    result.originaltitle_amazon = "流出标题"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert called is True
+    assert result.poster == "https://m.media-amazon.com/images/I/81poster.jpg"
+    assert result.poster_from == "Amazon"
+
+
+@pytest.mark.asyncio
+async def test_get_big_poster_skips_amazon_for_suren(monkeypatch: pytest.MonkeyPatch):
+    called = False
+
+    async def fake_get_big_pic_by_amazon(*args, **kwargs):
+        nonlocal called
+        called = True
+        return "https://m.media-amazon.com/images/I/81poster.jpg"
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "有码"
+    result.is_suren = True
+    result.originaltitle_amazon = "素人标题"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert called is False
+    assert result.poster == ""
+    assert result.poster_from == ""
+
+
+@pytest.mark.asyncio
+async def test_get_big_poster_skips_amazon_for_non_censored(monkeypatch: pytest.MonkeyPatch):
+    called = False
+
+    async def fake_get_big_pic_by_amazon(*args, **kwargs):
+        nonlocal called
+        called = True
+        return "https://m.media-amazon.com/images/I/81poster.jpg"
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "无码"
+    result.originaltitle_amazon = "无码标题"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert called is False
+    assert result.poster == ""
+    assert result.poster_from == ""
 
 
 @pytest.mark.asyncio
