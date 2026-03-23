@@ -164,6 +164,7 @@ def _normalize_path_for_definition(file_path: Path, file_number: str = "") -> st
 
 def _detect_height_from_path(file_path: Path, file_number: str = "") -> int:
     normalized = _normalize_path_for_definition(file_path, file_number)
+    normalized_name = normalized.rsplit("/", 1)[-1]
     pattern_height_map = (
         ((r"(?<![A-Z0-9])8K(?![A-Z0-9])",), 4000),
         ((r"(?<![A-Z0-9])4K(?![A-Z0-9])", r"(?<![A-Z0-9])UHD(?![A-Z0-9])"), 2000),
@@ -175,6 +176,9 @@ def _detect_height_from_path(file_path: Path, file_number: str = "") -> int:
     for patterns, height in pattern_height_map:
         if any(re.search(pattern, normalized) for pattern in patterns):
             return height
+    # 文件名尾部的 4K 扩展标记单独处理，如 IPZZ-841_4K60FPS / IPZZ-841_4KS。
+    if re.search(r"(?:^|[-_ .\[])(?:4K60FPS|4KS)(?=\.[^.\\/]+$)", normalized_name):
+        return 2000
     return 0
 
 
