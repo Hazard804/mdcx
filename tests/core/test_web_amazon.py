@@ -943,6 +943,125 @@ async def test_get_big_pic_by_amazon_prefers_single_actor_candidate_over_multi_a
 
 
 @pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_probes_candidates_lazily_until_first_hd_hit(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    html_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000FIRST">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000FIRST"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000FIRST"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81first._AC_UL320_.jpg" />
+        </div>
+        <div data-component-type="s-search-result" data-asin="B000SECOND">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000SECOND"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000SECOND"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81second._AC_UL320_.jpg" />
+        </div>
+        <div data-component-type="s-search-result" data-asin="B000THIRD">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000THIRD"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000THIRD"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81third._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = """
+    <html>
+      <body>
+        <span id="productTitle">标题测试 演员A</span>
+        <div id="bylineInfo_feature_div"><a>演员A</a></div>
+      </body>
+    </html>
+    """
+    probed_urls: list[str] = []
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/" in req_url:
+            return True, html_detail
+        return True, html_search
+
+    async def fake_get_imgsize(url: str):
+        probed_urls.append(url)
+        if "81first" in url:
+            return 600, 900
+        if "81second" in url:
+            return 801, 1200
+        pytest.fail(f"命中高清候选后不应继续探测: {url}")
+
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    pic_url = await get_big_pic_by_amazon(result, "标题测试", ["演员A"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81second.jpg"
+    assert probed_urls == [
+        "https://m.media-amazon.com/images/I/81first.jpg",
+        "https://m.media-amazon.com/images/I/81second.jpg",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_prefers_verified_candidate_over_wider_unverified_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    html_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000WRONG">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/s?keywords=wrong"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/s?keywords=wrong"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81wrongwide._AC_UL320_.jpg" />
+        </div>
+        <div data-component-type="s-search-result" data-asin="B000RIGHT">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000RIGHT"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000RIGHT"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81rightverified._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_right_detail = """
+    <html>
+      <body>
+        <span id="productTitle">标题测试 演员A</span>
+        <div id="bylineInfo_feature_div"><a>演员A</a></div>
+      </body>
+    </html>
+    """
+    probed_urls: list[str] = []
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000RIGHT" in req_url:
+            return True, html_right_detail
+        return True, html_search
+
+    async def fake_get_imgsize(url: str):
+        probed_urls.append(url)
+        if "81rightverified" in url:
+            return 801, 1200
+        if "81wrongwide" in url:
+            pytest.fail(f"已验证候选命中高清后，不应再探测未验证宽图: {url}")
+        return 0, 0
+
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    pic_url = await get_big_pic_by_amazon(result, "标题测试", ["演员A"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81rightverified.jpg"
+    assert probed_urls == ["https://m.media-amazon.com/images/I/81rightverified.jpg"]
+
+
+@pytest.mark.asyncio
 async def test_get_big_pic_by_amazon_prefers_dvd_over_bluray_for_same_work(monkeypatch: pytest.MonkeyPatch):
     html_search = """
     <html>

@@ -506,8 +506,9 @@ async def get_big_pic_by_amazon(
         if not actor_search_keywords:
             return ""
         confidence_threshold = 0.75
-        best_match: tuple[tuple[int, float, int, int], str, str, str] | None = None
         best_rejected_candidate: tuple[float, str, str, str] | None = None
+        fallback_candidates: list[tuple[tuple[int, float, int], str, str, str]] = []
+        fallback_candidate_keys: set[tuple[str, str, str]] = set()
 
         def update_best_rejected(score: float, actor_name: str, pic_title: str, reason: str):
             nonlocal best_rejected_candidate
@@ -549,18 +550,20 @@ async def get_big_pic_by_amazon(
                     )
                     continue
                 url = re.sub(r"\._[_]?AC_[^\.]+\.", ".", pic_url)
-                width, _ = await get_imgsize(url)
-                width = width or 0
-                current_match = (
-                    (1 if text_has_target_number(pic_title) else 0, confidence, get_media_priority(pic_ver), width),
-                    url,
-                    pic_title,
-                    actor_name,
+                candidate_key = (url, actor_name, pic_title)
+                if candidate_key in fallback_candidate_keys:
+                    continue
+                fallback_candidate_keys.add(candidate_key)
+                fallback_candidates.append(
+                    (
+                        (1 if text_has_target_number(pic_title) else 0, confidence, get_media_priority(pic_ver)),
+                        url,
+                        pic_title,
+                        actor_name,
+                    )
                 )
-                if best_match is None or current_match[0] > best_match[0]:
-                    best_match = current_match
 
-        if not best_match:
+        if not fallback_candidates:
             if best_rejected_candidate:
                 score, rejected_actor, rejected_title, rejected_reason = best_rejected_candidate
                 LogBuffer.log().write(
@@ -570,13 +573,29 @@ async def get_big_pic_by_amazon(
             else:
                 LogBuffer.log().write("\n 🟡 Amazon兜底未命中：演员搜索无可评估候选结果")
             return ""
-        (number_match, confidence, media_priority, width), matched_url, matched_title, matched_actor = best_match
+
+        fallback_candidates = sorted(fallback_candidates, key=lambda item: item[0], reverse=True)
+        best_fallback_match: tuple[tuple[int, float, int], str, str, str, int] | None = None
+        for current_match, matched_url, matched_title, matched_actor in fallback_candidates:
+            width, _ = await get_imgsize(matched_url)
+            width = width or 0
+            if best_fallback_match is None:
+                best_fallback_match = (current_match, matched_url, matched_title, matched_actor, width)
+            if is_hd_candidate_width(width):
+                number_match, confidence, _ = current_match
+                LogBuffer.log().write(
+                    f"\n 🟢 Amazon兜底命中：演员({matched_actor}) 置信度({confidence:.2f}) "
+                    f"番号命中({bool(number_match)}) 标题({matched_title})"
+                )
+                return matched_url
+
+        if best_fallback_match is None:
+            return ""
+        (number_match, confidence, _), matched_url, matched_title, matched_actor, _ = best_fallback_match
         LogBuffer.log().write(
             f"\n 🟢 Amazon兜底命中：演员({matched_actor}) 置信度({confidence:.2f}) 番号命中({bool(number_match)})"
             f" 标题({matched_title})"
         )
-        if width > 600 or not width:
-            return matched_url
         result.poster = matched_url
         result.poster_from = "Amazon"
         return ""
@@ -646,6 +665,43 @@ async def get_big_pic_by_amazon(
     def candidate_number_match(candidate: dict[str, object]) -> bool:
         return bool(candidate["quick_number_match"] or candidate["detail_number_match"])
 
+    required_actor_match_count = (
+        min(expected_actor_count, max(2, (expected_actor_count + 1) // 2)) if has_valid_actor else 0
+    )
+
+    def candidate_has_detail_evidence(candidate: dict[str, object]) -> bool:
+        return bool(candidate["detail_url"]) and bool(candidate["detail_checked"])
+
+    def candidate_correctness_key(candidate: dict[str, object]) -> tuple[int, int, int, int, int, int, int]:
+        title_confidence = float(candidate["title_confidence"])
+        actor_match_count = candidate_actor_match_count(candidate)
+        detail_actor_matches = int(candidate["detail_actor_matches"])
+        detail_actor_count = int(candidate["detail_actor_count"])
+        detail_verified = candidate_has_detail_evidence(candidate)
+        detail_number_match = bool(candidate["detail_number_match"])
+        number_match = candidate_number_match(candidate)
+
+        if has_valid_actor:
+            verified_actor_match = detail_verified and detail_actor_matches >= required_actor_match_count
+            quick_actor_match = actor_match_count >= required_actor_match_count
+            verified_single_actor_match = (
+                detail_verified and expected_actor_count == 1 and detail_actor_matches >= 1 and detail_actor_count <= 1
+            )
+        else:
+            verified_actor_match = False
+            quick_actor_match = False
+            verified_single_actor_match = False
+
+        return (
+            1 if detail_number_match else 0,
+            1 if verified_single_actor_match else 0,
+            1 if verified_actor_match else 0,
+            1 if detail_verified else 0,
+            1 if number_match else 0,
+            1 if quick_actor_match else 0,
+            1 if title_confidence >= 0.93 else 0,
+        )
+
     def candidate_score(candidate: dict[str, object]) -> float:
         title_confidence = float(candidate["title_confidence"])
         actor_match_count = candidate_actor_match_count(candidate)
@@ -676,12 +732,26 @@ async def get_big_pic_by_amazon(
                 if detail_actor_count > 1:
                     return title_confidence >= 0.92
                 return (actor_match_count >= 1 and title_confidence >= 0.78) or title_confidence >= 0.93
-            required_actor_matches = min(expected_actor_count, max(2, (expected_actor_count + 1) // 2))
-            return title_confidence >= 0.76 and actor_match_count >= required_actor_matches
+            return title_confidence >= 0.76 and actor_match_count >= required_actor_match_count
         return title_confidence >= 0.88
 
-    def candidate_sort_key(candidate: dict[str, object]) -> tuple[float, int, int]:
-        return (candidate_score(candidate), int(candidate["media_priority"]), int(candidate["width"]))
+    def candidate_sort_key(candidate: dict[str, object]) -> tuple[int, int, int, int, int, int, int, float, int, int]:
+        return (
+            *candidate_correctness_key(candidate),
+            candidate_score(candidate),
+            int(candidate["media_priority"]),
+            int(candidate["width"]),
+        )
+
+    def candidate_probe_order_key(candidate: dict[str, object]) -> tuple[int, int, int, int, int, int, int, float, int]:
+        return (
+            *candidate_correctness_key(candidate),
+            candidate_score(candidate),
+            int(candidate["media_priority"]),
+        )
+
+    def is_hd_candidate_width(width: int) -> bool:
+        return width >= 1770 or 1750 > width > 600 or not width
 
     candidate_pool: dict[str, dict[str, object]] = {}
     query_index = 0
@@ -786,35 +856,31 @@ async def get_big_pic_by_amazon(
             await enrich_candidate(each_candidate)
         accepted_candidates = [candidate for candidate in candidate_pool.values() if is_candidate_acceptable(candidate)]
         if accepted_candidates:
-            accepted_candidates = sorted(accepted_candidates, key=candidate_sort_key, reverse=True)
-            measured_candidates = accepted_candidates[: min(6, len(accepted_candidates))]
-            for each_candidate in measured_candidates:
+            probe_candidates = sorted(accepted_candidates, key=candidate_probe_order_key, reverse=True)[
+                : min(6, len(accepted_candidates))
+            ]
+            best_fallback_candidate: dict[str, object] | None = None
+            for each_candidate in probe_candidates:
                 width, _ = await get_imgsize(str(each_candidate["url"]))
                 each_candidate["width"] = width or 0
-            hd_candidates = [
-                candidate
-                for candidate in measured_candidates
-                if int(candidate["width"]) >= 1770
-                or 1750 > int(candidate["width"]) > 600
-                or not int(candidate["width"])
-            ]
-            if hd_candidates:
-                best_candidate = sorted(hd_candidates, key=candidate_sort_key, reverse=True)[0]
+                if best_fallback_candidate is None:
+                    best_fallback_candidate = each_candidate
+                if is_hd_candidate_width(int(each_candidate["width"])):
+                    LogBuffer.log().write(
+                        f"\n 🟢 Amazon命中：标题置信度({float(each_candidate['title_confidence']):.2f}) "
+                        f"番号命中({candidate_number_match(each_candidate)}) "
+                        f"演员命中({candidate_actor_match_count(each_candidate)}/{expected_actor_count or 0}) "
+                        f"介质({each_candidate['pic_ver'] or 'unknown'}) 标题({each_candidate['pic_title']})"
+                    )
+                    return str(each_candidate["url"])
+            if best_fallback_candidate:
+                result.poster = str(best_fallback_candidate["url"])
+                result.poster_from = "Amazon"
                 LogBuffer.log().write(
-                    f"\n 🟢 Amazon命中：标题置信度({float(best_candidate['title_confidence']):.2f}) "
-                    f"番号命中({candidate_number_match(best_candidate)}) "
-                    f"演员命中({candidate_actor_match_count(best_candidate)}/{expected_actor_count or 0}) "
-                    f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
+                    f"\n 🟡 Amazon命中低清图：标题置信度({float(best_fallback_candidate['title_confidence']):.2f}) "
+                    f"番号命中({candidate_number_match(best_fallback_candidate)}) "
+                    f"介质({best_fallback_candidate['pic_ver'] or 'unknown'}) 标题({best_fallback_candidate['pic_title']})"
                 )
-                return str(best_candidate["url"])
-            best_fallback_candidate = measured_candidates[0]
-            result.poster = str(best_fallback_candidate["url"])
-            result.poster_from = "Amazon"
-            LogBuffer.log().write(
-                f"\n 🟡 Amazon命中低清图：标题置信度({float(best_fallback_candidate['title_confidence']):.2f}) "
-                f"番号命中({candidate_number_match(best_fallback_candidate)}) "
-                f"介质({best_fallback_candidate['pic_ver'] or 'unknown'}) 标题({best_fallback_candidate['pic_title']})"
-            )
         else:
             best_rejected_candidate = sorted(candidate_pool.values(), key=candidate_sort_key, reverse=True)[0]
             LogBuffer.log().write(
