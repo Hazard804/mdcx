@@ -5,7 +5,7 @@ from urllib.parse import quote, urljoin, urlparse
 from parsel import Selector
 
 from ..config.models import Website
-from ..number import get_file_number, is_uncensored
+from ..number import get_file_number, is_uncensored, normalize_uncensored_digit_number
 from ..signals import signal
 from .base import BaseCrawler, CralwerException, CrawlerData, DetailPageParser, extract_all_texts, extract_text
 
@@ -261,7 +261,7 @@ class MissavCrawler(BaseCrawler):
     parser = Parser()
 
     CODE_PATTERN = re.compile(r"(?i)([a-z]{2,10})[-_ ]?(\d{2,6})")
-    UNCENSORED_DATE_PATTERN = re.compile(r"^\d{6}[-_]\d{3,4}$")
+    UNCENSORED_DIGIT_PATTERN = re.compile(r"^\d{6}[-_]\d{2,4}$")
     URL_LANG_SUFFIXES = {"cn", "en", "jp", "ja", "tw", "hk"}
 
     SEARCH_BLACKLIST_PREFIXES = {
@@ -442,6 +442,10 @@ class MissavCrawler(BaseCrawler):
         except Exception:
             normalized = raw_number
 
+        normalized_digit_number = normalize_uncensored_digit_number(normalized)
+        if normalized_digit_number:
+            normalized = normalized_digit_number
+
         normalized = (normalized or "").strip().lower().replace("_", "-")
         if not normalized:
             return ""
@@ -451,7 +455,7 @@ class MissavCrawler(BaseCrawler):
             prefix, digits = parsed
             return f"{prefix}-{cls._normalize_digits_for_number(digits)}"
 
-        if match := re.match(r"^(\d{6}[-_]\d{3,4})", normalized):
+        if match := re.match(r"^(\d{6}[-_]\d{2,4})", normalized):
             return match.group(1)
         return normalized
 
@@ -463,7 +467,7 @@ class MissavCrawler(BaseCrawler):
             return False
         if is_uncensored(normalized_number):
             return True
-        return bool(cls.UNCENSORED_DATE_PATTERN.fullmatch(normalized_number))
+        return bool(cls.UNCENSORED_DIGIT_PATTERN.fullmatch(normalized_number))
 
     @classmethod
     def _is_search_mode_url(cls, url: str) -> bool:

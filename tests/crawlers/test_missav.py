@@ -11,6 +11,9 @@ from mdcx.crawlers.missav import MissavCrawler
         ("MIDV-0999-UC", "midv-999"),
         ("MIDV999U", "midv-999"),
         ("010101-123-U", "010101-123"),
+        ("100225_100", "100225-100"),
+        ("10musume_031426_01", "031426-01"),
+        ("caribbeancom-031426-001", "031426-001"),
     ],
 )
 def test_normalize_number_for_uncensored_judge(number: str, expected: str):
@@ -25,6 +28,9 @@ def test_normalize_number_for_uncensored_judge(number: str, expected: str):
         ("MIDV-999", "无码", False),
         ("HEYZO-1234-U", "有码", True),
         ("010101-123-U", "有码", True),
+        ("100225_100", "有码", True),
+        ("10musume_031426_01", "有码", True),
+        ("caribbeancom-031426-001", "有码", True),
     ],
 )
 def test_should_use_uncensored_search_by_original_number(number: str, mosaic: str, expected: bool):

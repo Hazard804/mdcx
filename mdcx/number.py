@@ -5,6 +5,13 @@ import unicodedata
 
 from .manual import ManualConfig
 
+UNCENSORED_DIGIT_NUMBER_PATTERN = re.compile(r"^(?P<head>\d{6})(?P<sep>[-_])(?P<tail>\d{2,4})$", re.IGNORECASE)
+UNCENSORED_DIGIT_NUMBER_PREFIX_PATTERN = re.compile(
+    r"^(?P<prefix>1pondo|1pon|10musume|caribbeancom|caribbeancompr|carib|pacopacomama|pacoma|paco)[-_ ]*"
+    r"(?P<head>\d{6})(?P<sep>[-_])(?P<tail>\d{2,4})$",
+    re.IGNORECASE,
+)
+
 
 def strip_escape_strings(filename: str, escape_string_list: list[str], replace_char: str = "") -> str:
     filename = filename.upper()
@@ -15,8 +22,26 @@ def strip_escape_strings(filename: str, escape_string_list: list[str], replace_c
     return filename
 
 
+def normalize_uncensored_digit_number(number: str) -> str:
+    raw_number = (number or "").strip().strip("-_. ")
+    if not raw_number:
+        return ""
+
+    if match := UNCENSORED_DIGIT_NUMBER_PATTERN.fullmatch(raw_number):
+        return f"{match['head']}{match['sep']}{match['tail']}"
+
+    if match := UNCENSORED_DIGIT_NUMBER_PREFIX_PATTERN.fullmatch(raw_number):
+        return f"{match['head']}{match['sep']}{match['tail']}"
+
+    return ""
+
+
 def is_uncensored(number: str) -> bool:
-    if re.match(r"n\d{4}", number) or re.search(r"[^.]+\.\d{2}\.\d{2}\.\d{2}", number):
+    if (
+        re.match(r"n\d{4}", number)
+        or re.search(r"[^.]+\.\d{2}\.\d{2}\.\d{2}", number)
+        or normalize_uncensored_digit_number(number)
+    ):
         return True
 
     # 无码车牌BT,CT,EMP,CCDV,CWP,CWPBD,DSAM,DRC,DRG,GACHI,heydouga,JAV,LAF,LAFBD,HEYZO,KTG,KP,KG,LLDV,MCDV,MKD,MKBD,MMDV,NIP,PB,PT,QE,RED,RHJ,S2M,SKY,SKYHD,SMD,SSDV,SSKP,TRG,TS,xxx-av,YKB
@@ -141,6 +166,10 @@ def get_file_number(filepath: str, escape_string_list: list[str]) -> str:
     filename = (
         filename.replace("FC2-PPV", "FC2-").replace("FC2PPV", "FC2-").replace("--", "-").replace("GACHIPPV", "GACHI")
     )
+
+    # 处理 111111-111、111111_111、1pondo_111111_111、10musume_111111_01 这类无码数字番号
+    if uncensored_digit_number := normalize_uncensored_digit_number(filename):
+        return uncensored_digit_number
 
     # 提取番号
     if "MYWIFE" in filename and re.search(r"NO\.\d*", filename):  # 提取 mywife No.1111

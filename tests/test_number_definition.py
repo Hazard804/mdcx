@@ -3,14 +3,34 @@ from pathlib import Path
 import pytest
 
 from mdcx.config.manager import manager
+from mdcx.core.file import get_file_info_v2
 from mdcx.core.utils import get_video_size
-from mdcx.number import get_file_number
+from mdcx.models.enums import FileMode
+from mdcx.models.flags import Flags
+from mdcx.number import get_file_number, is_uncensored
 
 
 def test_get_file_number_prefers_longer_escape_strings():
     escape_strings = ["4k2", ".com@", "489155.com@"]
 
     assert get_file_number(r"D:/test/489155.com@MXGS-992.mp4", escape_strings) == "MXGS-992"
+
+
+@pytest.mark.parametrize(
+    ("raw_number", "expected_number"),
+    [
+        (r"D:/test/100225_100.mp4", "100225_100"),
+        (r"D:/test/111111_111.mp4", "111111_111"),
+        (r"D:/test/111111-111.mp4", "111111-111"),
+        (r"D:/test/1pondo_031926_001.mp4", "031926_001"),
+        (r"D:/test/caribbeancom-031426-001.mp4", "031426-001"),
+        (r"D:/test/pacopacomama_031726_100.mp4", "031726_100"),
+        (r"D:/test/10musume_031426_01.mp4", "031426_01"),
+    ],
+)
+def test_get_file_number_normalizes_uncensored_digit_numbers(raw_number: str, expected_number: str):
+    assert get_file_number(raw_number, []) == expected_number
+    assert is_uncensored(expected_number) is True
 
 
 @pytest.mark.asyncio
@@ -39,3 +59,24 @@ async def test_get_video_size_path_strips_noise_and_number_tokens(
 
     assert definition == expected_definition
     assert codec == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("file_path", "expected_number"),
+    [
+        (Path("D:/test/100225_100.mp4"), "100225_100"),
+        (Path("D:/test/1pondo_031926_001.mp4"), "031926_001"),
+        (Path("D:/test/10musume_031426_01.mp4"), "031426_01"),
+    ],
+)
+async def test_get_file_info_marks_uncensored_digit_numbers(file_path: Path, expected_number: str):
+    old_file_mode = Flags.file_mode
+    Flags.file_mode = FileMode.Default
+    try:
+        file_info = await get_file_info_v2(file_path, copy_sub=False)
+    finally:
+        Flags.file_mode = old_file_mode
+
+    assert file_info.number == expected_number
+    assert file_info.mosaic == "无码"
