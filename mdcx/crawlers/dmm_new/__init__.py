@@ -41,6 +41,7 @@ from .parsers import (
     parse_media_variant,
 )
 from .tv import (
+    DmmDigitalPackageImage,
     DmmDigitalResponse,
     DmmTvResponse,
     FanzaResp,
@@ -932,19 +933,28 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             return CrawlerData()
         try:
             resp = FanzaResp.model_validate(response)
-            data = resp.data.fanzaTvPlus.content
+            fanza_data = resp.data.fanzaTvPlus.content if resp.data and resp.data.fanzaTvPlus else None
         except Exception as e:
             ctx.debug(f"Fanza TV API 响应解析失败: {e}")
             return CrawlerData()
+        if fanza_data is None:
+            ctx.debug(f"Fanza TV API 返回空内容: {content_cid=} {response=}")
+            return CrawlerData()
+        data = fanza_data
 
         extrafanart = []
-        for sample_pic in data.samplePictures:
-            if sample_pic.imageLarge:
+        for sample_pic in data.samplePictures or []:
+            if sample_pic and sample_pic.imageLarge:
                 extrafanart.append(sample_pic.imageLarge)
 
+        sample_movie = data.sampleMovie
+        sample_movie_url = str(sample_movie.url or "") if sample_movie else ""
+        sample_movie_thumbnail = str(sample_movie.thumbnail or "") if sample_movie else ""
+        duration = data.playInfo.duration if data.playInfo else 0
+
         trailer = self._build_fanza_trailer_url(
-            data.sampleMovie.url,
-            sample_movie_thumbnail=data.sampleMovie.thumbnail,
+            sample_movie_url,
+            sample_movie_thumbnail=sample_movie_thumbnail,
             fallback_cid=content_cid,
         )
         trailer = self._pick_best_unvalidated_trailer("", [trailer] if trailer else [])
@@ -968,7 +978,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
         if not trailer:
             fallback_candidates = self._build_fanza_fallback_candidates(
-                sample_movie_thumbnail=data.sampleMovie.thumbnail,
+                sample_movie_thumbnail=sample_movie_thumbnail,
                 fallback_cid=content_cid,
             )
             self._log(f"预告片[兜底校验]: cid={content_cid} count={len(fallback_candidates)}")
@@ -982,19 +992,19 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             self._log(f"🟠 预告片[最终]: cid={content_cid} 未获取到可用链接")
 
         return CrawlerData(
-            title=data.title,
-            outline=data.description,
-            release=data.startDeliveryAt,  # 2025-05-17T20:00:00Z
-            tags=[genre.name for genre in data.genres],
-            runtime=str(int(data.playInfo.duration / 60)),
-            actors=[a.name for a in data.actresses],
-            poster=data.packageImage,
-            thumb=data.packageLargeImage,
-            score=str(data.reviewSummary.averagePoint),
-            series=data.series.name,
-            directors=[d.name for d in data.directors],
-            studio=data.maker.name,
-            publisher=data.label.name,
+            title=str(data.title or ""),
+            outline=str(data.description or ""),
+            release=str(data.startDeliveryAt or ""),  # 2025-05-17T20:00:00Z
+            tags=[genre.name for genre in (data.genres or []) if genre and genre.name],
+            runtime=str(int(duration / 60)) if duration else "",
+            actors=[a.name for a in (data.actresses or []) if a and a.name],
+            poster=str(data.packageImage or ""),
+            thumb=str(data.packageLargeImage or ""),
+            score="" if data.reviewSummary is None else str(data.reviewSummary.averagePoint),
+            series="" if data.series is None else str(data.series.name or ""),
+            directors=[d.name for d in (data.directors or []) if d and d.name],
+            studio="" if data.maker is None else str(data.maker.name or ""),
+            publisher="" if data.label is None else str(data.label.name or ""),
             extrafanart=extrafanart,
             trailer=trailer,
             external_id=detail_url,
@@ -1060,11 +1070,15 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
         try:
             resp = DmmDigitalResponse.model_validate(response)
-            data = resp.data.ppvContent
-            review = resp.data.reviewSummary
+            digital_data = resp.data.ppvContent if resp.data else None
+            review = resp.data.reviewSummary if resp.data else None
         except Exception as e:
             ctx.debug(f"digital GraphQL 响应解析失败: {content_id=} {e}")
             return CrawlerData()
+        if digital_data is None:
+            ctx.debug(f"digital GraphQL 返回空内容: {content_id=} {response=}")
+            return CrawlerData()
+        data = digital_data
 
         if not data.id:
             ctx.debug(f"digital GraphQL 返回空内容: {content_id=} {response=}")
@@ -1072,6 +1086,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
         vr_movie = data.sampleVRMovie or None
         sample_2d_movie = data.sample2DMovie or None
+        package_image = data.packageImage or DmmDigitalPackageImage()
         trailer_candidates = [
             str(vr_movie.highestMovieUrl or "") if vr_movie else "",
             str(sample_2d_movie.highestMovieUrl or "") if sample_2d_movie else "",
@@ -1087,23 +1102,23 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
         runtime = str(int(data.duration / 60)) if data.duration else ""
         outline = self._clean_html_text(data.description)
-        sample_images = [str(item.largeImageUrl or "").strip() for item in data.sampleImages]
+        sample_images = [str(item.largeImageUrl or "").strip() for item in (data.sampleImages or []) if item]
 
         ctx.debug(f"digital GraphQL 请求成功: {content_id=} {detail_url=}")
         return CrawlerData(
-            title=data.title,
+            title=str(data.title or ""),
             outline=outline,
             release=release,
             runtime=runtime,
-            actors=[item.name for item in data.actresses if item.name],
-            directors=[item.name for item in data.directors if item.name],
-            thumb=data.packageImage.largeUrl,
-            poster=data.packageImage.mediumUrl,
-            score="" if review.average is None else str(review.average),
-            series=data.series.name,
-            studio=data.maker.name,
-            publisher=data.label.name,
-            tags=[item.name for item in data.genres if item.name],
+            actors=[item.name for item in (data.actresses or []) if item and item.name],
+            directors=[item.name for item in (data.directors or []) if item and item.name],
+            thumb=str(package_image.largeUrl or ""),
+            poster=str(package_image.mediumUrl or ""),
+            score="" if review is None or review.average is None else str(review.average),
+            series="" if data.series is None else str(data.series.name or ""),
+            studio="" if data.maker is None else str(data.maker.name or ""),
+            publisher="" if data.label is None else str(data.label.name or ""),
+            tags=[item.name for item in (data.genres or []) if item and item.name],
             extrafanart=[url for url in sample_images if url],
             trailer=trailer,
             external_id=detail_url,

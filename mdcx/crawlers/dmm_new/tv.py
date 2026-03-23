@@ -19,17 +19,17 @@ def fanza_tv_payload(cid: str):
 
 
 class Item(BaseModel):
-    name: str = ""
+    name: str | None = None
 
 
 class SampleMovie(BaseModel):
-    url: str = ""
-    thumbnail: str = ""
+    url: str | None = None
+    thumbnail: str | None = None
 
 
 class SamplePicture(BaseModel):
     # image: str = ""
-    imageLarge: str = ""
+    imageLarge: str | None = None
 
 
 class ReviewSummary(BaseModel):
@@ -59,40 +59,40 @@ class FanzaSvodContent(BaseModel):
     # shopName: str = ""
     # shopOption: str | None = None
     # shopType: str = ""
-    title: str = ""
-    description: str = ""
-    packageImage: str = ""
-    packageLargeImage: str = ""
+    title: str | None = None
+    description: str | None = None
+    packageImage: str | None = None
+    packageLargeImage: str | None = None
     # noIndex: bool = False
     # ppvShopName: str = ""
     # isFanzaTvPlusOnly: bool = False
-    startDeliveryAt: str = ""
+    startDeliveryAt: str | None = None
     # endDeliveryAt: str = ""
     # isBeingDelivered: bool = False
     # deliveryStatus: str = ""
-    sampleMovie: SampleMovie = SampleMovie()
-    samplePictures: list[SamplePicture] = []
-    actresses: list[Item] = []
+    sampleMovie: SampleMovie | None = None
+    samplePictures: list[SamplePicture | None] | None = None
+    actresses: list[Item | None] | None = None
     # histrions: list[dict] = []
-    directors: list[Item] = []
-    series: Item = Item()
-    maker: Item = Item()
-    label: Item = Item()
-    genres: list[Item] = []
-    reviewSummary: ReviewSummary = ReviewSummary()
-    playInfo: PlayInfo = PlayInfo()
+    directors: list[Item | None] | None = None
+    series: Item | None = None
+    maker: Item | None = None
+    label: Item | None = None
+    genres: list[Item | None] | None = None
+    reviewSummary: ReviewSummary | None = None
+    playInfo: PlayInfo | None = None
 
 
 class FanzaTvPlus(BaseModel):
-    content: FanzaSvodContent = FanzaSvodContent()
+    content: FanzaSvodContent | None = None
 
 
 class _FanzaData(BaseModel):
-    fanzaTvPlus: FanzaTvPlus = FanzaTvPlus()
+    fanzaTvPlus: FanzaTvPlus | None = None
 
 
 class FanzaResp(BaseModel):
-    data: _FanzaData = _FanzaData()
+    data: _FanzaData | None = None
 
 
 def dmm_digital_payload(content_id: str):
@@ -152,17 +152,17 @@ query MDCxDigitalContent($id: ID!) {
 
 
 class DmmDigitalPackageImage(BaseModel):
-    largeUrl: str = ""
-    mediumUrl: str = ""
+    largeUrl: str | None = None
+    mediumUrl: str | None = None
 
 
 class DmmDigitalSampleImage(BaseModel):
-    largeImageUrl: str = ""
+    largeImageUrl: str | None = None
 
 
 class DmmDigitalMovie(BaseModel):
-    highestMovieUrl: str = ""
-    hlsMovieUrl: str = ""
+    highestMovieUrl: str | None = None
+    hlsMovieUrl: str | None = None
 
 
 class DmmDigitalReviewSummary(BaseModel):
@@ -170,31 +170,31 @@ class DmmDigitalReviewSummary(BaseModel):
 
 
 class DmmDigitalContent(BaseModel):
-    id: str = ""
-    title: str = ""
-    description: str = ""
-    packageImage: DmmDigitalPackageImage = Field(default_factory=DmmDigitalPackageImage)
-    sampleImages: list[DmmDigitalSampleImage] = Field(default_factory=list)
+    id: str | None = None
+    title: str | None = None
+    description: str | None = None
+    packageImage: DmmDigitalPackageImage | None = None
+    sampleImages: list[DmmDigitalSampleImage | None] | None = None
     sample2DMovie: DmmDigitalMovie | None = None
     sampleVRMovie: DmmDigitalMovie | None = None
-    deliveryStartDate: str = ""
-    makerReleasedAt: str = ""
-    duration: int = 0
-    actresses: list[Item] = Field(default_factory=list)
-    directors: list[Item] = Field(default_factory=list)
-    series: Item = Field(default_factory=Item)
-    maker: Item = Field(default_factory=Item)
-    label: Item = Field(default_factory=Item)
-    genres: list[Item] = Field(default_factory=list)
+    deliveryStartDate: str | None = None
+    makerReleasedAt: str | None = None
+    duration: int | None = None
+    actresses: list[Item | None] | None = None
+    directors: list[Item | None] | None = None
+    series: Item | None = None
+    maker: Item | None = None
+    label: Item | None = None
+    genres: list[Item | None] | None = None
 
 
 class DmmDigitalData(BaseModel):
-    ppvContent: DmmDigitalContent = Field(default_factory=DmmDigitalContent)
-    reviewSummary: DmmDigitalReviewSummary = Field(default_factory=DmmDigitalReviewSummary)
+    ppvContent: DmmDigitalContent | None = None
+    reviewSummary: DmmDigitalReviewSummary | None = None
 
 
 class DmmDigitalResponse(BaseModel):
-    data: DmmDigitalData = Field(default_factory=DmmDigitalData)
+    data: DmmDigitalData | None = None
 
 
 def dmm_tv_com_payload(season_id):

@@ -232,6 +232,62 @@ async def test_fetch_digital_uses_graphql_response(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.asyncio
+async def test_fetch_digital_tolerates_nullable_graphql_fields(monkeypatch: pytest.MonkeyPatch):
+    crawler = DmmCrawler(client=AsyncWebClient(timeout=1))
+    ctx = DMMContext(input=CrawlerInput.empty())
+    detail_url = "https://video.dmm.co.jp/av/content/?id=mida00557&i3_ref=search&i3_ord=1"
+
+    async def fake_http_request_with_retry(method: str, url: str, **kwargs):
+        return (
+            {
+                "data": {
+                    "ppvContent": {
+                        "id": "mida00557",
+                        "title": "内気な性格で嫌と言えずエロ整体師の媚薬マッサージにイカされ続けた部活少女 七沢みあ",
+                        "description": None,
+                        "packageImage": None,
+                        "sampleImages": None,
+                        "sample2DMovie": None,
+                        "sampleVRMovie": None,
+                        "deliveryStartDate": None,
+                        "makerReleasedAt": "2026-03-16T15:00:00Z",
+                        "duration": None,
+                        "actresses": [None, {"name": None}, {"name": "七沢みあ"}],
+                        "directors": None,
+                        "series": None,
+                        "maker": None,
+                        "label": {"name": None},
+                        "genres": [None, {"name": None}, {"name": "4K"}],
+                    },
+                    "reviewSummary": None,
+                }
+            },
+            "",
+        )
+
+    monkeypatch.setattr(crawler, "_http_request_with_retry", fake_http_request_with_retry)
+
+    result = await crawler.fetch_digital(ctx, detail_url)
+
+    assert result.title == "内気な性格で嫌と言えずエロ整体師の媚薬マッサージにイカされ続けた部活少女 七沢みあ"
+    assert result.outline == ""
+    assert result.release == "2026-03-16"
+    assert result.runtime == ""
+    assert result.actors == ["七沢みあ"]
+    assert result.directors == []
+    assert result.series == ""
+    assert result.studio == ""
+    assert result.publisher == ""
+    assert result.tags == ["4K"]
+    assert result.score == ""
+    assert result.thumb == ""
+    assert result.poster == ""
+    assert result.extrafanart == []
+    assert result.trailer == ""
+    assert any("digital GraphQL 请求成功" in log for log in ctx.debug_info.logs)
+
+
+@pytest.mark.asyncio
 async def test_detail_uses_fetch_digital_for_digital_urls(monkeypatch: pytest.MonkeyPatch):
     crawler = DmmCrawler(client=AsyncWebClient(timeout=1))
     ctx = DMMContext(input=CrawlerInput.empty())
@@ -326,6 +382,37 @@ def test_merge_detail_results_uses_tv_release_as_last_fallback():
     assert best_trailer == ""
     assert merged.release == "2023-07-14T01:00:00Z"
     assert merged.year == "2023"
+
+
+def test_merge_detail_results_keeps_lower_priority_value_when_digital_field_empty():
+    ctx = Context(input=CrawlerInput.empty())
+    mono_result = CrawlerData(
+        title="mono title",
+        release="2026-03-17",
+        publisher="mono publisher",
+        external_id="mono",
+    )
+    digital_result = CrawlerData(
+        title="digital title",
+        release="",
+        publisher="",
+        external_id="digital",
+    )
+
+    merged, best_trailer = DmmCrawler._merge_detail_results(
+        ctx,
+        [
+            (Category.MONO, mono_result),
+            (Category.DIGITAL, digital_result),
+        ],
+    )
+
+    assert merged is not None
+    assert best_trailer == ""
+    assert merged.title == "digital title"
+    assert merged.release == "2026-03-17"
+    assert merged.publisher == "mono publisher"
+    assert merged.external_id == "digital"
 
 
 def test_parse_media_variant_prefers_active_media():
