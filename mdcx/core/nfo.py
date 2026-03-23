@@ -49,7 +49,7 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
     else:
         nfo_title_template = manager.config.naming_media
 
-    # 字符转义，避免emby无法解析
+    # 先将已转义实体还原为实际字符，避免写入时出现二次转义
     rep_word = {
         "&amp;": "&",
         "&lt;": "<",
@@ -59,6 +59,9 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
         "&lsquo;": "「",
         "&rsquo;": "」",
         "&hellip;": "…",
+    }
+
+    escape_word = {
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
@@ -66,10 +69,20 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
         '"': "&quot;",
     }
 
-    def rep(raw: str) -> str:
+    def normalize_xml_text(raw: str) -> str:
         for key, value in rep_word.items():
             raw = raw.replace(key, value)
         return raw
+
+    def escape_xml_text(raw: str) -> str:
+        raw = normalize_xml_text(raw)
+        for key, value in escape_word.items():
+            raw = raw.replace(key, value)
+        return raw
+
+    def build_cdata(raw: str) -> str:
+        normalized = normalize_xml_text(raw)
+        return "<![CDATA[" + normalized.replace("]]>", "]]]]><![CDATA[>") + "]]>"
 
     def normalize_linebreaks(raw: str) -> str:
         raw = (
@@ -82,13 +95,17 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
         raw = re.sub(r"(?i)&lt;\s*br\s*/?\s*&gt;", "\n", raw)
         return re.sub(r"(?i)<\s*br\s*/?\s*>", "\n", raw)
 
-    originalplot = normalize_linebreaks(rep(data.originalplot))
-    originaltitle = rep(data.originaltitle)
-    outline = normalize_linebreaks(rep(data.outline))
-    publisher = rep(data.publisher)
-    series = rep(data.series)
-    studio = rep(data.studio)
-    title = rep(data.title)
+    originalplot = normalize_linebreaks(normalize_xml_text(data.originalplot))
+    originaltitle = normalize_xml_text(data.originaltitle)
+    outline = normalize_linebreaks(normalize_xml_text(data.outline))
+    publisher = normalize_xml_text(data.publisher)
+    series = normalize_xml_text(data.series)
+    studio = normalize_xml_text(data.studio)
+    title = normalize_xml_text(data.title)
+    release = normalize_xml_text(data.release)
+
+    def write_text_element(code: StringIO, tag_name: str, value: str, indent: str = "  ") -> None:
+        print(f"{indent}<{tag_name}>{escape_xml_text(value)}</{tag_name}>", file=code)
 
     show_4k = False
     show_cnword = False
@@ -112,7 +129,6 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
     directors = data.directors
     number = data.number
     poster = data.poster
-    release = data.release
     runtime = data.runtime
     tags = data.tags
     trailer = data.trailer
@@ -145,58 +161,58 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
             if NfoInclude.OUTLINE_NO_CDATA in nfo_include_new:
                 temp_outline = outline.replace("\n", "")
                 if NfoInclude.PLOT_ in nfo_include_new:
-                    print(f"  <plot>{temp_outline}</plot>", file=code)
+                    write_text_element(code, "plot", temp_outline)
                 if NfoInclude.OUTLINE in nfo_include_new:
-                    print(f"  <outline>{temp_outline}</outline>", file=code)
+                    write_text_element(code, "outline", temp_outline)
             else:
                 if NfoInclude.PLOT_ in nfo_include_new:
-                    print("  <plot><![CDATA[" + outline + "]]></plot>", file=code)
+                    print(f"  <plot>{build_cdata(outline)}</plot>", file=code)
                 if NfoInclude.OUTLINE in nfo_include_new:
-                    print("  <outline><![CDATA[" + outline + "]]></outline>", file=code)
+                    print(f"  <outline>{build_cdata(outline)}</outline>", file=code)
 
         # 输出日文剧情简介
         if originalplot and NfoInclude.ORIGINALPLOT in nfo_include_new:
             if NfoInclude.OUTLINE_NO_CDATA in nfo_include_new:
                 temp_originalplot = originalplot.replace("\n", "")
-                print(f"  <originalplot>{temp_originalplot}</originalplot>", file=code)
+                write_text_element(code, "originalplot", temp_originalplot)
             else:
-                print("  <originalplot><![CDATA[" + originalplot + "]]></originalplot>", file=code)
+                print(f"  <originalplot>{build_cdata(originalplot)}</originalplot>", file=code)
 
         # 输出发行日期
         if release:
             nfo_tagline = manager.config.nfo_tagline.replace("release", release)
             if nfo_tagline:
-                print("  <tagline>" + nfo_tagline + "</tagline>", file=code)
+                write_text_element(code, "tagline", nfo_tagline)
             if NfoInclude.PREMIERED in nfo_include_new:
-                print("  <premiered>" + release + "</premiered>", file=code)
+                write_text_element(code, "premiered", release)
             if NfoInclude.RELEASEDATE in nfo_include_new:
-                print("  <releasedate>" + release + "</releasedate>", file=code)
+                write_text_element(code, "releasedate", release)
             if NfoInclude.RELEASE_ in nfo_include_new:
-                print("  <release>" + release + "</release>", file=code)
+                write_text_element(code, "release", release)
 
         # 输出番号
-        print("  <num>" + number + "</num>", file=code)
+        write_text_element(code, "num", number)
 
         # 输出标题
         if cd_part and NfoInclude.TITLE_CD in nfo_include_new:
             nfo_title += " " + cd_part[1:].upper()
-        print("  <title>" + nfo_title + "</title>", file=code)
+        write_text_element(code, "title", nfo_title)
 
         # 输出原标题
         if NfoInclude.ORIGINALTITLE in nfo_include_new:
             if number != title:
-                print("  <originaltitle>" + number + " " + originaltitle + "</originaltitle>", file=code)
+                write_text_element(code, "originaltitle", number + " " + originaltitle)
             else:
-                print("  <originaltitle>" + originaltitle + "</originaltitle>", file=code)
+                write_text_element(code, "originaltitle", originaltitle)
 
         # 输出类标题
         if NfoInclude.SORTTITLE in nfo_include_new:
             if cd_part:
                 originaltitle += " " + cd_part[1:].upper()
             if number != title:
-                print("  <sorttitle>" + number + " " + originaltitle + "</sorttitle>", file=code)
+                write_text_element(code, "sorttitle", number + " " + originaltitle)
             else:
-                print("  <sorttitle>" + number + "</sorttitle>", file=code)
+                write_text_element(code, "sorttitle", number)
 
         # 输出国家和分级
         country = data.country
@@ -217,7 +233,7 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
 
         # 输出国家
         if NfoInclude.COUNTRY in nfo_include_new:
-            print(f"  <countrycode>{country}</countrycode>", file=code)
+            write_text_element(code, "countrycode", country)
 
         # 输出男女演员
         if NfoInclude.ACTOR_ALL in nfo_include_new:
@@ -230,14 +246,14 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
                 actors = [manager.config.actor_no_name]
             for name in actors:
                 print("  <actor>", file=code)
-                print("    <name>" + name + "</name>", file=code)
-                print("    <type>Actor</type>", file=code)
+                write_text_element(code, "name", name, indent="    ")
+                write_text_element(code, "type", "Actor", indent="    ")
                 print("  </actor>", file=code)
 
         # 输出导演
         if NfoInclude.DIRECTOR in nfo_include_new:
             for name in directors:
-                print("  <director>" + name + "</director>", file=code)
+                write_text_element(code, "director", name)
 
         # 输出公众评分、影评人评分
         try:
@@ -269,65 +285,65 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
         if NfoInclude.ACTOR_SET in nfo_include_new:
             for name in data.actors:
                 print("  <set>", file=code)
-                print("    <name>" + name + "</name>", file=code)
+                write_text_element(code, "name", name, indent="    ")
                 print("  </set>", file=code)
 
         # 输出合集(使用系列)
         if NfoInclude.SERIES_SET in nfo_include_new and series:
             print("  <set>", file=code)
-            print("    <name>" + series + "</name>", file=code)
+            write_text_element(code, "name", series, indent="    ")
             print("  </set>", file=code)
 
         # 输出系列
         if series and NfoInclude.SERIES in nfo_include_new:
-            print("  <series>" + series + "</series>", file=code)
+            write_text_element(code, "series", series)
 
         # 输出片商/制作商
         if studio:
             if NfoInclude.STUDIO in nfo_include_new:
-                print("  <studio>" + studio + "</studio>", file=code)
+                write_text_element(code, "studio", studio)
             if NfoInclude.MAKER in nfo_include_new:
-                print("  <maker>" + studio + "</maker>", file=code)
+                write_text_element(code, "maker", studio)
 
         # 输出发行商 label（厂牌/唱片公司） publisher（发行商）
         if publisher:
             if NfoInclude.PUBLISHER in nfo_include_new:
-                print("  <publisher>" + publisher + "</publisher>", file=code)
+                write_text_element(code, "publisher", publisher)
             if NfoInclude.LABEL in nfo_include_new:
-                print("  <label>" + publisher + "</label>", file=code)
+                write_text_element(code, "label", publisher)
 
         # 输出 tag
         if NfoInclude.TAG in nfo_include_new:
             for t in tags:
                 if t:
-                    print("  <tag>" + t + "</tag>", file=code)
+                    write_text_element(code, "tag", t)
 
         # 输出 genre
         if NfoInclude.GENRE in nfo_include_new:
             for t in tags:
                 if t:
-                    print("  <genre>" + t + "</genre>", file=code)
+                    write_text_element(code, "genre", t)
 
         # 输出封面地址
         if poster and NfoInclude.POSTER in nfo_include_new:
-            print("  <poster>" + poster + "</poster>", file=code)
+            write_text_element(code, "poster", poster)
 
         # 输出背景地址
         if cover and NfoInclude.COVER in nfo_include_new:
-            print("  <cover>" + cover + "</cover>", file=code)
+            write_text_element(code, "cover", cover)
 
         # 输出预告片
         if trailer and NfoInclude.TRAILER in nfo_include_new:
-            print("  <trailer>" + trailer + "</trailer>", file=code)
+            write_text_element(code, "trailer", trailer)
 
         # external id
         for site, u in data.external_ids.items():
             if u:
                 tag_name = get_external_id_tag_name(site)
-                print(f"  <{tag_name}>{u}</{tag_name}>", file=code)
+                write_text_element(code, tag_name, u)
         # 没有时使用搜索关键词填充 javdbsearchid # todo 允许配置其他网站的后备字段, 允许控制是否输出该字段
         if not data.external_ids.get(Website.JAVDB):
-            print(f"  <javdbsearchid>{number}</javdbsearchid>", file=code)
+            write_text_element(code, "javdbsearchid", number)
 
         print("</movie>", file=code)
 
