@@ -9250,9 +9250,6 @@ class Ui_MDCx:
         self.label_400.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.label_400.setObjectName("label_400")
         self.gridLayout_12.addWidget(self.label_400, 3, 0, 1, 1)
-        self.checkBox_site_use_browser = QtWidgets.QCheckBox(self.gridLayoutWidget)
-        self.checkBox_site_use_browser.setObjectName("checkBox_site_use_browser")
-        self.gridLayout_12.addWidget(self.checkBox_site_use_browser, 5, 1, 1, 1)
         self.label_110 = QtWidgets.QLabel(self.gridLayoutWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -11713,7 +11710,6 @@ class Ui_MDCx:
             )
         )
         self.label_400.setText(_translate("MDCx", "自定义网址："))
-        self.checkBox_site_use_browser.setText(_translate("MDCx", "使用浏览器请求"))
         self.label_110.setText(
             _translate("MDCx", "<html><head/><body><p>自定义指定网站的网址，刮削时将用其代替默认网址</p></body></html>")
         )

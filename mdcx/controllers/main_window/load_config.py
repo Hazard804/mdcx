@@ -973,8 +973,6 @@ def load_config(self: "MyMAinWindow"):
         site = self.Ui.comboBox_custom_website.currentText()
         if site in Website:
             self.Ui.lineEdit_site_custom_url.setText(manager.config.get_site_url(Website(site)))
-            site_config = manager.config.get_site_config(Website(site))
-            self.Ui.checkBox_site_use_browser.setChecked(site_config.use_browser)
 
         self.Ui.lineEdit_api_token_theporndb.setText(manager.config.theporndb_api_token)
         # javdb cookie

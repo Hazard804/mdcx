@@ -90,7 +90,6 @@ class TranslateConfig(BaseModel):
 
 
 class SiteConfig(BaseModel):
-    use_browser: bool = Field(default=False, title="使用无头浏览器")
     custom_url: HttpUrl | None = Field(default=None, title="自定义网址")
 
 
@@ -446,12 +445,7 @@ class Config(BaseModel):
         title="字段配置",
     )
 
-    site_configs: dict[Website, SiteConfig] = Field(
-        default_factory=lambda: {
-            Website.DMM: SiteConfig(use_browser=True),
-        },
-        title="网站配置",
-    )
+    site_configs: dict[Website, SiteConfig] = Field(default_factory=dict, title="网站配置")
 
     translate_config: TranslateConfig = Field(default_factory=TranslateConfig, title="翻译配置")
 
@@ -794,11 +788,6 @@ class Config(BaseModel):
             if isinstance(translate_config, dict):
                 translate_config.setdefault("llm_prompt_title", old_prompt)
                 translate_config.setdefault("llm_prompt_outline", old_prompt)
-        if "site_configs" not in d:
-            d["site_configs"] = {Website.DMM: SiteConfig(use_browser=True)}
-        elif Website.DMM not in d["site_configs"]:
-            d["site_configs"][Website.DMM] = SiteConfig(use_browser=True)
-
         # 处理旧版字段设置
         if "field_configs" not in d:
             Config._convert_field_configs(d)

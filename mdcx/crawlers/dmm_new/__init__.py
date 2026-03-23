@@ -40,7 +40,14 @@ from .parsers import (
     parse_category,
     parse_media_variant,
 )
-from .tv import DmmTvResponse, FanzaResp, dmm_tv_com_payload, fanza_tv_payload
+from .tv import (
+    DmmDigitalResponse,
+    DmmTvResponse,
+    FanzaResp,
+    dmm_digital_payload,
+    dmm_tv_com_payload,
+    fanza_tv_payload,
+)
 
 
 @dataclass
@@ -52,6 +59,7 @@ class DMMContext(Context):
 
 
 class DmmCrawler(GenericBaseCrawler[DMMContext]):
+    supports_browser = False
     mono = MonoParser()
     digital = DigitalParser()
     rental = RentalParser()
@@ -69,6 +77,19 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     @staticmethod
     def _log(message: str) -> None:
         signal.add_log(f"🎬 [DMM] {message}")
+
+    @staticmethod
+    def _clean_html_text(content: str) -> str:
+        cleaned = html_utils.unescape(str(content or "").strip())
+        if not cleaned:
+            return ""
+
+        cleaned = re.sub(r"(?i)<br\s*/?>", "\n", cleaned)
+        cleaned = re.sub(r"(?i)</p\s*>", "\n", cleaned)
+        cleaned = re.sub(r"<[^>]+>", "", cleaned)
+        cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n")
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        return cleaned.strip()
 
     @staticmethod
     def _dedupe_urls(urls: Sequence[str]) -> list[str]:
@@ -282,6 +303,20 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
     def __init__(self, client: AsyncWebClient, base_url: str = "", browser: Browser | None = None):
         super().__init__(client, base_url, browser)
+
+    @staticmethod
+    def _extract_digital_content_id(detail_url: str) -> str:
+        if not (matched := re.search(r"[?&]id=([^&/#]+)", str(detail_url or ""), flags=re.IGNORECASE)):
+            return ""
+        return matched.group(1).strip().lower()
+
+    @staticmethod
+    def _build_digital_api_headers(detail_url: str) -> dict[str, str]:
+        return {
+            "Content-Type": "application/json",
+            "Origin": "https://video.dmm.co.jp",
+            "Referer": detail_url,
+        }
 
     async def _http_request_with_retry(self, method: str, url: str, **kwargs):
         """
@@ -607,7 +642,10 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 for u in sorted(d[category]):
                     task_categories.append(category)
                     task_urls.append(u)
-                    group.add(self.fetch_and_parse(ctx, u, parser))
+                    if category == Category.DIGITAL:
+                        group.add(self.fetch_digital(ctx, u))
+                    else:
+                        group.add(self.fetch_and_parse(ctx, u, parser))
 
         if not task_categories:
             return None
@@ -1003,6 +1041,74 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             external_id=detail_url,
         )
 
+    async def fetch_digital(self, ctx: DMMContext, detail_url: str) -> CrawlerData:
+        content_id = self._extract_digital_content_id(detail_url)
+        if not content_id:
+            ctx.debug(f"无法从数字详情页 URL 提取 id: {detail_url}")
+            return CrawlerData()
+
+        response, error = await self._http_request_with_retry(
+            "POST",
+            "https://api.video.dmm.co.jp/graphql",
+            json_data=dmm_digital_payload(content_id),
+            headers=self._build_digital_api_headers(detail_url),
+            cookies=self._get_cookies(ctx),
+        )
+        if response is None:
+            ctx.debug(f"digital GraphQL 请求失败: {content_id=} {error=}")
+            return CrawlerData()
+
+        try:
+            resp = DmmDigitalResponse.model_validate(response)
+            data = resp.data.ppvContent
+            review = resp.data.reviewSummary
+        except Exception as e:
+            ctx.debug(f"digital GraphQL 响应解析失败: {content_id=} {e}")
+            return CrawlerData()
+
+        if not data.id:
+            ctx.debug(f"digital GraphQL 返回空内容: {content_id=} {response=}")
+            return CrawlerData()
+
+        vr_movie = data.sampleVRMovie or None
+        sample_2d_movie = data.sample2DMovie or None
+        trailer_candidates = [
+            str(vr_movie.highestMovieUrl or "") if vr_movie else "",
+            str(sample_2d_movie.highestMovieUrl or "") if sample_2d_movie else "",
+            self._build_fanza_trailer_url(str(sample_2d_movie.hlsMovieUrl or "")) if sample_2d_movie else "",
+        ]
+        trailer = self._pick_best_unvalidated_trailer("", trailer_candidates)
+        if trailer:
+            self._log(f"预告片[digital GraphQL]: cid={content_id} rank={self._trailer_quality_rank(trailer)} {trailer}")
+
+        release = str(data.deliveryStartDate or data.makerReleasedAt or "")
+        if release:
+            release = release[:10]
+
+        runtime = str(int(data.duration / 60)) if data.duration else ""
+        outline = self._clean_html_text(data.description)
+        sample_images = [str(item.largeImageUrl or "").strip() for item in data.sampleImages]
+
+        ctx.debug(f"digital GraphQL 请求成功: {content_id=} {detail_url=}")
+        return CrawlerData(
+            title=data.title,
+            outline=outline,
+            release=release,
+            runtime=runtime,
+            actors=[item.name for item in data.actresses if item.name],
+            directors=[item.name for item in data.directors if item.name],
+            thumb=data.packageImage.largeUrl,
+            poster=data.packageImage.mediumUrl,
+            score="" if review.average is None else str(review.average),
+            series=data.series.name,
+            studio=data.maker.name,
+            publisher=data.label.name,
+            tags=[item.name for item in data.genres if item.name],
+            extrafanart=[url for url in sample_images if url],
+            trailer=trailer,
+            external_id=detail_url,
+        )
+
     @staticmethod
     def _with_https(url: str) -> str:
         if url.startswith("//"):
@@ -1103,9 +1209,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
     @override
     async def _fetch_detail(self, ctx: DMMContext, url: str, use_browser=None) -> tuple[str | None, str]:
-        if parse_category(url) not in (Category.DIGITAL):
-            return await super()._fetch_detail(ctx, url, False)  # 对于确定不需要浏览器的, 强制不使用
-        return await super()._fetch_detail(ctx, url, None)
+        return await super()._fetch_detail(ctx, url, False)
 
     async def _get_url_content_length(self, url: str) -> int | None:
         return await get_url_content_length(url)

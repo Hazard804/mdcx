@@ -101,13 +101,11 @@ def _crawl(sites: list[Website], input: CrawlerInput, output: str | None, proxy:
         log_fn=lambda msg: print(f"[dim][AsyncWebClient] {msg}[/dim]"),
     )
 
-    browser_provider = BrowserProvider(manager.config)
-
     async def task(c: type[GenericBaseCrawler[Never]] | LegacyCrawler):
         crawler = c(
             client=client,
             base_url=manager.config.get_site_url(c.site()),
-            browser=await browser_provider.get_browser(),
+            browser=None,
         )
         return await crawler.run(input)
 
@@ -246,10 +244,13 @@ async def _fetch_async(
                     console.print(f"[red]错误: 未找到 {website.value} Crawler[/red]")
                     exit(1)
 
+                supports_browser = getattr(crawler_class, "supports_browser", True)
+                browser = await browser_provider.get_browser() if use_browser and supports_browser else None
+
                 crawler = crawler_class(
                     client=async_client,
                     base_url=manager.config.get_site_url(website),
-                    browser=await browser_provider.get_browser() if use_browser else None,
+                    browser=browser,
                 )
                 crawler_input = CrawlerInput.empty()
                 crawler_input.appoint_url = url

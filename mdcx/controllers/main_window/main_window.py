@@ -1983,7 +1983,6 @@ class MyMAinWindow(QMainWindow):
             return
         site = Website(site)
         self.Ui.lineEdit_site_custom_url.setText(manager.config.get_site_url(site))
-        self.Ui.checkBox_site_use_browser.setChecked(manager.config.get_site_config(site).use_browser)
 
     # 切换配置
     def config_file_change(self, new_config_file: str):

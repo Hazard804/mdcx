@@ -95,6 +95,108 @@ class FanzaResp(BaseModel):
     data: _FanzaData = _FanzaData()
 
 
+def dmm_digital_payload(content_id: str):
+    return {
+        "operationName": "MDCxDigitalContent",
+        "variables": {
+            "id": content_id,
+        },
+        "query": """
+query MDCxDigitalContent($id: ID!) {
+  ppvContent(id: $id) {
+    id
+    title
+    description
+    packageImage {
+      largeUrl
+      mediumUrl
+    }
+    sampleImages {
+      largeImageUrl
+    }
+    sample2DMovie {
+      highestMovieUrl
+      hlsMovieUrl
+    }
+    sampleVRMovie {
+      highestMovieUrl
+    }
+    deliveryStartDate
+    makerReleasedAt
+    duration
+    actresses {
+      name
+    }
+    directors {
+      name
+    }
+    series {
+      name
+    }
+    maker {
+      name
+    }
+    label {
+      name
+    }
+    genres {
+      name
+    }
+  }
+  reviewSummary(contentId: $id) {
+    average
+  }
+}
+""",
+    }
+
+
+class DmmDigitalPackageImage(BaseModel):
+    largeUrl: str = ""
+    mediumUrl: str = ""
+
+
+class DmmDigitalSampleImage(BaseModel):
+    largeImageUrl: str = ""
+
+
+class DmmDigitalMovie(BaseModel):
+    highestMovieUrl: str = ""
+    hlsMovieUrl: str = ""
+
+
+class DmmDigitalReviewSummary(BaseModel):
+    average: float | None = None
+
+
+class DmmDigitalContent(BaseModel):
+    id: str = ""
+    title: str = ""
+    description: str = ""
+    packageImage: DmmDigitalPackageImage = Field(default_factory=DmmDigitalPackageImage)
+    sampleImages: list[DmmDigitalSampleImage] = Field(default_factory=list)
+    sample2DMovie: DmmDigitalMovie | None = None
+    sampleVRMovie: DmmDigitalMovie | None = None
+    deliveryStartDate: str = ""
+    makerReleasedAt: str = ""
+    duration: int = 0
+    actresses: list[Item] = Field(default_factory=list)
+    directors: list[Item] = Field(default_factory=list)
+    series: Item = Field(default_factory=Item)
+    maker: Item = Field(default_factory=Item)
+    label: Item = Field(default_factory=Item)
+    genres: list[Item] = Field(default_factory=list)
+
+
+class DmmDigitalData(BaseModel):
+    ppvContent: DmmDigitalContent = Field(default_factory=DmmDigitalContent)
+    reviewSummary: DmmDigitalReviewSummary = Field(default_factory=DmmDigitalReviewSummary)
+
+
+class DmmDigitalResponse(BaseModel):
+    data: DmmDigitalData = Field(default_factory=DmmDigitalData)
+
+
 def dmm_tv_com_payload(season_id):
     data = {
         "operationName": "FetchVideo",

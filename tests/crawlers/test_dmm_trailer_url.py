@@ -8,6 +8,7 @@ from mdcx.crawlers.base.types import NOT_SUPPORT, Context, CrawlerData
 from mdcx.crawlers.dmm_new import Category, DMMContext, DmmCrawler
 from mdcx.crawlers.dmm_new.parsers import MediaVariant, parse_media_variant
 from mdcx.models.types import CrawlerInput
+from mdcx.web_async import AsyncWebClient
 
 
 def test_build_fanza_trailer_url_from_standard_playlist():
@@ -135,6 +136,134 @@ def test_extract_search_detail_urls_recovers_split_detail_url_without_href():
     assert DmmCrawler._extract_search_detail_urls(
         html, "https://www.dmm.co.jp/search/=/searchstr=dvdms00674/sort=ranking/"
     ) == ["https://www.dmm.co.jp/monthly/premium/-/detail/=/cid=dvdms00674/?i3_ref=search&i3_ord=4"]
+
+
+@pytest.mark.asyncio
+async def test_fetch_digital_uses_graphql_response(monkeypatch: pytest.MonkeyPatch):
+    crawler = DmmCrawler(client=AsyncWebClient(timeout=1))
+    ctx = DMMContext(input=CrawlerInput.empty())
+    detail_url = "https://video.dmm.co.jp/av/content/?id=ipzz00841&i3_ref=search&i3_ord=1"
+    captured: dict[str, object] = {}
+
+    async def fake_http_request_with_retry(method: str, url: str, **kwargs):
+        captured["method"] = method
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return (
+            {
+                "data": {
+                    "ppvContent": {
+                        "id": "ipzz00841",
+                        "title": "FIRST IMPRESSION 191 辻みいな",
+                        "description": "福岡県出身 22歳<br>趣味:推し活",
+                        "packageImage": {
+                            "largeUrl": "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipzz00841/ipzz00841pl.jpg",
+                            "mediumUrl": "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipzz00841/ipzz00841ps.jpg",
+                        },
+                        "sampleImages": [
+                            {
+                                "largeImageUrl": "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipzz00841/ipzz00841jp-1.jpg"
+                            },
+                            {
+                                "largeImageUrl": "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipzz00841/ipzz00841jp-2.jpg"
+                            },
+                        ],
+                        "sample2DMovie": {
+                            "highestMovieUrl": "https://cc3001.dmm.co.jp/pv/TOKEN/ipzz00841hhb.mp4",
+                            "hlsMovieUrl": "https://cc3001.dmm.co.jp/pv/TOKEN/playlist.m3u8",
+                        },
+                        "sampleVRMovie": {
+                            "highestMovieUrl": "",
+                        },
+                        "deliveryStartDate": "2026-03-05T15:00:00Z",
+                        "makerReleasedAt": "2026-03-09T15:00:00Z",
+                        "duration": 11288,
+                        "actresses": [{"name": "辻みいな"}],
+                        "directors": [{"name": "豆沢豆太郎"}],
+                        "series": {"name": "First Impression"},
+                        "maker": {"name": "アイデアポケット"},
+                        "label": {"name": "ティッシュ"},
+                        "genres": [{"name": "独占配信"}, {"name": "4K"}],
+                    },
+                    "reviewSummary": {"average": 3.8824},
+                }
+            },
+            "",
+        )
+
+    monkeypatch.setattr(crawler, "_http_request_with_retry", fake_http_request_with_retry)
+
+    result = await crawler.fetch_digital(ctx, detail_url)
+
+    assert result.title == "FIRST IMPRESSION 191 辻みいな"
+    assert result.outline == "福岡県出身 22歳\n趣味:推し活"
+    assert result.release == "2026-03-05"
+    assert result.runtime == "188"
+    assert result.actors == ["辻みいな"]
+    assert result.directors == ["豆沢豆太郎"]
+    assert result.series == "First Impression"
+    assert result.studio == "アイデアポケット"
+    assert result.publisher == "ティッシュ"
+    assert result.tags == ["独占配信", "4K"]
+    assert result.score == "3.8824"
+    assert result.thumb == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipzz00841/ipzz00841pl.jpg"
+    assert result.poster == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipzz00841/ipzz00841ps.jpg"
+    assert result.extrafanart == [
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipzz00841/ipzz00841jp-1.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ipzz00841/ipzz00841jp-2.jpg",
+    ]
+    assert result.trailer == "https://cc3001.dmm.co.jp/pv/TOKEN/ipzz00841hhb.mp4"
+
+    assert captured["method"] == "POST"
+    assert captured["url"] == "https://api.video.dmm.co.jp/graphql"
+    assert captured["kwargs"] == {
+        "json_data": {
+            "operationName": "MDCxDigitalContent",
+            "variables": {"id": "ipzz00841"},
+            "query": dmm_module.dmm_digital_payload("ipzz00841")["query"],
+        },
+        "headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://video.dmm.co.jp",
+            "Referer": detail_url,
+        },
+        "cookies": {"age_check_done": "1"},
+    }
+
+
+@pytest.mark.asyncio
+async def test_detail_uses_fetch_digital_for_digital_urls(monkeypatch: pytest.MonkeyPatch):
+    crawler = DmmCrawler(client=AsyncWebClient(timeout=1))
+    ctx = DMMContext(input=CrawlerInput.empty())
+    detail_url = "https://video.dmm.co.jp/av/content/?id=ipzz00841&i3_ref=search&i3_ord=1"
+    calls: list[tuple[str, str]] = []
+
+    async def fake_fetch_digital(inner_ctx, url: str):
+        calls.append(("digital", url))
+        return CrawlerData(title="digital title", release="2026-03-05", external_id=url)
+
+    async def fake_fetch_and_parse(inner_ctx, url: str, parser):
+        calls.append(("parser", url))
+        if url == detail_url:
+            raise AssertionError("digital 详情不应再走 fetch_and_parse")
+        return CrawlerData(title="mono title", external_id=url)
+
+    async def fake_sanitize_candidate_images(inner_ctx, category, url: str, item: CrawlerData):
+        return item
+
+    async def fake_finalize_result_images(inner_ctx, item, *, label: str, validate_thumb: bool):
+        return item
+
+    monkeypatch.setattr(crawler, "fetch_digital", fake_fetch_digital)
+    monkeypatch.setattr(crawler, "fetch_and_parse", fake_fetch_and_parse)
+    monkeypatch.setattr(crawler, "_sanitize_candidate_images", fake_sanitize_candidate_images)
+    monkeypatch.setattr(crawler, "_finalize_result_images", fake_finalize_result_images)
+
+    result = await crawler._detail(ctx, [detail_url])
+
+    assert result is not None
+    assert result.title == "digital title"
+    assert calls == [("digital", detail_url)]
 
 
 def test_merge_detail_results_prefers_digital_release_over_tv():

@@ -643,13 +643,11 @@ def save_config(self: "MyMAinWindow"):
     if site in Website:
         site = Website(site)
         url = self.Ui.lineEdit_site_custom_url.text().strip("/ ")
-        use_browser = self.Ui.checkBox_site_use_browser.isChecked()
         if url:
             with suppress(ValidationError):
                 manager.config.site_configs.setdefault(site, SiteConfig()).custom_url = HttpUrl(url)
         elif site in manager.config.site_configs:
             manager.config.site_configs[site].custom_url = None
-        manager.config.site_configs.setdefault(site, SiteConfig()).use_browser = use_browser
 
     manager.config.javdb = self.Ui.plainTextEdit_cookie_javdb.toPlainText()  # javdb cookie
     manager.config.javbus = self.Ui.plainTextEdit_cookie_javbus.toPlainText()  # javbus cookie
