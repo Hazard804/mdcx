@@ -5,6 +5,8 @@ from urllib.parse import quote, urljoin
 
 from parsel import Selector
 
+from mdcx.base.web import check_url, get_url_content_length, is_dmm_image_url, normalize_media_url
+
 from ..config.enums import DownloadableFile
 from ..config.manager import manager
 from ..config.models import Website
@@ -146,11 +148,16 @@ class AvbaseCrawler(BaseCrawler):
 
         res.thumb, res.poster = self._normalize_thumb_poster(res.thumb, res.poster)
 
-        upgraded_thumb = await self._upgrade_dmm_image_url(ctx, res.thumb)
-        if upgraded_thumb != res.thumb:
+        original_thumb = normalize_media_url(str(res.thumb or "").strip())
+        upgraded_thumb = await self._upgrade_dmm_image_url(ctx, original_thumb)
+        if upgraded_thumb and upgraded_thumb != original_thumb:
             self._log(f"封面图升级为高清源: {upgraded_thumb}")
-            res.thumb = upgraded_thumb
+        res.thumb = upgraded_thumb
         res.thumb, res.poster = self._normalize_thumb_poster(res.thumb, res.poster)
+        res.poster = await self._resolve_poster_url(res.thumb, res.poster)
+
+        if DownloadableFile.EXTRAFANART in manager.config.download_files and res.extrafanart:
+            res.extrafanart = await self._sanitize_extrafanart_urls(list(res.extrafanart))
 
         studio_text = str(res.studio or "").upper()
         title_text = str(res.title or "").upper()
@@ -166,6 +173,10 @@ class AvbaseCrawler(BaseCrawler):
         res.image_download = use_youma_poster or is_vr_title or is_sod_studio
         if use_youma_poster:
             self._log("图片[有码策略]: 启用「有码优先使用 Poster」，跳过 SOD/VR 判定")
+
+        if res.image_download and not res.poster:
+            self._log("图片[Poster失效]: 直下封面无可用候选，改为裁剪模式")
+            res.image_download = False
 
         if not use_youma_poster and is_sod_studio and res.poster and res.thumb:
             poster_size = await self._get_url_content_length(res.poster)
@@ -186,27 +197,7 @@ class AvbaseCrawler(BaseCrawler):
         return res
 
     async def _get_url_content_length(self, url: str) -> int | None:
-        if not url:
-            return None
-
-        head_response, _ = await self.async_client.request("HEAD", url)
-        if head_response is not None and head_response.status_code == 200:
-            content_length = head_response.headers.get("Content-Length")
-            if content_length:
-                try:
-                    return int(content_length)
-                except ValueError:
-                    pass
-
-        get_response, _ = await self.async_client.request("GET", url)
-        if get_response is not None and get_response.status_code == 200:
-            content_length = get_response.headers.get("Content-Length")
-            if content_length:
-                try:
-                    return int(content_length)
-                except ValueError:
-                    return None
-        return None
+        return await get_url_content_length(url)
 
     def _pick_product(self, products: list[Any]) -> dict[str, Any]:
         valid_products = [product_item for product_item in products if isinstance(product_item, dict)]
@@ -342,43 +333,54 @@ class AvbaseCrawler(BaseCrawler):
         return None
 
     async def _upgrade_dmm_image_url(self, ctx, image_url: str) -> str:
-        if not image_url or "pics.dmm.co.jp" not in image_url:
-            return image_url
+        normalized = normalize_media_url(image_url)
+        if not normalized:
+            return ""
+        if "pics.dmm.co.jp" in normalized:
+            aws_url = normalized.replace("pics.dmm.co.jp", "awsimgsrc.dmm.co.jp/pics_dig").replace("/adult/", "/")
+            if validated_aws := await check_url(aws_url):
+                return str(validated_aws)
+        if is_dmm_image_url(normalized):
+            if validated_original := await check_url(normalized):
+                return str(validated_original)
+            self._log(f"高清图校验失败，丢弃原图: {normalized}")
+            return ""
+        return normalized
 
-        aws_url = image_url.replace("pics.dmm.co.jp", "awsimgsrc.dmm.co.jp/pics_dig").replace("/adult/", "/")
-        invalid_keys = ("now_printing", "nowprinting", "noimage", "nopic", "media_violation")
-
-        probe_url = aws_url
-        if "w=120" not in probe_url and "h=90" not in probe_url:
-            probe_url += "&w=120&h=90" if "?" in probe_url else "?w=120&h=90"
-
-        for method, url in (("GET", probe_url), ("HEAD", aws_url), ("GET", aws_url)):
-            response, _ = await self.async_client.request(method, url)
-            if response is None or response.status_code != 200:
+    async def _resolve_poster_url(self, thumb: str, poster: str) -> str:
+        candidates = list(
+            dict.fromkeys(
+                filter(
+                    None,
+                    [
+                        normalize_media_url(str(poster or "").strip()),
+                        normalize_media_url(self._to_poster_url(str(thumb or "").strip())),
+                    ],
+                )
+            )
+        )
+        for candidate in candidates:
+            if is_dmm_image_url(candidate):
+                if validated := await check_url(candidate):
+                    return str(validated)
                 continue
+            return candidate
+        return ""
 
-            real_url = str(response.url)
-            if any(key in real_url for key in invalid_keys):
+    async def _sanitize_extrafanart_urls(self, image_urls: list[str]) -> list[str]:
+        valid_urls: list[str] = []
+        for image_url in image_urls:
+            normalized = normalize_media_url(self._to_absolute_url(image_url))
+            if not normalized:
                 continue
-
-            content_length = response.headers.get("Content-Length")
-            if content_length:
-                try:
-                    if int(content_length) > 0:
-                        return aws_url
-                except ValueError:
-                    return aws_url
-                continue
-
-            if method == "GET":
-                try:
-                    if len(response.content) > 0:
-                        return aws_url
-                except Exception:
-                    return aws_url
-
-        self._log(f"高清图校验失败，保留原图: {image_url}")
-        return image_url
+            if is_dmm_image_url(normalized):
+                validated = await check_url(normalized)
+                if not validated:
+                    continue
+                normalized = str(validated)
+            if normalized not in valid_urls:
+                valid_urls.append(normalized)
+        return valid_urls
 
     def _extract_sample_image_urls(self, sample_image_urls: list[Any]) -> list[str]:
         images: list[str] = []

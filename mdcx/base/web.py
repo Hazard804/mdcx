@@ -7,6 +7,7 @@ import time
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, overload
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import aiofiles
 import aiofiles.os
@@ -124,6 +125,239 @@ _amazon_request_throttle = _AdaptiveRequestThrottle(
     cooldown_max=8.0,
 )
 
+_DMM_IMAGE_BAD_URL_KEYS = ("now_printing", "nowprinting", "noimage", "nopic", "media_violation")
+_DMM_IMAGE_PROBE_PARAMS = (("w", "120"), ("h", "90"))
+
+
+def normalize_media_url(url: str, *, strip_dmm_probe_params: bool = False) -> str:
+    normalized = str(url or "").strip()
+    if not normalized:
+        return ""
+
+    try:
+        split_result = urlsplit(normalized)
+    except Exception:
+        return normalized.rstrip("?&")
+
+    query_items = parse_qsl(split_result.query, keep_blank_values=True)
+    if strip_dmm_probe_params:
+        query_items = [(k, v) for k, v in query_items if (k, v) not in _DMM_IMAGE_PROBE_PARAMS]
+
+    query = urlencode(query_items, doseq=True)
+    cleaned = urlunsplit(
+        (
+            split_result.scheme,
+            split_result.netloc,
+            split_result.path,
+            query,
+            split_result.fragment,
+        )
+    )
+    return cleaned.rstrip("?&")
+
+
+def is_dmm_image_url(url: str) -> bool:
+    normalized = normalize_media_url(url)
+    if normalized.startswith("//"):
+        normalized = "https:" + normalized
+    try:
+        split_result = urlsplit(normalized)
+    except Exception:
+        return False
+
+    host = split_result.netloc.lower()
+    path = split_result.path.lower()
+    if not host or not (host.endswith("dmm.co.jp") or host.endswith("dmm.com")):
+        return False
+    return path.endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif"))
+
+
+def _build_dmm_probe_url(url: str) -> tuple[str, bool]:
+    normalized = normalize_media_url(url)
+    if not normalized:
+        return "", False
+
+    if "awsimgsrc.dmm.co.jp" not in normalized:
+        return normalized, False
+
+    split_result = urlsplit(normalized)
+    query_items = list(parse_qsl(split_result.query, keep_blank_values=True))
+    added_probe = False
+    for key, value in _DMM_IMAGE_PROBE_PARAMS:
+        if not any(existing_key == key and existing_value == value for existing_key, existing_value in query_items):
+            query_items.append((key, value))
+            added_probe = True
+
+    query = urlencode(query_items, doseq=True)
+    return (
+        urlunsplit(
+            (
+                split_result.scheme,
+                split_result.netloc,
+                split_result.path,
+                query,
+                split_result.fragment,
+            )
+        ),
+        added_probe,
+    )
+
+
+def _is_invalid_image_redirect_url(url: str) -> bool:
+    normalized = normalize_media_url(url).lower()
+    return any(each_key in normalized for each_key in _DMM_IMAGE_BAD_URL_KEYS)
+
+
+def _should_retry_link_error(error: str) -> bool:
+    normalized = str(error or "").lower()
+    if not normalized:
+        return False
+    if "http 404" in normalized or "http 410" in normalized:
+        return False
+    return any(
+        marker in normalized
+        for marker in (
+            "http 403",
+            "http 408",
+            "http 429",
+            "http 500",
+            "http 502",
+            "http 503",
+            "http 504",
+            "连接超时",
+            "连接错误",
+            "请求异常",
+            "curl-cffi 异常",
+        )
+    )
+
+
+def _parse_content_length(value: Any) -> int | None:
+    try:
+        length = int(value)
+    except (TypeError, ValueError):
+        return None
+    return length if length > 0 else None
+
+
+async def _validate_dmm_image_url(url: str, length: bool = False, real_url: bool = False):
+    normalized = normalize_media_url(url)
+    request_url, added_probe = _build_dmm_probe_url(normalized)
+    max_retries = 2
+    last_error = ""
+
+    for retry_attempt in range(max_retries):
+        try:
+            response, error = await manager.computed.async_client.request("GET", request_url)
+            if response is None:
+                last_error = error
+                if retry_attempt < max_retries - 1 and _should_retry_link_error(error):
+                    signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {error}")
+                    await asyncio.sleep(0.6 * (retry_attempt + 1))
+                    continue
+                signal.add_log(f"🔴 检测链接失败: {error}")
+                return
+
+            true_url = normalize_media_url(str(response.url), strip_dmm_probe_params=added_probe)
+            if real_url:
+                return true_url
+
+            if "login" in true_url:
+                signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
+                return
+
+            if _is_invalid_image_redirect_url(true_url):
+                signal.add_log(f"🔴 检测链接失败: 图片已被网站删除 {true_url}")
+                return
+
+            if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                signal.add_log(f"✅ 检测链接通过: 返回大小({content_length}) {true_url}")
+                return content_length if length else true_url
+
+            if response.content and len(response.content) > 0:
+                signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
+                return len(response.content) if length else true_url
+
+            last_error = f"未返回大小且预下载失败 {true_url}"
+            if retry_attempt < max_retries - 1:
+                signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {last_error}")
+                await asyncio.sleep(0.6 * (retry_attempt + 1))
+                continue
+            signal.add_log(f"🔴 检测链接失败: {last_error}")
+            return
+        except Exception as e:
+            last_error = str(e)
+            if retry_attempt < max_retries - 1:
+                signal.add_log(f"🟡 检测链接异常，正在重试 ({retry_attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(0.6 * (retry_attempt + 1))
+                continue
+            signal.add_log(f"🔴 检测链接失败: 未知异常 {e} {normalized}")
+            return
+
+    if last_error:
+        signal.add_log(f"🔴 检测链接失败: {last_error}")
+    return
+
+
+async def get_url_content_length(url: str) -> int | None:
+    normalized = normalize_media_url(url)
+    if not normalized:
+        return None
+
+    retry_delays = [0.5, 1.0, 1.5]
+
+    if is_dmm_image_url(normalized):
+        for attempt, delay in enumerate(retry_delays, start=1):
+            response, error = await manager.computed.async_client.request("GET", normalized)
+            if response is None:
+                if not _should_retry_link_error(error) or attempt == len(retry_delays):
+                    return None
+                await asyncio.sleep(delay)
+                continue
+
+            true_url = normalize_media_url(str(response.url))
+            if _is_invalid_image_redirect_url(true_url):
+                return None
+
+            if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                return content_length
+            if response.content and len(response.content) > 0:
+                return len(response.content)
+
+            if attempt < len(retry_delays):
+                await asyncio.sleep(delay)
+        return None
+
+    for attempt, delay in enumerate(retry_delays, start=1):
+        response, error = await manager.computed.async_client.request("HEAD", normalized)
+        if response is not None:
+            if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                return content_length
+        elif "HTTP 405" in str(error):
+            break
+        elif not _should_retry_link_error(error) or attempt == len(retry_delays):
+            return None
+
+        if attempt < len(retry_delays):
+            await asyncio.sleep(delay)
+
+    for attempt, delay in enumerate(retry_delays, start=1):
+        response, error = await manager.computed.async_client.request("GET", normalized)
+        if response is None:
+            if not _should_retry_link_error(error) or attempt == len(retry_delays):
+                return None
+            await asyncio.sleep(delay)
+            continue
+
+        if content_length := _parse_content_length(response.headers.get("Content-Length")):
+            return content_length
+        if response.content and len(response.content) > 0:
+            return len(response.content)
+
+        if attempt < len(retry_delays):
+            await asyncio.sleep(delay)
+    return None
+
 
 @overload
 async def check_url(url: str, length: Literal[False] = False, real_url: bool = False) -> str | None: ...
@@ -145,28 +379,15 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
         signal.add_log(f"🔴 检测链接失败: 格式错误 {url}")
         return
 
-    # 对于 AWS 图片链接，增加重试次数
-    is_aws_image = "awsimgsrc.dmm.co.jp" in url
-    max_retries = 3 if is_aws_image else 1
+    normalized_url = normalize_media_url(url)
+    if is_dmm_image_url(normalized_url):
+        return await _validate_dmm_image_url(normalized_url, length=length, real_url=real_url)
+
+    max_retries = 1
 
     for retry_attempt in range(max_retries):
         try:
-            # 判断是否为 awsimgsrc.dmm.co.jp 图片链接
-            if is_aws_image:
-                # 检查参数是否已存在
-                has_w = re.search(r"[?&]w=120(&|$)", url)
-                has_h = re.search(r"[?&]h=90(&|$)", url)
-                if not (has_w and has_h):
-                    # 拼接参数
-                    if "?" in url:
-                        url += "&w=120&h=90"
-                    else:
-                        url += "?&w=120&h=90"
-                # 使用 GET 请求
-                response, error = await manager.computed.async_client.request("GET", url)
-            else:
-                # 其他情况使用 HEAD 请求
-                response, error = await manager.computed.async_client.request("HEAD", url)
+            response, error = await manager.computed.async_client.request("HEAD", normalized_url)
 
             # 处理请求失败的情况
             if response is None:
@@ -183,7 +404,7 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
                 return
 
             # 返回重定向的url
-            true_url = str(response.url)
+            true_url = normalize_media_url(str(response.url))
             if real_url:
                 return true_url
 
@@ -213,10 +434,6 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
                     return
             # 如果返回内容的文件大小 < 8k，视为不可用
             elif int(content_length) < 8192:
-                # awsimgsrc.dmm.co.jp 且 GET 请求时跳过小于8K的检查
-                if "awsimgsrc.dmm.co.jp" in true_url and getattr(response.request, "method", None) == "GET":
-                    signal.add_log(f"✅ 检测链接通过: awsimgsrc 小图 {true_url}")
-                    return int(content_length) if length else true_url.replace("w=120&h=90", "")
                 signal.add_log(f"🔴 检测链接失败: 返回大小({content_length}) < 8k {true_url}")
                 return
 

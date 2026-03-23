@@ -4,7 +4,7 @@ from parsel import Selector
 import mdcx.crawlers.dmm_new as dmm_module
 from mdcx.config.enums import DownloadableFile
 from mdcx.config.manager import manager
-from mdcx.crawlers.base.types import Context, CrawlerData
+from mdcx.crawlers.base.types import NOT_SUPPORT, Context, CrawlerData
 from mdcx.crawlers.dmm_new import Category, DMMContext, DmmCrawler
 from mdcx.crawlers.dmm_new.parsers import MediaVariant, parse_media_variant
 from mdcx.models.types import CrawlerInput
@@ -309,7 +309,7 @@ def test_pick_preferred_image_candidate_keeps_bluray_as_fallback():
 
 
 @pytest.mark.asyncio
-async def test_sanitize_candidate_images_prefers_aws_thumb_and_filters_invalid_extrafanart(
+async def test_sanitize_candidate_images_prefers_aws_thumb_without_eagerly_validating_other_images(
     monkeypatch: pytest.MonkeyPatch,
 ):
     async def fake_check_url(url: str, length: bool = False, real_url: bool = False):
@@ -344,8 +344,55 @@ async def test_sanitize_candidate_images_prefers_aws_thumb_and_filters_invalid_e
     )
 
     assert sanitized.thumb == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/pred00816pl.jpg"
-    assert sanitized.poster == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/pred00816ps.jpg"
-    assert sanitized.extrafanart == ["https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg"]
+    assert sanitized.poster is NOT_SUPPORT
+    assert sanitized.extrafanart == [
+        "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
+        "https://pics.dmm.co.jp/digital/video/pred00816/badextra.jpg",
+        "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_finalize_result_images_validates_poster_and_filters_invalid_extrafanart(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    called_urls: list[str] = []
+
+    async def fake_check_url(url: str, length: bool = False, real_url: bool = False):
+        called_urls.append(url)
+        if "badextra" in url:
+            return None
+        return url
+
+    monkeypatch.setattr(dmm_module, "check_url", fake_check_url)
+    monkeypatch.setattr(
+        manager.config,
+        "download_files",
+        [DownloadableFile.POSTER, DownloadableFile.THUMB, DownloadableFile.EXTRAFANART],
+    )
+
+    crawler = DmmCrawler(client=None)
+    ctx = DMMContext(input=CrawlerInput.empty())
+
+    data = CrawlerData(
+        thumb="https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/pred00816pl.jpg",
+        poster="https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/pred00816ps.jpg",
+        extrafanart=[
+            "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
+            "https://pics.dmm.co.jp/digital/video/pred00816/badextra.jpg",
+            "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
+        ],
+    )
+
+    finalized = await crawler._finalize_result_images(ctx, data, label="最终图片", validate_thumb=False)
+
+    assert finalized.poster == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/pred00816ps.jpg"
+    assert finalized.extrafanart == ["https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg"]
+    assert called_urls == [
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/pred00816ps.jpg",
+        "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
+        "https://pics.dmm.co.jp/digital/video/pred00816/badextra.jpg",
+    ]
 
 
 @pytest.mark.asyncio
@@ -413,3 +460,60 @@ async def test_sanitize_candidate_images_skips_extrafanart_validation_when_downl
         "https://pics.dmm.co.jp/digital/video/pred00816/sample2.jpg",
     ]
     assert all("sample" not in url for url in called_urls)
+
+
+@pytest.mark.asyncio
+async def test_post_process_skips_image_revalidation_when_final_images_already_resolved(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    called_urls: list[str] = []
+
+    async def fake_check_url(url: str, length: bool = False, real_url: bool = False):
+        called_urls.append(url)
+        return url
+
+    monkeypatch.setattr(dmm_module, "check_url", fake_check_url)
+
+    crawler = DmmCrawler(client=None)
+    ctx = DMMContext(input=CrawlerInput.empty(), final_images_resolved=True)
+    result = CrawlerData(
+        title="SAMPLE",
+        thumb="https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/pred816/pred816pl.jpg",
+        poster="https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/pred816/pred816ps.jpg",
+    ).to_result()
+
+    processed = await crawler.post_process(ctx, result)
+
+    assert processed.thumb == "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/pred816/pred816pl.jpg"
+    assert processed.poster == "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/pred816/pred816ps.jpg"
+    assert called_urls == []
+
+
+@pytest.mark.asyncio
+async def test_detail_preferred_image_does_not_leak_notsupport_poster(monkeypatch: pytest.MonkeyPatch):
+    crawler = DmmCrawler(client=None)
+    ctx = DMMContext(input=CrawlerInput.empty())
+
+    async def fake_fetch_and_parse(*args, **kwargs):
+        return CrawlerData(
+            thumb="https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/pred816/pred816pl.jpg",
+            poster=NOT_SUPPORT,
+            external_id="https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=pred816/",
+        )
+
+    async def fake_sanitize_candidate_images(ctx, category, detail_url, item):
+        return item
+
+    async def fake_finalize_result_images(ctx, item, *, label: str, validate_thumb: bool):
+        return item
+
+    monkeypatch.setattr(crawler, "fetch_and_parse", fake_fetch_and_parse)
+    monkeypatch.setattr(crawler, "_sanitize_candidate_images", fake_sanitize_candidate_images)
+    monkeypatch.setattr(crawler, "_finalize_result_images", fake_finalize_result_images)
+
+    result = await crawler._detail(ctx, ["https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=pred816/"])
+
+    assert result is not None
+    assert result.thumb == "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/pred816/pred816pl.jpg"
+    assert result.poster is NOT_SUPPORT
+    assert result.to_result().poster == ""

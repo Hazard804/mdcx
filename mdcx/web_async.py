@@ -219,6 +219,21 @@ class AsyncWebClient:
             mirror_url = f"{mirror_url}?{split_result.query}"
         return mirror_url
 
+    def _is_dmm_image_url(self, url: str) -> bool:
+        normalized = str(url or "").strip()
+        if normalized.startswith("//"):
+            normalized = "https:" + normalized
+        try:
+            split_result = urlsplit(normalized)
+        except Exception:
+            return False
+
+        host = split_result.netloc.lower()
+        path = split_result.path.lower()
+        if not host or not (host.endswith("dmm.co.jp") or host.endswith("dmm.com")):
+            return False
+        return path.endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif"))
+
     def _is_redirect_response(self, response: Response) -> bool:
         if response.status_code not in (301, 302, 303, 307, 308):
             return False
@@ -983,7 +998,7 @@ class AsyncWebClient:
             bool: 下载是否成功
         """
         # 获取文件大小
-        file_size = await self.get_filesize(url, use_proxy=use_proxy)
+        file_size = None if self._is_dmm_image_url(url) else await self.get_filesize(url, use_proxy=use_proxy)
         # 判断是不是webp文件
         webp = False
         if file_path.suffix == "jpg" and ".webp" in url:

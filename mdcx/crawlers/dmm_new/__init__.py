@@ -12,7 +12,7 @@ from parsel import Selector
 from patchright._impl._api_structures import SetCookieParam
 from patchright.async_api import Browser
 
-from mdcx.base.web import check_url
+from mdcx.base.web import check_url, get_url_content_length, normalize_media_url
 from mdcx.config.enums import DownloadableFile
 from mdcx.config.manager import manager
 from mdcx.config.models import Website
@@ -48,6 +48,7 @@ class DMMContext(Context):
     number_00: str | None = None
     number_no_00: str | None = None
     detail_media_variants: dict[str, MediaVariant] = field(default_factory=dict)
+    final_images_resolved: bool = False
 
 
 class DmmCrawler(GenericBaseCrawler[DMMContext]):
@@ -119,7 +120,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         return self._dedupe_urls(candidates)
 
     async def _validate_image_url(self, ctx: DMMContext, image_url: str, *, label: str) -> str:
-        normalized = self._with_https(str(image_url or "").strip())
+        normalized = self._with_https(normalize_media_url(str(image_url or "").strip()))
         if not normalized:
             return ""
         if not self._is_dmm_image_url(normalized):
@@ -130,7 +131,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             ctx.debug(f"{label} 无效，已丢弃: {normalized}")
             return ""
 
-        validated_url = self._with_https(str(validated).strip())
+        validated_url = self._with_https(normalize_media_url(str(validated).strip()))
         if validated_url != normalized:
             ctx.debug(f"{label} 重定向: {normalized} -> {validated_url}")
         return validated_url
@@ -180,21 +181,49 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             [*self._build_aws_thumb_candidates(ctx, original_thumb), original_thumb],
             label=f"{label} thumb",
         )
+        return item
 
-        original_poster = str(item.poster or "") if is_valid(item.poster) else ""
+    async def _finalize_result_images(
+        self,
+        ctx: DMMContext,
+        item,
+        *,
+        label: str,
+        validate_thumb: bool,
+    ):
+        original_thumb = (
+            self._with_https(str(getattr(item, "thumb", "") or "").strip())
+            if is_valid(getattr(item, "thumb", None))
+            else ""
+        )
+        if validate_thumb:
+            item.thumb = await self._pick_first_valid_image(
+                ctx,
+                [*self._build_aws_thumb_candidates(ctx, original_thumb), original_thumb],
+                label=f"{label} thumb",
+            )
+        else:
+            item.thumb = self._with_https(normalize_media_url(original_thumb))
+
+        original_poster = (
+            self._with_https(str(getattr(item, "poster", "") or "").strip())
+            if is_valid(getattr(item, "poster", None))
+            else ""
+        )
         item.poster = await self._pick_first_valid_image(
             ctx,
-            self._build_poster_candidates(item.thumb, original_poster),
+            self._build_poster_candidates(
+                str(getattr(item, "thumb", "") or "") if is_valid(getattr(item, "thumb", None)) else "", original_poster
+            ),
             label=f"{label} poster",
         )
 
-        should_validate_extrafanart = DownloadableFile.EXTRAFANART in manager.config.download_files
-        if should_validate_extrafanart and is_valid(item.extrafanart):
-            item.extrafanart = await self._sanitize_image_list(
-                ctx,
-                list(item.extrafanart),
-                label=f"{label} extrafanart",
-            )
+        if is_valid(getattr(item, "extrafanart", None)):
+            extrafanart = list(getattr(item, "extrafanart", []) or [])
+            if DownloadableFile.EXTRAFANART in manager.config.download_files:
+                item.extrafanart = await self._sanitize_image_list(ctx, extrafanart, label=f"{label} extrafanart")
+            else:
+                item.extrafanart = self._dedupe_urls(extrafanart)
         return item
 
     @classmethod
@@ -622,6 +651,15 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                     f"source={image_source.external_id} thumb={preferred_thumb}"
                 )
             res.thumb = preferred_thumb
+            preferred_poster = str(image_source.poster).strip() if is_valid(image_source.poster) else ""
+            if preferred_poster:
+                res.poster = preferred_poster
+            if is_valid(image_source.extrafanart):
+                res.extrafanart = list(image_source.extrafanart)
+
+        if res is not None:
+            await self._finalize_result_images(ctx, res, label="最终图片", validate_thumb=False)
+            ctx.final_images_resolved = True
 
         return res
 
@@ -1070,72 +1108,17 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         return await super()._fetch_detail(ctx, url, None)
 
     async def _get_url_content_length(self, url: str) -> int | None:
-        """获取URL的Content-Length（文件大小）
-
-        先尝试HEAD请求，如果返回405则改用GET请求
-        包含重试机制（最多3次重试）
-        """
-        max_retries = 3
-        retry_delays = [0.5, 1.0, 1.5]
-
-        for attempt in range(max_retries):
-            try:
-                # 先尝试HEAD请求
-                response, error = await manager.computed.async_client.request("HEAD", url)
-
-                if response is not None:
-                    if response.status_code == 200:
-                        content_length = response.headers.get("Content-Length")
-                        if content_length:
-                            self._log(f"文件大小[HEAD成功]: {url} -> {content_length}B")
-                            return int(content_length)
-                    elif response.status_code == 405:
-                        # 405 Method Not Allowed，改用GET请求
-                        self._log(f"文件大小[HEAD=405]，切换GET: {url}")
-                        break
-                    else:
-                        self._log(f"文件大小[HEAD状态]: {response.status_code} {url}")
-                elif error:
-                    self._log(f"文件大小[HEAD异常 {attempt + 1}/{max_retries}]: {url} -> {error}")
-
-            except Exception as e:
-                self._log(f"文件大小[HEAD异常 {attempt + 1}/{max_retries}]: {url} -> {e}")
-
-            if attempt < max_retries - 1:
-                await asyncio.sleep(retry_delays[attempt])
-
-        # 使用GET请求获取文件大小
-        for attempt in range(max_retries):
-            try:
-                response, error = await manager.computed.async_client.request("GET", url)
-
-                if response is not None:
-                    if response.status_code == 200:
-                        content_length = response.headers.get("Content-Length")
-                        if content_length:
-                            self._log(f"文件大小[GET成功]: {url} -> {content_length}B")
-                            return int(content_length)
-                        else:
-                            self._log(f"文件大小[GET成功但无Content-Length]: {url}")
-                    else:
-                        self._log(f"文件大小[GET状态]: {response.status_code} {url}")
-                elif error:
-                    self._log(f"文件大小[GET异常 {attempt + 1}/{max_retries}]: {url} -> {error}")
-
-                return None
-
-            except Exception as e:
-                self._log(f"文件大小[GET异常 {attempt + 1}/{max_retries}]: {url} -> {e}")
-
-            if attempt < max_retries - 1:
-                await asyncio.sleep(retry_delays[attempt])
-
-        return None
+        return await get_url_content_length(url)
 
     @override
     async def post_process(self, ctx, res):
         if not res.number:
             res.number = ctx.input.number
+        original_thumb = str(res.thumb or "").strip()
+        if not ctx.final_images_resolved:
+            await self._finalize_result_images(ctx, res, label="最终图片", validate_thumb=True)
+            ctx.final_images_resolved = True
+
         title_text = str(res.title or "").upper()
         input_mosaic = str(ctx.input.mosaic or "")
         is_youma = res.mosaic in ["有码", "有碼"] or input_mosaic in ["有码", "有碼"]
@@ -1155,18 +1138,11 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         res.image_download = use_direct_download
         res.originaltitle = res.title
         res.originalplot = res.outline
-        original_thumb = str(res.thumb or "").strip()
-        thumb_candidates = [*self._build_aws_thumb_candidates(ctx, original_thumb), original_thumb]
-        res.thumb = await self._pick_first_valid_image(ctx, thumb_candidates, label="最终 thumb")
+        res.thumb = self._with_https(normalize_media_url(str(res.thumb or "").strip()))
         if res.thumb and res.thumb != original_thumb and "awsimgsrc.dmm.co.jp" in res.thumb:
             self._log(f"图片[AWS高清图命中]: {res.thumb}")
 
-        original_poster = str(res.poster or "").strip()
-        res.poster = await self._pick_first_valid_image(
-            ctx,
-            self._build_poster_candidates(res.thumb, original_poster),
-            label="最终 poster",
-        )
+        res.poster = self._with_https(normalize_media_url(str(res.poster or "").strip()))
         if res.image_download and not res.poster:
             self._log("图片[Poster失效]: 直下封面无可用候选，改为裁剪/回退模式")
             res.image_download = False
