@@ -144,8 +144,8 @@ async def test_get_big_pic_by_amazon_supports_new_search_card_selector(monkeypat
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, "妻の残業NTR", ["めぐり"])
@@ -173,8 +173,8 @@ async def test_get_big_pic_by_amazon_supports_actor_alias_with_brackets(monkeypa
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, "妻の残業NTR", ["めぐり（藤浦めぐ）"])
@@ -212,8 +212,8 @@ async def test_get_big_pic_by_amazon_retry_with_series_when_first_no_result(monk
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, "主标题长字符串", ["演员A"], "系列名")
@@ -256,8 +256,8 @@ async def test_get_big_pic_by_amazon_retry_with_no_result_class_marker(monkeypat
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, "主标题长字符串", ["演员A"], "系列名")
@@ -301,8 +301,8 @@ async def test_get_big_pic_by_amazon_searches_replaced_title_before_original(mon
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, replaced_title, ["演员A"], "", masked_title, "")
@@ -340,8 +340,8 @@ async def test_get_big_pic_by_amazon_strip_actor_suffix_before_first_search(monk
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, title_with_actor, ["みなみ羽琉"])
@@ -399,8 +399,8 @@ async def test_get_big_pic_by_amazon_strips_trailing_dod_noise_and_prefers_plain
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.number = "ABP-816"
@@ -457,8 +457,8 @@ async def test_get_big_pic_by_amazon_actor_fallback_matches_cleaned_title_confid
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.studio = "エスワン"
@@ -510,8 +510,8 @@ async def test_get_big_pic_by_amazon_actor_fallback_treats_mask_symbol_in_amazon
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.studio = "エスワン"
@@ -563,8 +563,8 @@ async def test_get_big_pic_by_amazon_actor_fallback_treats_mask_symbol_in_origin
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.studio = "エスワン"
@@ -616,8 +616,8 @@ async def test_get_big_pic_by_amazon_actor_fallback_handles_mask_and_unknown_suf
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
 
@@ -667,8 +667,8 @@ async def test_get_big_pic_by_amazon_actor_fallback_cleans_raw_and_mapped_metada
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.amazon_raw_studio = "原始厂商"
@@ -715,8 +715,8 @@ async def test_get_big_pic_by_amazon_accepts_bluray_result_with_plain_title(
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, title, ["演员A"])
@@ -760,8 +760,8 @@ async def test_get_big_pic_by_amazon_series_fallback_pairs_with_each_initial_tit
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, replaced_title, ["演员A"], replaced_series, raw_title, raw_series)
@@ -816,8 +816,8 @@ async def test_get_big_pic_by_amazon_retry_with_title_without_series_when_no_act
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, "主标题 系列名", ["演员A"], "系列名")
@@ -872,8 +872,8 @@ async def test_get_big_pic_by_amazon_prefers_title_with_number_query(monkeypatch
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.number = "DASS-907"
@@ -941,8 +941,8 @@ async def test_get_big_pic_by_amazon_prefers_single_actor_candidate_over_multi_a
             return 801, 1200
         return 0, 0
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, "作品标题", ["演员A"])
@@ -1001,8 +1001,8 @@ async def test_get_big_pic_by_amazon_probes_candidates_lazily_until_first_hd_hit
             return 801, 1200
         pytest.fail(f"命中高清候选后不应继续探测: {url}")
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, "标题测试", ["演员A"])
@@ -1059,8 +1059,8 @@ async def test_get_big_pic_by_amazon_prefers_verified_candidate_over_wider_unver
             pytest.fail(f"已验证候选命中高清后，不应再探测未验证宽图: {url}")
         return 0, 0
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, "标题测试", ["演员A"])
@@ -1111,8 +1111,8 @@ async def test_get_big_pic_by_amazon_prefers_dvd_over_bluray_for_same_work(monke
             return 1200, 1200
         return 0, 0
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.number = "ABC-123"
@@ -1163,9 +1163,11 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_skips_title_search(monkey
         assert "81barcode" in url
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr(
+        "mdcx.core.amazon.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers
+    )
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.number = "CJOD-486"
@@ -1224,9 +1226,11 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_prefers_dvd_over_bluray(m
             return 1200, 1200
         return 0, 0
 
-    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr(
+        "mdcx.core.amazon.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers
+    )
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.number = "CJOD-486"
@@ -1287,9 +1291,11 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_falls_back_to_title_searc
         assert "81titlefallback" in url
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr(
+        "mdcx.core.amazon.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers
+    )
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.number = "ABC-123"
@@ -1352,9 +1358,11 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_tries_next_barcode_candid
         assert "81barcode2" in url
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr(
+        "mdcx.core.amazon.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers
+    )
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.number = "CJOD-486"
@@ -1368,7 +1376,7 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_tries_next_barcode_candid
 @pytest.mark.asyncio
 async def test_try_get_amazon_barcode_from_covers_logs_missing_detector(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
-        "mdcx.core.web._get_amazon_barcode_detector_skip_reason",
+        "mdcx.core.amazon._get_amazon_barcode_detector_skip_reason",
         lambda: "当前环境缺少扫码依赖 opencv-contrib-python-headless",
     )
 
@@ -1394,7 +1402,7 @@ async def test_try_get_amazon_barcode_from_covers_logs_ocr_fallback_hit(monkeypa
 
     monkeypatch.setattr(manager.computed.async_client, "get_content", fake_get_content)
     monkeypatch.setattr(
-        "mdcx.core.web._detect_amazon_barcode_candidates_from_image_bytes_with_reason",
+        "mdcx.core.amazon._detect_amazon_barcode_candidates_from_image_bytes_with_reason",
         lambda _content: (["4549831546432", "4549831546439"], "ocr_digits"),
     )
 
@@ -1451,8 +1459,10 @@ async def test_get_big_pic_by_amazon_logs_barcode_skip_before_title_fallback(mon
         queries.append(query)
         return True, html_no_result
 
-    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr(
+        "mdcx.core.amazon.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers
+    )
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
 
     LogBuffer.clear_task()
     result = CrawlersResult.empty()
@@ -1500,8 +1510,8 @@ async def test_get_big_pic_by_amazon_supports_no_actor_when_detail_contains_numb
     async def fake_get_imgsize(url: str):
         return 801, 1200
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     result.number = "DASS-907"
@@ -1578,8 +1588,8 @@ async def test_get_big_pic_by_amazon_retries_actor_fragment_when_full_title_only
             return 900, 1200
         return 0, 0
 
-    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
-    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
 
     result = CrawlersResult.empty()
     pic_url = await get_big_pic_by_amazon(result, title, ["枫ふうあ"])
