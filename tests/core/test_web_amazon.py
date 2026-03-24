@@ -1,11 +1,19 @@
 import re
 import urllib.parse
 
+import numpy as np
 import pytest
 
 from mdcx.config.enums import HDPicSource
 from mdcx.config.manager import manager
-from mdcx.core.web import _get_big_poster, get_big_pic_by_amazon
+from mdcx.core.web import (
+    _beam_search_amazon_ean13_from_ranked_digits,
+    _extract_amazon_barcode_label_roi,
+    _get_big_poster,
+    get_big_pic_by_amazon,
+    try_get_amazon_barcode_from_covers,
+)
+from mdcx.models.log_buffer import LogBuffer
 from mdcx.models.types import CrawlersResult, OtherInfo
 
 
@@ -1111,6 +1119,353 @@ async def test_get_big_pic_by_amazon_prefers_dvd_over_bluray_for_same_work(monke
     pic_url = await get_big_pic_by_amazon(result, "标题测试", ["演员A"])
 
     assert pic_url == "https://m.media-amazon.com/images/I/81dvd.jpg"
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_barcode_fast_path_skips_title_search(monkeypatch: pytest.MonkeyPatch):
+    barcode = "4550566395912"
+    title = "作品标题 CJOD-486"
+    html_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000BARCODE">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000BARCODE"><span>作品标题 JULIA</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000BARCODE"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81barcode._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = f"""
+    <html>
+      <body>
+        <span id="productTitle">作品标题 JULIA</span>
+        <div id="bylineInfo_feature_div"><a>JULIA</a></div>
+        <div id="detailBulletsWrapper_feature_div">EAN : {barcode}</div>
+      </body>
+    </html>
+    """
+    queries: list[str] = []
+
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+        return [barcode]
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000BARCODE" in req_url:
+            return True, html_detail
+        query = _normalize_search_query(_extract_search_query(req_url))
+        queries.append(query)
+        assert query == barcode
+        return True, html_search
+
+    async def fake_get_imgsize(url: str):
+        assert "81barcode" in url
+        return 801, 1200
+
+    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "CJOD-486"
+
+    pic_url = await get_big_pic_by_amazon(result, title, ["JULIA"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81barcode.jpg"
+    assert queries == [barcode]
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_barcode_fast_path_prefers_dvd_over_bluray(monkeypatch: pytest.MonkeyPatch):
+    barcode = "4550566395912"
+    html_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000DVD">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000DVD"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000DVD"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81dvdbarcode._AC_UL320_.jpg" />
+        </div>
+        <div data-component-type="s-search-result" data-asin="B000BLURAY">
+          <a class="a-text-bold">Blu-ray</a>
+          <h2><a href="/dp/B000BLURAY"><span>标题测试 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000BLURAY"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81bluraybarcode._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = f"""
+    <html>
+      <body>
+        <span id="productTitle">标题测试 演员A</span>
+        <div id="bylineInfo_feature_div"><a>演员A</a></div>
+        <div id="detailBulletsWrapper_feature_div">JAN：{barcode}</div>
+      </body>
+    </html>
+    """
+
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+        return [barcode]
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000DVD" in req_url or "/dp/B000BLURAY" in req_url:
+            return True, html_detail
+        query = _normalize_search_query(_extract_search_query(req_url))
+        assert query == barcode
+        return True, html_search
+
+    async def fake_get_imgsize(url: str):
+        if "81dvdbarcode" in url:
+            return 801, 1200
+        if "81bluraybarcode" in url:
+            return 1200, 1200
+        return 0, 0
+
+    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "CJOD-486"
+
+    pic_url = await get_big_pic_by_amazon(result, "标题测试", ["演员A"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81dvdbarcode.jpg"
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_barcode_fast_path_falls_back_to_title_search_when_no_result(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    barcode = "4550566395912"
+    title = "标题测试 ABC-123"
+    html_no_result = """
+    <html>
+      <body>キーワードが正しく入力されていても一致する商品がない場合は、別の言葉をお試しください。</body>
+    </html>
+    """
+    html_title_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000TITLE">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000TITLE"><span>标题测试 ABC-123 演员A</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000TITLE"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81titlefallback._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = """
+    <html>
+      <body>
+        <span id="productTitle">标题测试 ABC-123 演员A</span>
+        <div id="bylineInfo_feature_div"><a>演员A</a></div>
+      </body>
+    </html>
+    """
+    queries: list[str] = []
+
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+        return [barcode]
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000TITLE" in req_url:
+            return True, html_detail
+        query = _normalize_search_query(_extract_search_query(req_url))
+        queries.append(query)
+        if query == barcode:
+            return True, html_no_result
+        if query == title:
+            return True, html_title_search
+        pytest.fail(f"未预期的搜索词: {query}")
+
+    async def fake_get_imgsize(url: str):
+        assert "81titlefallback" in url
+        return 801, 1200
+
+    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "ABC-123"
+
+    pic_url = await get_big_pic_by_amazon(result, title, ["演员A"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81titlefallback.jpg"
+    assert queries == [barcode, title]
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_barcode_fast_path_tries_next_barcode_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    first_barcode = "1111111111111"
+    second_barcode = "4550566395912"
+    html_no_result = """
+    <html>
+      <body>キーワードが正しく入力されていても一致する商品がない場合は、別の言葉をお試しください。</body>
+    </html>
+    """
+    html_search = """
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B000BARCODE2">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B000BARCODE2"><span>作品标题 JULIA</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B000BARCODE2"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/81barcode2._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = f"""
+    <html>
+      <body>
+        <span id="productTitle">作品标题 JULIA</span>
+        <div id="bylineInfo_feature_div"><a>JULIA</a></div>
+        <div id="detailBulletsWrapper_feature_div">EAN : {second_barcode}</div>
+      </body>
+    </html>
+    """
+    queries: list[str] = []
+
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+        return [first_barcode, second_barcode]
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B000BARCODE2" in req_url:
+            return True, html_detail
+        query = _normalize_search_query(_extract_search_query(req_url))
+        queries.append(query)
+        if query == first_barcode:
+            return True, html_no_result
+        if query == second_barcode:
+            return True, html_search
+        pytest.fail(f"未预期的搜索词: {query}")
+
+    async def fake_get_imgsize(url: str):
+        assert "81barcode2" in url
+        return 801, 1200
+
+    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.web.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "CJOD-486"
+
+    pic_url = await get_big_pic_by_amazon(result, "作品标题 CJOD-486", ["JULIA"])
+
+    assert pic_url == "https://m.media-amazon.com/images/I/81barcode2.jpg"
+    assert queries == [first_barcode, second_barcode]
+
+
+@pytest.mark.asyncio
+async def test_try_get_amazon_barcode_from_covers_logs_missing_detector(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(
+        "mdcx.core.web._get_amazon_barcode_detector_skip_reason",
+        lambda: "当前环境缺少扫码依赖 opencv-contrib-python-headless",
+    )
+
+    LogBuffer.clear_task()
+    result = CrawlersResult.empty()
+    result.thumb_from = "DMM"
+    result.thumb = "https://example.com/cover.jpg"
+
+    barcode = await try_get_amazon_barcode_from_covers(result)
+
+    logs = LogBuffer.log().get()
+    LogBuffer.clear_task()
+
+    assert barcode == ""
+    assert "Amazon条码快路径：开始扫描封面条码" in logs
+    assert "Amazon条码快路径跳过：当前环境缺少扫码依赖 opencv-contrib-python-headless" in logs
+
+
+@pytest.mark.asyncio
+async def test_try_get_amazon_barcode_from_covers_logs_ocr_fallback_hit(monkeypatch: pytest.MonkeyPatch):
+    async def fake_get_content(_cover: str):
+        return b"fake-image", ""
+
+    monkeypatch.setattr(manager.computed.async_client, "get_content", fake_get_content)
+    monkeypatch.setattr(
+        "mdcx.core.web._detect_amazon_barcode_candidates_from_image_bytes_with_reason",
+        lambda _content: (["4549831546432", "4549831546439"], "ocr_digits"),
+    )
+
+    LogBuffer.clear_task()
+    result = CrawlersResult.empty()
+    result.thumb_from = "dmm"
+    result.thumb = "https://example.com/club00614pl.jpg"
+
+    barcode = await try_get_amazon_barcode_from_covers(result)
+
+    logs = LogBuffer.log().get()
+    LogBuffer.clear_task()
+
+    assert barcode == "4549831546432"
+    assert "Amazon条码识别：OCR回退命中 EAN/JAN 4549831546432 (dmm) 候选2个" in logs
+
+
+def test_beam_search_amazon_ean13_prefers_checksum_valid_candidate():
+    target = "4549831546432"
+    ranked_digits: list[list[tuple[float, str]]] = [[(0.95, digit), (0.90, "0")] for digit in target]
+    ranked_digits[-1] = [(0.95, "0"), (0.90, target[-1])]
+
+    assert _beam_search_amazon_ean13_from_ranked_digits(ranked_digits) == target
+
+
+def test_extract_amazon_barcode_label_roi_finds_bright_label_under_barcode():
+    image = np.full((220, 320), 25, dtype=np.uint8)
+    image[150:198, 42:170] = 245
+    points = np.array([[60, 188], [60, 158], [156, 158], [156, 188]], dtype=np.float32)
+
+    label_roi = _extract_amazon_barcode_label_roi(image, points)
+
+    assert label_roi is not None
+    assert label_roi.shape[1] >= 100
+    assert label_roi.shape[0] >= 40
+    assert float(np.mean(label_roi)) > 200
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_logs_barcode_skip_before_title_fallback(monkeypatch: pytest.MonkeyPatch):
+    title = "标题测试 ABC-123"
+    html_no_result = """
+    <html>
+      <body>キーワードが正しく入力されていても一致する商品がない場合は、別の言葉をお試しください。</body>
+    </html>
+    """
+    queries: list[str] = []
+
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+        return []
+
+    async def fake_get_amazon_data(req_url: str):
+        query = _normalize_search_query(_extract_search_query(req_url))
+        queries.append(query)
+        return True, html_no_result
+
+    monkeypatch.setattr("mdcx.core.web.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers)
+    monkeypatch.setattr("mdcx.core.web.get_amazon_data", fake_get_amazon_data)
+
+    LogBuffer.clear_task()
+    result = CrawlersResult.empty()
+    result.number = "ABC-123"
+
+    pic_url = await get_big_pic_by_amazon(result, title, ["演员A"])
+
+    logs = LogBuffer.log().get()
+    LogBuffer.clear_task()
+
+    assert pic_url == ""
+    assert queries[0] == title
+    assert "Amazon条码快路径跳过：未获取到条码，回退标题搜索" in logs
 
 
 @pytest.mark.asyncio

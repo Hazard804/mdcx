@@ -26,6 +26,7 @@ dependencies = [
     "pyqt5-qt5==5.15.2; sys_platform == 'win32'", # 更高版本无 Windows wheel
     "pyqt5-qt5==5.15.17; sys_platform != 'win32'",
     "zhconv==1.4.3",
+    "opencv-contrib-python-headless==4.13.0.92",
 ]
 
 [project.scripts]

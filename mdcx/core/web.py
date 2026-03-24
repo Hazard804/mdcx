@@ -9,11 +9,14 @@ import time
 import urllib.parse
 from asyncio import to_thread
 from difflib import SequenceMatcher
+from functools import lru_cache
+from io import BytesIO
 from pathlib import Path
 
 import aiofiles
 import aiofiles.os
 from lxml import etree
+from PIL import Image
 
 from ..base.web import (
     check_url,
@@ -34,6 +37,551 @@ from ..signals import signal
 from ..utils import convert_half, get_used_time, split_path
 from ..utils.file import check_pic_async, copy_file_async, delete_file_async, move_file_async
 from .image import cut_thumb_to_poster
+
+
+def _normalize_amazon_barcode(barcode: str) -> str:
+    digits = re.sub(r"\D", "", str(barcode or ""))
+    return digits if len(digits) == 13 else ""
+
+
+def _extract_labeled_amazon_barcodes(text: str) -> set[str]:
+    normalized_text = str(text or "")
+    if not normalized_text:
+        return set()
+    normalized_text = re.sub(r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]", "", normalized_text)
+    normalized_text = normalized_text.replace("\u00a0", " ")
+    result: set[str] = set()
+    for raw_barcode in re.findall(
+        r"(?i)(?:EAN|JAN|ISBN(?:-13)?)\s*[：:﹕]?\s*([0-9][0-9\-\s]{10,20})", normalized_text
+    ):
+        if barcode := _normalize_amazon_barcode(raw_barcode):
+            result.add(barcode)
+    return result
+
+
+def _get_amazon_total_result_count(html_content: str) -> int | None:
+    if not html_content:
+        return None
+    if matched := re.search(r'"totalResultCount":(\d+)', html_content):
+        return int(matched.group(1))
+    return None
+
+
+def _is_valid_ean13_barcode(barcode: str) -> bool:
+    if not (digits := _normalize_amazon_barcode(barcode)):
+        return False
+    numbers = [int(each) for each in digits]
+    check_digit = (10 - ((sum(numbers[:-1:2]) + 3 * sum(numbers[1:-1:2])) % 10)) % 10
+    return check_digit == numbers[-1]
+
+
+@lru_cache(maxsize=1)
+def _get_amazon_barcode_digit_templates() -> dict[str, tuple[object, ...]]:
+    import cv2
+    import numpy as np
+
+    result: dict[str, tuple[object, ...]] = {}
+    fonts = (
+        cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.FONT_HERSHEY_DUPLEX,
+        cv2.FONT_HERSHEY_COMPLEX,
+        cv2.FONT_HERSHEY_TRIPLEX,
+    )
+    for digit in "0123456789":
+        templates: list[object] = []
+        for font in fonts:
+            for scale in (1.8, 2.0, 2.2):
+                canvas = np.full((128, 96), 255, np.uint8)
+                (text_width, text_height), baseline = cv2.getTextSize(digit, font, scale, 3)
+                x = (canvas.shape[1] - text_width) // 2
+                y = (canvas.shape[0] + text_height) // 2 - baseline
+                cv2.putText(canvas, digit, (x, y), font, scale, 0, 3, cv2.LINE_AA)
+                _, binary = cv2.threshold(canvas, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+                ys, xs = np.where(binary > 0)
+                if len(xs) == 0:
+                    continue
+                glyph = binary[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1]
+                templates.append(cv2.resize(glyph, (40, 64), interpolation=cv2.INTER_AREA))
+        result[digit] = tuple(templates)
+    return result
+
+
+def _normalize_amazon_barcode_digit_glyph(glyph: object) -> object | None:
+    import cv2
+    import numpy as np
+
+    glyph_array = np.asarray(glyph)
+    if glyph_array.ndim != 2:
+        return None
+    ys, xs = np.where(glyph_array > 0)
+    if len(xs) == 0:
+        return None
+    cropped = glyph_array[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1]
+    return cv2.resize(cropped, (40, 64), interpolation=cv2.INTER_AREA)
+
+
+def _rank_amazon_barcode_digits(glyph: object) -> list[tuple[float, str]]:
+    import cv2
+
+    ranked: list[tuple[float, str]] = []
+    for digit, templates in _get_amazon_barcode_digit_templates().items():
+        if not templates:
+            continue
+        score = max(
+            float(cv2.matchTemplate(glyph, each_template, cv2.TM_CCOEFF_NORMED)[0][0]) for each_template in templates
+        )
+        ranked.append((score, digit))
+    ranked.sort(reverse=True)
+    return ranked
+
+
+def _beam_search_amazon_ean13_candidates_from_ranked_digits(
+    ranked_digits: list[list[tuple[float, str]]],
+    limit: int = 5,
+) -> list[str]:
+    beams: list[tuple[str, float]] = [("", 0.0)]
+    for each_ranked in ranked_digits:
+        next_beams: list[tuple[str, float]] = []
+        for prefix, score in beams:
+            for each_score, digit in each_ranked[:3]:
+                next_beams.append((prefix + digit, score + each_score))
+        next_beams.sort(key=lambda item: item[1], reverse=True)
+        beams = next_beams[:120]
+
+    valid = [(digits, score) for digits, score in beams if _is_valid_ean13_barcode(digits)]
+    valid.sort(key=lambda item: item[1], reverse=True)
+    result: list[str] = []
+    seen_digits: set[str] = set()
+    for digits, _ in valid:
+        if digits in seen_digits:
+            continue
+        seen_digits.add(digits)
+        result.append(digits)
+        if len(result) >= limit:
+            break
+    return result
+
+
+def _beam_search_amazon_ean13_from_ranked_digits(ranked_digits: list[list[tuple[float, str]]]) -> str:
+    candidates = _beam_search_amazon_ean13_candidates_from_ranked_digits(ranked_digits, limit=1)
+    return candidates[0] if candidates else ""
+
+
+def _extract_amazon_barcode_label_roi(gray_image: object, detected_points: object) -> object | None:
+    import cv2
+    import numpy as np
+
+    gray_array = np.asarray(gray_image)
+    points_array = np.asarray(detected_points, dtype=np.float32)
+    if gray_array.ndim != 2 or points_array.shape != (4, 2):
+        return None
+
+    x1 = max(int(np.floor(points_array[:, 0].min())), 0)
+    x2 = min(int(np.ceil(points_array[:, 0].max())), gray_array.shape[1])
+    y1 = max(int(np.floor(points_array[:, 1].min())), 0)
+    y2 = min(int(np.ceil(points_array[:, 1].max())), gray_array.shape[0])
+    width = x2 - x1
+    height = y2 - y1
+    if width < 20 or height < 8:
+        return None
+
+    expand_x_left = max(int(width * 0.55), 6)
+    expand_x_right = max(int(width * 0.18), 4)
+    expand_y_top = max(int(height * 0.45), 4)
+    expand_y_bottom = max(int(height * 0.85), 8)
+    roi_x1 = max(x1 - expand_x_left, 0)
+    roi_x2 = min(x2 + expand_x_right, gray_array.shape[1])
+    roi_y1 = max(y1 - expand_y_top, 0)
+    roi_y2 = min(y2 + expand_y_bottom, gray_array.shape[0])
+    roi = gray_array[roi_y1:roi_y2, roi_x1:roi_x2]
+    if roi.size == 0:
+        return None
+
+    best_candidate: tuple[float, int, int, int, int] | None = None
+    for threshold in (150, 160, 170, 180, 190, 200):
+        _, bright_mask = cv2.threshold(roi, threshold, 255, cv2.THRESH_BINARY)
+        component_count, _, stats, _ = cv2.connectedComponentsWithStats(bright_mask, 8)
+        for index in range(1, component_count):
+            comp_x, comp_y, comp_w, comp_h, comp_area = stats[index]
+            if comp_area < max(int(roi.size * 0.01), 150):
+                continue
+            if comp_w < max(int(width * 0.5), 20) or comp_h < max(int(height * 1.2), 18):
+                continue
+            overlap_x = min(comp_x + comp_w, x2 - roi_x1) - max(comp_x, x1 - roi_x1)
+            if overlap_x < width * 0.6:
+                continue
+            bottom_gap = abs((comp_y + comp_h) - (y2 - roi_y1 + height * 0.65))
+            score = float(comp_area) - float(bottom_gap) * 10.0
+            candidate = (score, comp_x, comp_y, comp_w, comp_h)
+            if best_candidate is None or candidate > best_candidate:
+                best_candidate = candidate
+
+    if best_candidate is None:
+        return None
+
+    _, label_x, label_y, label_w, label_h = best_candidate
+    return roi[label_y : label_y + label_h, label_x : label_x + label_w]
+
+
+def _collect_amazon_barcode_ocr_candidates_from_components(
+    binary_image: object,
+    components: list[tuple[int, int, int, int]],
+) -> list[str]:
+    if not components:
+        return []
+
+    median_height = sorted(comp_h for _, _, _, comp_h in components)[len(components) // 2]
+    ranked_digits: list[list[tuple[float, str]]] = []
+    for comp_x, comp_y, comp_w, comp_h in components:
+        glyph_image = binary_image[comp_y : comp_y + comp_h, comp_x : comp_x + comp_w]
+        glyph = _normalize_amazon_barcode_digit_glyph(glyph_image)
+        if median_height > 0 and comp_h >= max(int(median_height * 1.8), 96):
+            crop_height = min(comp_h, max(int(median_height * 1.5), int(comp_h * 0.26)))
+            cropped_glyph = _normalize_amazon_barcode_digit_glyph(glyph_image[comp_h - crop_height :])
+            if cropped_glyph is not None:
+                glyph = cropped_glyph
+        if glyph is None:
+            return []
+        ranked_digits.append(_rank_amazon_barcode_digits(glyph))
+    return _beam_search_amazon_ean13_candidates_from_ranked_digits(ranked_digits)
+
+
+def _append_unique_barcodes(result: list[str], barcodes: list[str], limit: int = 5):
+    for barcode in barcodes:
+        if barcode in result:
+            continue
+        result.append(barcode)
+        if len(result) >= limit:
+            break
+
+
+def _extract_amazon_barcode_via_digit_ocr_candidates_from_label(label_gray: object) -> list[str]:
+    import cv2
+    import numpy as np
+
+    label_array = np.asarray(label_gray)
+    if label_array.ndim != 2 or label_array.size == 0:
+        return []
+
+    scale = max(4.0, min(10.0, 420.0 / max(label_array.shape[0], 1)))
+    enlarged = cv2.resize(label_array, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    result: list[str] = []
+
+    for band_ratio in (0.58, 0.60, 0.62, 0.64):
+        digit_band = enlarged[int(enlarged.shape[0] * band_ratio) :]
+        if digit_band.size == 0:
+            continue
+        _, binary = cv2.threshold(digit_band, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        binary[: max(1, int(binary.shape[0] * 0.15)), :] = 0
+
+        for kernel_width in (3, 2, 1, 4):
+            eroded = cv2.erode(binary, cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_width, 1)), iterations=1)
+            component_count, _, stats, _ = cv2.connectedComponentsWithStats(eroded, 8)
+            components: list[tuple[int, int, int, int]] = []
+            for index in range(1, component_count):
+                comp_x, comp_y, comp_w, comp_h, comp_area = stats[index]
+                if comp_area < max(80, int(eroded.shape[0] * eroded.shape[1] * 0.002)):
+                    continue
+                if comp_w < max(8, int(eroded.shape[1] * 0.02)) or comp_h < max(18, int(eroded.shape[0] * 0.22)):
+                    continue
+                if comp_y <= int(eroded.shape[0] * 0.35):
+                    continue
+                components.append((comp_x, comp_y, comp_w, comp_h))
+            components.sort()
+            if len(components) != 13:
+                continue
+            _append_unique_barcodes(result, _collect_amazon_barcode_ocr_candidates_from_components(eroded, components))
+            if len(result) >= 5:
+                return result
+
+    _, full_binary = cv2.threshold(enlarged, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    for kernel_width in (3, 2, 1, 4):
+        eroded = cv2.erode(full_binary, cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_width, 1)), iterations=1)
+        component_count, _, stats, _ = cv2.connectedComponentsWithStats(eroded, 8)
+        components: list[tuple[int, int, int, int]] = []
+        for index in range(1, component_count):
+            comp_x, comp_y, comp_w, comp_h, comp_area = stats[index]
+            if comp_area < max(80, int(eroded.shape[0] * eroded.shape[1] * 0.0012)):
+                continue
+            if comp_w < max(8, int(eroded.shape[1] * 0.012)) or comp_h < max(18, int(eroded.shape[0] * 0.08)):
+                continue
+            if comp_y + comp_h < int(eroded.shape[0] * 0.8):
+                continue
+            components.append((comp_x, comp_y, comp_w, comp_h))
+
+        components.sort()
+        if len(components) < 13:
+            continue
+
+        candidate_groups: list[list[tuple[int, int, int, int]]] = []
+        seen_groups: set[tuple[tuple[int, int, int, int], ...]] = set()
+
+        bottom_components = sorted(components, key=lambda item: (item[1] + item[3], -item[3], -item[2]), reverse=True)[
+            :13
+        ]
+        if len(bottom_components) == 13:
+            bottom_group = sorted(bottom_components)
+            group_key = tuple(bottom_group)
+            if group_key not in seen_groups:
+                seen_groups.add(group_key)
+                candidate_groups.append(bottom_group)
+
+        max_start = max(len(components) - 13, 0)
+        for start_index in range(max_start + 1):
+            subset = components[start_index : start_index + 13]
+            if len(subset) != 13:
+                continue
+            group_key = tuple(subset)
+            if group_key in seen_groups:
+                continue
+            seen_groups.add(group_key)
+            candidate_groups.append(subset)
+
+        for subset in candidate_groups:
+            _append_unique_barcodes(result, _collect_amazon_barcode_ocr_candidates_from_components(eroded, subset))
+            if len(result) >= 5:
+                return result
+
+    return result
+
+
+def _extract_amazon_barcode_via_digit_ocr_from_label(label_gray: object) -> str:
+    candidates = _extract_amazon_barcode_via_digit_ocr_candidates_from_label(label_gray)
+    return candidates[0] if candidates else ""
+
+
+def _try_extract_amazon_barcode_via_digit_ocr(image_array: object, detected_points: object) -> str:
+    import numpy as np
+
+    image = np.asarray(image_array)
+    if image.size == 0:
+        return ""
+
+    if image.ndim == 2:
+        gray_image = image
+    elif image.ndim == 3 and image.shape[2] == 1:
+        gray_image = image[:, :, 0]
+    elif image.ndim == 3:
+        import cv2
+
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        return ""
+
+    points_array = np.asarray(detected_points, dtype=np.float32)
+    if points_array.ndim == 2 and points_array.shape == (4, 2):
+        point_groups = [points_array]
+    elif points_array.ndim == 3 and points_array.shape[1:] == (4, 2):
+        point_groups = list(points_array)
+    else:
+        return ""
+
+    for each_points in point_groups:
+        if (label_roi := _extract_amazon_barcode_label_roi(gray_image, each_points)) is None:
+            continue
+        if barcode := _extract_amazon_barcode_via_digit_ocr_from_label(label_roi):
+            return barcode
+
+    return ""
+
+
+def _try_extract_amazon_barcode_candidates_via_digit_ocr(image_array: object, detected_points: object) -> list[str]:
+    import numpy as np
+
+    image = np.asarray(image_array)
+    if image.size == 0:
+        return []
+
+    if image.ndim == 2:
+        gray_image = image
+    elif image.ndim == 3 and image.shape[2] == 1:
+        gray_image = image[:, :, 0]
+    elif image.ndim == 3:
+        import cv2
+
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        return []
+
+    points_array = np.asarray(detected_points, dtype=np.float32)
+    if points_array.ndim == 2 and points_array.shape == (4, 2):
+        point_groups = [points_array]
+    elif points_array.ndim == 3 and points_array.shape[1:] == (4, 2):
+        point_groups = list(points_array)
+    else:
+        return []
+
+    result: list[str] = []
+    for each_points in point_groups:
+        if (label_roi := _extract_amazon_barcode_label_roi(gray_image, each_points)) is None:
+            continue
+        _append_unique_barcodes(result, _extract_amazon_barcode_via_digit_ocr_candidates_from_label(label_roi))
+        if len(result) >= 5:
+            break
+
+    return result
+
+
+def _get_amazon_barcode_detector_skip_reason() -> str:
+    try:
+        import cv2
+        import numpy  # noqa: F401
+    except Exception as exc:
+        return f"当前环境缺少扫码依赖 opencv-contrib-python-headless ({exc.__class__.__name__}: {exc})"
+
+    if not hasattr(cv2, "barcode_BarcodeDetector"):
+        return "当前 OpenCV 不支持 barcode_BarcodeDetector"
+
+    return ""
+
+
+def _detect_amazon_barcode_candidates_from_image_bytes_with_reason(image_bytes: bytes) -> tuple[list[str], str]:
+    if not image_bytes:
+        return [], "图片内容为空"
+
+    if skip_reason := _get_amazon_barcode_detector_skip_reason():
+        return [], skip_reason
+
+    import cv2
+    import numpy as np
+
+    try:
+        img = Image.open(BytesIO(image_bytes))
+        img.load()
+    except Exception as exc:
+        return [], f"图片解析失败 ({exc.__class__.__name__}: {exc})"
+
+    crop_ratios = [
+        (0.0, 0.0, 1.0, 1.0),
+        (0.0, 0.76, 0.56, 1.0),
+        (0.0, 0.80, 0.48, 1.0),
+        (0.05, 0.78, 0.40, 0.98),
+        (0.08, 0.82, 0.36, 0.98),
+    ]
+    detector = cv2.barcode_BarcodeDetector()
+    ocr_fallback_attempted = False
+    try:
+        for left_ratio, top_ratio, right_ratio, bottom_ratio in crop_ratios:
+            crop_box = (
+                int(img.width * left_ratio),
+                int(img.height * top_ratio),
+                max(int(img.width * right_ratio), int(img.width * left_ratio) + 1),
+                max(int(img.height * bottom_ratio), int(img.height * top_ratio) + 1),
+            )
+            crop = img.crop(crop_box).convert("RGB")
+            for scale in (1, 2):
+                processed = crop
+                if scale > 1:
+                    processed = crop.resize(
+                        (max(crop.width * scale, 1), max(crop.height * scale, 1)),
+                        resample=Image.Resampling.LANCZOS,
+                    )
+                try:
+                    image_array = cv2.cvtColor(np.array(processed), cv2.COLOR_RGB2BGR)
+                    retval, decoded_info, decoded_type, detected_points = detector.detectAndDecodeWithType(image_array)
+                except Exception:
+                    continue
+                if not retval:
+                    detected_points = None
+                    try:
+                        detected, fallback_points = detector.detect(image_array)
+                    except Exception:
+                        detected = False
+                        fallback_points = None
+                    if detected:
+                        detected_points = fallback_points
+                else:
+                    for info, code_type in zip(decoded_info, decoded_type, strict=False):
+                        if str(code_type).upper() != "EAN_13":
+                            continue
+                        if barcode := _normalize_amazon_barcode(info):
+                            return [barcode], "direct"
+                if detected_points is None:
+                    continue
+                ocr_fallback_attempted = True
+                if barcodes := _try_extract_amazon_barcode_candidates_via_digit_ocr(image_array, detected_points):
+                    return barcodes, "ocr_digits"
+    finally:
+        img.close()
+
+    if ocr_fallback_attempted:
+        return [], "条码已定位，但条码下数字 OCR 未识别到有效 EAN/JAN"
+    return [], "未识别到 EAN/JAN 条码"
+
+
+def _detect_amazon_barcode_from_image_bytes_with_reason(image_bytes: bytes) -> tuple[str, str]:
+    barcodes, reason = _detect_amazon_barcode_candidates_from_image_bytes_with_reason(image_bytes)
+    return (barcodes[0] if barcodes else ""), reason
+
+
+def _detect_amazon_barcode_from_image_bytes(image_bytes: bytes) -> str:
+    barcode, _ = _detect_amazon_barcode_from_image_bytes_with_reason(image_bytes)
+    return barcode
+
+
+async def try_get_amazon_barcodes_from_covers(result: CrawlersResult) -> list[str]:
+    cover_candidates: list[tuple[str, str]] = []
+    seen_cover_keys: set[str] = set()
+    primary_cover = (result.thumb_from, result.thumb)
+    for source, cover in [primary_cover, *result.thumb_list]:
+        cover = str(cover or "").strip()
+        if not cover:
+            continue
+        cover_key = cover.lower()
+        if cover_key in seen_cover_keys:
+            continue
+        seen_cover_keys.add(cover_key)
+        cover_candidates.append((str(source or "").strip() or "unknown", cover))
+
+    if not cover_candidates:
+        LogBuffer.log().write("\n 🟡 Amazon条码快路径：没有可扫描的封面来源")
+        return []
+
+    cover_candidates = cover_candidates[:3]
+    LogBuffer.log().write(f"\n 🔎 Amazon条码快路径：开始扫描封面条码，共 {len(cover_candidates)} 张候选封面")
+
+    if skip_reason := await to_thread(_get_amazon_barcode_detector_skip_reason):
+        LogBuffer.log().write(f"\n 🟡 Amazon条码快路径跳过：{skip_reason}")
+        return []
+
+    for index, (source, cover) in enumerate(cover_candidates, start=1):
+        LogBuffer.log().write(f"\n 🔎 Amazon条码识别：扫描封面[{index}/{len(cover_candidates)}] ({source}) {cover}")
+        content: bytes | None = None
+        error = ""
+        if re.match(r"^https?://", cover, flags=re.I):
+            content, error = await manager.computed.async_client.get_content(cover)
+        else:
+            cover_path = Path(cover)
+            if cover_path.is_file():
+                try:
+                    content = await to_thread(cover_path.read_bytes)
+                except Exception as exc:
+                    error = str(exc)
+        if not content:
+            if error:
+                LogBuffer.log().write(f"\n 🟡 Amazon条码识别：读取封面失败 ({source}) {error}")
+            continue
+        barcodes, detect_reason = await to_thread(
+            _detect_amazon_barcode_candidates_from_image_bytes_with_reason, content
+        )
+        if barcodes:
+            primary_barcode = barcodes[0]
+            if detect_reason == "ocr_digits":
+                LogBuffer.log().write(
+                    f"\n 🔢 Amazon条码识别：OCR回退命中 EAN/JAN {primary_barcode} ({source}) 候选{len(barcodes)}个"
+                )
+            else:
+                LogBuffer.log().write(f"\n 🔢 Amazon条码识别：命中 EAN/JAN {primary_barcode} ({source})")
+            return barcodes
+        LogBuffer.log().write(f"\n 🟡 Amazon条码识别：未识别到条码 ({source}) {detect_reason}")
+
+    LogBuffer.log().write("\n 🟡 Amazon条码快路径：封面未识别到可用 EAN/JAN，回退标题搜索")
+    return []
+
+
+async def try_get_amazon_barcode_from_covers(result: CrawlersResult) -> str:
+    barcodes = await try_get_amazon_barcodes_from_covers(result)
+    return barcodes[0] if barcodes else ""
 
 
 async def get_big_pic_by_amazon(
@@ -615,6 +1163,39 @@ async def get_big_pic_by_amazon(
             return normalized_detail_url
         return re.sub(r"\._[_]?AC_[^\.]+\.", ".", pic_url)
 
+    def create_candidate(
+        *,
+        url: str,
+        detail_url: str,
+        pic_title: str,
+        pic_ver: str,
+        media_priority: int,
+        title_confidence: float,
+        quick_actor_matches: int,
+        quick_number_match: bool,
+        target_barcode: str = "",
+        barcode_search_rank: int = 0,
+    ) -> dict[str, object]:
+        return {
+            "url": url,
+            "detail_url": detail_url,
+            "pic_title": pic_title,
+            "pic_ver": pic_ver,
+            "media_priority": media_priority,
+            "title_confidence": title_confidence,
+            "quick_actor_matches": quick_actor_matches,
+            "detail_actor_matches": 0,
+            "quick_number_match": quick_number_match,
+            "detail_number_match": False,
+            "detail_actor_count": 0,
+            "detail_checked": False,
+            "detail_barcode_match": False,
+            "detail_barcodes": (),
+            "target_barcode": target_barcode,
+            "barcode_search_rank": barcode_search_rank,
+            "width": 0,
+        }
+
     async def enrich_candidate(candidate: dict[str, object]):
         if candidate["detail_checked"] or not candidate["detail_url"]:
             candidate["detail_checked"] = True
@@ -651,6 +1232,7 @@ async def get_big_pic_by_amazon(
                 max(calculate_title_confidence(each_title, detail_title) for each_title in expected_titles),
             )
         detail_blob = " ".join(detail_actor_names + detail_texts)
+        detail_barcodes = tuple(sorted(_extract_labeled_amazon_barcodes(detail_blob)))
         candidate["detail_actor_count"] = len(detail_actor_names)
         candidate["detail_actor_matches"] = max(
             int(candidate["detail_actor_matches"]),
@@ -658,6 +1240,9 @@ async def get_big_pic_by_amazon(
             count_actor_group_matches(detail_blob),
         )
         candidate["detail_number_match"] = text_has_target_number(detail_blob)
+        candidate["detail_barcodes"] = detail_barcodes
+        target_barcode = _normalize_amazon_barcode(str(candidate.get("target_barcode", "")))
+        candidate["detail_barcode_match"] = bool(target_barcode and target_barcode in detail_barcodes)
 
     def candidate_actor_match_count(candidate: dict[str, object]) -> int:
         return max(int(candidate["quick_actor_matches"]), int(candidate["detail_actor_matches"]))
@@ -672,12 +1257,13 @@ async def get_big_pic_by_amazon(
     def candidate_has_detail_evidence(candidate: dict[str, object]) -> bool:
         return bool(candidate["detail_url"]) and bool(candidate["detail_checked"])
 
-    def candidate_correctness_key(candidate: dict[str, object]) -> tuple[int, int, int, int, int, int, int]:
+    def candidate_correctness_key(candidate: dict[str, object]) -> tuple[int, int, int, int, int, int, int, int]:
         title_confidence = float(candidate["title_confidence"])
         actor_match_count = candidate_actor_match_count(candidate)
         detail_actor_matches = int(candidate["detail_actor_matches"])
         detail_actor_count = int(candidate["detail_actor_count"])
         detail_verified = candidate_has_detail_evidence(candidate)
+        detail_barcode_match = bool(candidate.get("detail_barcode_match"))
         detail_number_match = bool(candidate["detail_number_match"])
         number_match = candidate_number_match(candidate)
 
@@ -693,6 +1279,7 @@ async def get_big_pic_by_amazon(
             verified_single_actor_match = False
 
         return (
+            1 if detail_barcode_match else 0,
             1 if detail_number_match else 0,
             1 if verified_single_actor_match else 0,
             1 if verified_actor_match else 0,
@@ -707,6 +1294,8 @@ async def get_big_pic_by_amazon(
         actor_match_count = candidate_actor_match_count(candidate)
         actor_ratio = actor_match_count / expected_actor_count if expected_actor_count else 0.0
         score = title_confidence * 100
+        if bool(candidate.get("detail_barcode_match")):
+            score += 220
         if candidate_number_match(candidate):
             score += 120
         if has_valid_actor:
@@ -721,6 +1310,8 @@ async def get_big_pic_by_amazon(
         return score
 
     def is_candidate_acceptable(candidate: dict[str, object]) -> bool:
+        if bool(candidate.get("detail_barcode_match")):
+            return True
         title_confidence = float(candidate["title_confidence"])
         actor_match_count = candidate_actor_match_count(candidate)
         detail_actor_count = int(candidate["detail_actor_count"])
@@ -735,7 +1326,9 @@ async def get_big_pic_by_amazon(
             return title_confidence >= 0.76 and actor_match_count >= required_actor_match_count
         return title_confidence >= 0.88
 
-    def candidate_sort_key(candidate: dict[str, object]) -> tuple[int, int, int, int, int, int, int, float, int, int]:
+    def candidate_sort_key(
+        candidate: dict[str, object],
+    ) -> tuple[int, int, int, int, int, int, int, int, float, int, int]:
         return (
             *candidate_correctness_key(candidate),
             candidate_score(candidate),
@@ -743,7 +1336,9 @@ async def get_big_pic_by_amazon(
             int(candidate["width"]),
         )
 
-    def candidate_probe_order_key(candidate: dict[str, object]) -> tuple[int, int, int, int, int, int, int, float, int]:
+    def candidate_probe_order_key(
+        candidate: dict[str, object],
+    ) -> tuple[int, int, int, int, int, int, int, int, float, int]:
         return (
             *candidate_correctness_key(candidate),
             candidate_score(candidate),
@@ -752,6 +1347,183 @@ async def get_big_pic_by_amazon(
 
     def is_hd_candidate_width(width: int) -> bool:
         return width >= 1770 or 1750 > width > 600 or not width
+
+    def barcode_candidate_sort_key(
+        candidate: dict[str, object],
+    ) -> tuple[int, int, int, int, int, int, float, int, int]:
+        return (
+            1 if bool(candidate.get("detail_barcode_match")) else 0,
+            int(candidate["media_priority"]),
+            1 if candidate_number_match(candidate) else 0,
+            candidate_actor_match_count(candidate),
+            1 if candidate_has_detail_evidence(candidate) else 0,
+            0 - int(candidate.get("barcode_search_rank", 0)),
+            float(candidate["title_confidence"]),
+            int(candidate["width"]),
+            len(tuple(candidate.get("detail_barcodes", ()))),
+        )
+
+    async def try_get_big_pic_by_amazon_via_barcode() -> str:
+        barcodes = (await try_get_amazon_barcodes_from_covers(result))[:3]
+        if not barcodes:
+            LogBuffer.log().write("\n 🟡 Amazon条码快路径跳过：未获取到条码，回退标题搜索")
+            return ""
+
+        async def try_get_big_pic_by_amazon_via_single_barcode(
+            barcode: str, barcode_index: int, total_barcodes: int
+        ) -> str:
+            LogBuffer.log().write(
+                f"\n 🔎 Amazon条码快路径：开始搜索 EAN/JAN[{barcode_index}/{total_barcodes}] {barcode}"
+            )
+            success, html_search = await search_amazon(barcode)
+            if not success or not html_search or is_no_result(html_search):
+                LogBuffer.log().write(f"\n 🟡 Amazon条码快路径未命中：搜索无结果 {barcode}")
+                return ""
+
+            total_result_count = _get_amazon_total_result_count(html_search)
+            html = etree.fromstring(html_search, etree.HTMLParser())
+            pic_card = html.xpath('//div[@data-component-type="s-search-result" and @data-asin]')
+            if not pic_card:
+                LogBuffer.log().write(f"\n 🟡 Amazon条码快路径未命中：结果页无有效卡片 {barcode}")
+                return ""
+            result_count_desc = str(len(pic_card))
+            if total_result_count is not None:
+                result_count_desc += f"/{total_result_count}"
+            LogBuffer.log().write(f"\n 🔎 Amazon条码快路径：条码搜索命中 {result_count_desc} 条候选")
+
+            barcode_candidates: dict[str, dict[str, object]] = {}
+            for search_rank, each in enumerate(pic_card[:8]):
+                pic_ver_list = each.xpath('.//a[contains(@class, "a-text-bold")]/text()')
+                pic_title_list = each.xpath(".//h2//a//span/text() | .//h2//span/text()")
+                pic_url_list = each.xpath('.//img[contains(@class, "s-image")]/@src')
+                detail_url_list = each.xpath('.//h2//a/@href | .//a[contains(@class, "s-no-outline")]/@href')
+                if not (pic_url_list and pic_title_list and detail_url_list):
+                    continue
+                pic_ver = pic_ver_list[0] if pic_ver_list else ""
+                pic_title = pic_title_list[0]
+                pic_url = pic_url_list[0]
+                detail_url = detail_url_list[0]
+                if not (is_supported_pic_ver(pic_ver) and ".jpg" in pic_url):
+                    continue
+                title_confidence = max(
+                    calculate_title_confidence(each_title, pic_title) for each_title in expected_titles
+                )
+                quick_number_match = text_has_target_number(pic_title)
+                quick_actor_matches = count_actor_group_matches(pic_title)
+                normalized_detail_url = normalize_detail_url(detail_url)
+                url = re.sub(r"\._[_]?AC_[^\.]+\.", ".", pic_url)
+                each_key = build_candidate_key(detail_url, url)
+                media_priority = get_media_priority(pic_ver)
+                candidate = barcode_candidates.get(each_key)
+                if candidate is None:
+                    barcode_candidates[each_key] = create_candidate(
+                        url=url,
+                        detail_url=normalized_detail_url,
+                        pic_title=pic_title,
+                        pic_ver=pic_ver,
+                        media_priority=media_priority,
+                        title_confidence=title_confidence,
+                        quick_actor_matches=quick_actor_matches,
+                        quick_number_match=quick_number_match,
+                        target_barcode=barcode,
+                        barcode_search_rank=search_rank,
+                    )
+                    continue
+                if title_confidence > float(candidate["title_confidence"]) or (
+                    title_confidence == float(candidate["title_confidence"])
+                    and media_priority > int(candidate["media_priority"])
+                ):
+                    candidate["url"] = url
+                    candidate["pic_title"] = pic_title
+                    candidate["pic_ver"] = pic_ver
+                    candidate["media_priority"] = media_priority
+                if normalized_detail_url and (
+                    not candidate["detail_url"]
+                    or "/dp/" in normalized_detail_url
+                    and "/dp/" not in str(candidate["detail_url"])
+                ):
+                    candidate["detail_url"] = normalized_detail_url
+                candidate["title_confidence"] = max(float(candidate["title_confidence"]), title_confidence)
+                candidate["quick_actor_matches"] = max(int(candidate["quick_actor_matches"]), quick_actor_matches)
+                candidate["quick_number_match"] = bool(candidate["quick_number_match"] or quick_number_match)
+
+            if not barcode_candidates:
+                LogBuffer.log().write(f"\n 🟡 Amazon条码快路径未命中：结果页没有可评估候选 {barcode}")
+                return ""
+
+            probe_limit = 3 if total_result_count is not None and total_result_count <= 5 else 5
+            LogBuffer.log().write(
+                f"\n 🔎 Amazon条码快路径：开始详情页校验，候选 {len(barcode_candidates)} 条，探测前 {min(probe_limit, len(barcode_candidates))} 条"
+            )
+            probe_candidates = sorted(barcode_candidates.values(), key=barcode_candidate_sort_key, reverse=True)[
+                : min(probe_limit, len(barcode_candidates))
+            ]
+
+            confirmed_candidates: list[dict[str, object]] = []
+            accepted_candidates: list[dict[str, object]] = []
+            for each_candidate in probe_candidates:
+                await enrich_candidate(each_candidate)
+                width, _ = await get_imgsize(str(each_candidate["url"]))
+                each_candidate["width"] = width or 0
+                if bool(each_candidate.get("detail_barcode_match")):
+                    confirmed_candidates.append(each_candidate)
+                    continue
+                if (
+                    total_result_count is not None
+                    and total_result_count <= 5
+                    and is_candidate_acceptable(each_candidate)
+                ):
+                    accepted_candidates.append(each_candidate)
+
+            if confirmed_candidates:
+                best_candidate = sorted(confirmed_candidates, key=barcode_candidate_sort_key, reverse=True)[0]
+                if is_hd_candidate_width(int(best_candidate["width"])):
+                    LogBuffer.log().write(
+                        f"\n 🟢 Amazon条码快路径命中：EAN/JAN({barcode}) "
+                        f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
+                    )
+                    return str(best_candidate["url"])
+                result.poster = str(best_candidate["url"])
+                result.poster_from = "Amazon"
+                LogBuffer.log().write(
+                    f"\n 🟡 Amazon条码快路径命中低清图：EAN/JAN({barcode}) "
+                    f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
+                )
+                return ""
+
+            if accepted_candidates:
+                best_candidate = sorted(accepted_candidates, key=barcode_candidate_sort_key, reverse=True)[0]
+                if is_hd_candidate_width(int(best_candidate["width"])):
+                    LogBuffer.log().write(
+                        f"\n 🟢 Amazon条码快路径弱确认命中：标题置信度({float(best_candidate['title_confidence']):.2f}) "
+                        f"番号命中({candidate_number_match(best_candidate)}) "
+                        f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
+                    )
+                    return str(best_candidate["url"])
+                result.poster = str(best_candidate["url"])
+                result.poster_from = "Amazon"
+                LogBuffer.log().write(
+                    f"\n 🟡 Amazon条码快路径弱确认低清图：标题置信度({float(best_candidate['title_confidence']):.2f}) "
+                    f"番号命中({candidate_number_match(best_candidate)}) "
+                    f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
+                )
+                return ""
+
+            LogBuffer.log().write(f"\n 🟡 Amazon条码快路径未命中：候选详情页无条码确认 {barcode}")
+            return ""
+
+        for barcode_index, barcode in enumerate(barcodes, start=1):
+            if hd_pic_url := await try_get_big_pic_by_amazon_via_single_barcode(barcode, barcode_index, len(barcodes)):
+                return hd_pic_url
+            if result.poster_from == "Amazon":
+                return ""
+
+        LogBuffer.log().write("\n 🟡 Amazon条码快路径未命中：所有条码候选均未通过校验，回退标题搜索")
+        return ""
+
+    hd_pic_url = await try_get_big_pic_by_amazon_via_barcode()
+    if hd_pic_url or result.poster_from == "Amazon":
+        return hd_pic_url
 
     candidate_pool: dict[str, dict[str, object]] = {}
     query_index = 0
@@ -801,21 +1573,16 @@ async def get_big_pic_by_amazon(
                 media_priority = get_media_priority(pic_ver)
                 candidate = candidate_pool.get(each_key)
                 if candidate is None:
-                    candidate_pool[each_key] = {
-                        "url": url,
-                        "detail_url": normalized_detail_url,
-                        "pic_title": pic_title,
-                        "pic_ver": pic_ver,
-                        "media_priority": media_priority,
-                        "title_confidence": title_confidence,
-                        "quick_actor_matches": quick_actor_matches,
-                        "detail_actor_matches": 0,
-                        "quick_number_match": quick_number_match,
-                        "detail_number_match": False,
-                        "detail_actor_count": 0,
-                        "detail_checked": False,
-                        "width": 0,
-                    }
+                    candidate_pool[each_key] = create_candidate(
+                        url=url,
+                        detail_url=normalized_detail_url,
+                        pic_title=pic_title,
+                        pic_ver=pic_ver,
+                        media_priority=media_priority,
+                        title_confidence=title_confidence,
+                        quick_actor_matches=quick_actor_matches,
+                        quick_number_match=quick_number_match,
+                    )
                 else:
                     if title_confidence > float(candidate["title_confidence"]) or (
                         title_confidence == float(candidate["title_confidence"])
