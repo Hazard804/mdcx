@@ -92,7 +92,8 @@ async def main(
         LogBuffer.info().write(web_info + debug_info)
         # ========================================================================番号详情页
         # 创建 session
-        cookies = cookie_str_to_dict(manager.config.javdb)  # 使用 javdb 的 cookie 作为 fc2ppvdb 的 cookie
+        # 使用独立的 fc2ppvdb cookie
+        cookies = cookie_str_to_dict(manager.config.fc2ppvdb)
         if manager.config.use_proxy:
             proxies = {
                 "http": manager.config.proxy,

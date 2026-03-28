@@ -281,6 +281,7 @@ class ConfigV1:
 
     # Cookies
     javdb: str = r""
+    fc2ppvdb: str = r""
     javbus: str = r""
 
     # other

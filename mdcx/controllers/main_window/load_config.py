@@ -977,6 +977,11 @@ def load_config(self: "MyMAinWindow"):
         self.Ui.lineEdit_api_token_theporndb.setText(manager.config.theporndb_api_token)
         # javdb cookie
         self.set_javdb_cookie.emit(manager.config.javdb)
+        # fc2ppvdb cookie（兼容旧配置：旧版本可能填在 javdb 中）
+        fc2_cookie = manager.config.fc2ppvdb
+        if not fc2_cookie and "fc2ppvdb_session" in manager.config.javdb:
+            fc2_cookie = manager.config.javdb
+        self.Ui.plainTextEdit_cookie_fc2ppvdb.setPlainText(fc2_cookie)
         # javbus cookie
         self.set_javbus_cookie.emit(manager.config.javbus)
         # endregion

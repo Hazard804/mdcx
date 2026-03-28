@@ -626,6 +626,7 @@ class Config(BaseModel):
     retry: int = Field(default=3, title="重试")
     theporndb_api_token: str = Field(default="", title="Theporndb API令牌")
     javdb: str = Field(default="", title="Javdb")
+    fc2ppvdb: str = Field(default="", title="FC2PPVDB")
     javbus: str = Field(default="", title="Javbus")
     # endregion
 

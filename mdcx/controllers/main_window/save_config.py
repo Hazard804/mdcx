@@ -650,6 +650,7 @@ def save_config(self: "MyMAinWindow"):
             manager.config.site_configs[site].custom_url = None
 
     manager.config.javdb = self.Ui.plainTextEdit_cookie_javdb.toPlainText()  # javdb cookie
+    manager.config.fc2ppvdb = self.Ui.plainTextEdit_cookie_fc2ppvdb.toPlainText()  # fc2ppvdb cookie
     manager.config.javbus = self.Ui.plainTextEdit_cookie_javbus.toPlainText()  # javbus cookie
     manager.config.theporndb_api_token = self.Ui.lineEdit_api_token_theporndb.text()  # api token
     if manager.config.javdb:
