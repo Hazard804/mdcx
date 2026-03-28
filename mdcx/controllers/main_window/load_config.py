@@ -469,6 +469,7 @@ def load_config(self: "MyMAinWindow"):
             (self.Ui.checkBox_google, Translator.GOOGLE),
             (self.Ui.checkBox_baidu, Translator.BAIDU),
             (self.Ui.checkBox_deepl, Translator.DEEPL),
+            (self.Ui.checkBox_deeplx, Translator.DEEPLX),
             (self.Ui.checkBox_llm, Translator.LLM),
         )
 
@@ -476,8 +477,9 @@ def load_config(self: "MyMAinWindow"):
         self.Ui.lineEdit_baidu_appid.setText(manager.config.translate_config.baidu_appid)
         self.Ui.lineEdit_baidu_key.setText(manager.config.translate_config.baidu_key)
 
-        # deepl_key
+        # deepl api key / deeplx url
         self.Ui.lineEdit_deepl_key.setText(manager.config.translate_config.deepl_key)
+        self.Ui.lineEdit_deeplx_url.setText(manager.config.translate_config.deeplx_url)
 
         # llm config
         self.Ui.lineEdit_llm_url.setText(str(manager.config.translate_config.llm_url))

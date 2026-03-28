@@ -304,8 +304,8 @@ class MyMAinWindow(QMainWindow):
                     child_geo.height(),
                 )
 
-        self.Ui.label_60.setText("填写 DeepLX URL / 百度 API 凭据后，将使用官方 API 翻译；未填写时会自动跳过。")
-        self.Ui.label_601.setText("填写 DeepLX URL / 百度 API 凭据后，将使用官方 API 翻译；未填写时会自动跳过。")
+        self.Ui.label_60.setText("填写 DeepL API / DeepLX URL / 百度 API 凭据后，才会生效；未填写时会自动跳过。")
+        self.Ui.label_601.setText("填写 DeepL API / DeepLX URL / 百度 API 凭据后，才会生效；未填写时会自动跳过。")
 
         self.Ui.checkBox_baidu = QCheckBox(self.Ui.layoutWidget_2)
         self.Ui.checkBox_baidu.setMinimumSize(self.Ui.checkBox_google.minimumSize())
@@ -320,13 +320,13 @@ class MyMAinWindow(QMainWindow):
         self.Ui.label_baidu_appid.setAlignment(self.Ui.label_80.alignment())
         self.Ui.label_baidu_appid.setObjectName("label_baidu_appid")
         self.Ui.label_baidu_appid.setText("百度 APP ID：")
-        self.Ui.gridLayout_32.addWidget(self.Ui.label_baidu_appid, 4, 0, 1, 1)
+        self.Ui.gridLayout_32.addWidget(self.Ui.label_baidu_appid, 5, 0, 1, 1)
 
         self.Ui.lineEdit_baidu_appid = QLineEdit(self.Ui.layoutWidget_2)
         self.Ui.lineEdit_baidu_appid.setMinimumSize(self.Ui.lineEdit_deepl_key.minimumSize())
         self.Ui.lineEdit_baidu_appid.setStyleSheet(self.Ui.lineEdit_deepl_key.styleSheet())
         self.Ui.lineEdit_baidu_appid.setObjectName("lineEdit_baidu_appid")
-        self.Ui.gridLayout_32.addWidget(self.Ui.lineEdit_baidu_appid, 4, 1, 1, 1)
+        self.Ui.gridLayout_32.addWidget(self.Ui.lineEdit_baidu_appid, 5, 1, 1, 1)
 
         self.Ui.label_baidu_key = QLabel(self.Ui.layoutWidget_2)
         self.Ui.label_baidu_key.setMinimumSize(self.Ui.label_80.minimumSize())
@@ -335,13 +335,13 @@ class MyMAinWindow(QMainWindow):
         self.Ui.label_baidu_key.setAlignment(self.Ui.label_80.alignment())
         self.Ui.label_baidu_key.setObjectName("label_baidu_key")
         self.Ui.label_baidu_key.setText("百度密钥：")
-        self.Ui.gridLayout_32.addWidget(self.Ui.label_baidu_key, 5, 0, 1, 1)
+        self.Ui.gridLayout_32.addWidget(self.Ui.label_baidu_key, 6, 0, 1, 1)
 
         self.Ui.lineEdit_baidu_key = QLineEdit(self.Ui.layoutWidget_2)
         self.Ui.lineEdit_baidu_key.setMinimumSize(self.Ui.lineEdit_deepl_key.minimumSize())
         self.Ui.lineEdit_baidu_key.setStyleSheet(self.Ui.lineEdit_deepl_key.styleSheet())
         self.Ui.lineEdit_baidu_key.setObjectName("lineEdit_baidu_key")
-        self.Ui.gridLayout_32.addWidget(self.Ui.lineEdit_baidu_key, 5, 1, 1, 1)
+        self.Ui.gridLayout_32.addWidget(self.Ui.lineEdit_baidu_key, 6, 1, 1, 1)
 
     def Init_Ui(self): ...
 

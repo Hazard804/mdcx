@@ -81,11 +81,46 @@ async def youdao_translate(title: str, outline: str):
 
 
 async def _deepl_translate(text: str, source_lang: Literal["JA", "EN"] = "JA") -> str | None:
-    """调用 DeepLX API 翻译文本"""
+    """调用 DeepL API 翻译文本"""
     if not text:
         return ""
 
-    deeplx_url = manager.config.translate_config.deepl_key  # 这里存放的是 DeepLX 的 URL
+    deepl_key = manager.config.translate_config.deepl_key.strip()
+    if not deepl_key:
+        return None
+
+    # 确定 API URL, 免费版本的 key 包含 ":fx" 后缀，付费版本的 key 不包含 ":fx" 后缀
+    deepl_url = "https://api-free.deepl.com" if ":fx" in deepl_key else "https://api.deepl.com"
+    url = f"{deepl_url}/v2/translate"
+    # 构造请求头
+    headers = {"Content-Type": "application/json", "Authorization": f"DeepL-Auth-Key {deepl_key}"}
+    # 构造请求体
+    data = {"text": [text], "source_lang": source_lang, "target_lang": "ZH"}
+    res, error = await manager.computed.async_client.post_json(url, json_data=data, headers=headers)
+    if res is None:
+        signal.add_log(f"DeepL API 请求失败: {error}")
+        return None
+    if "translations" in res and len(res["translations"]) > 0:
+        return res["translations"][0]["text"]
+    else:
+        signal.add_log(f"DeepL API 返回数据异常: {res}")
+        return None
+
+
+async def deepl_translate(title: str, outline: str, ls: Literal["JA", "EN"] = "JA"):
+    """DeepL 翻译接口"""
+    r1, r2 = await asyncio.gather(_deepl_translate(title, ls), _deepl_translate(outline, ls))
+    if r1 is None or r2 is None:
+        return "", "", "DeepL 翻译失败! 查看网络日志以获取更多信息"
+    return r1, r2, None
+
+
+async def _deeplx_translate(text: str, source_lang: Literal["JA", "EN"] = "JA") -> str | None:
+    """调用 DeepLX URL 翻译文本"""
+    if not text:
+        return ""
+
+    deeplx_url = manager.config.translate_config.deeplx_url.strip()
     if not deeplx_url:
         return None
 
@@ -104,11 +139,11 @@ async def _deepl_translate(text: str, source_lang: Literal["JA", "EN"] = "JA") -
         return None
 
 
-async def deepl_translate(title: str, outline: str, ls: Literal["JA", "EN"] = "JA"):
-    """DeepL 翻译接口"""
-    r1, r2 = await asyncio.gather(_deepl_translate(title, ls), _deepl_translate(outline, ls))
+async def deeplx_translate(title: str, outline: str, ls: Literal["JA", "EN"] = "JA"):
+    """DeepLX 翻译接口"""
+    r1, r2 = await asyncio.gather(_deeplx_translate(title, ls), _deeplx_translate(outline, ls))
     if r1 is None or r2 is None:
-        return "", "", "DeepL 翻译失败! 查看网络日志以获取更多信息"
+        return "", "", "DeepLX 翻译失败! 查看网络日志以获取更多信息"
     return r1, r2, None
 
 
@@ -180,7 +215,9 @@ def get_translator_skip_reason(translator: Translator) -> str | None:
     if translator == Translator.BAIDU:
         return _missing_reason([("APP ID", translate_config.baidu_appid), ("密钥", translate_config.baidu_key)])
     if translator == Translator.DEEPL:
-        return _missing_reason([("DeepLX URL", translate_config.deepl_key)])
+        return _missing_reason([("DeepL API Key", translate_config.deepl_key)])
+    if translator == Translator.DEEPLX:
+        return _missing_reason([("DeepLX URL", translate_config.deeplx_url)])
     if translator == Translator.LLM:
         return _missing_reason([("LLM Model", translate_config.llm_model), ("LLM API Key", translate_config.llm_key)])
     return None
