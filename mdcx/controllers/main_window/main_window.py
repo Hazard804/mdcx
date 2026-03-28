@@ -209,9 +209,29 @@ class MyMAinWindow(QMainWindow):
 
     # region Init
     def _setup_fc2ppvdb_cookie_ui(self):
-        # 扩展 cookie 设置区域，避免新增控件和原有提示重叠
+        # 扩展 cookie 设置区域，并把下面分组整体下移，避免重叠
+        delta_y = 140
         group_geo = self.Ui.groupBox_10.geometry()
-        self.Ui.groupBox_10.setGeometry(group_geo.x(), group_geo.y(), group_geo.width(), 650)
+        old_group_bottom = group_geo.y() + group_geo.height()
+        self.Ui.groupBox_10.setGeometry(group_geo.x(), group_geo.y(), group_geo.width(), group_geo.height() + delta_y)
+        content_geo = self.Ui.scrollAreaWidgetContents_wangluo.geometry()
+        self.Ui.scrollAreaWidgetContents_wangluo.setGeometry(
+            content_geo.x(),
+            content_geo.y(),
+            content_geo.width(),
+            content_geo.height() + delta_y,
+        )
+        for child in self.Ui.scrollAreaWidgetContents_wangluo.children():
+            if not isinstance(child, QWidget) or child is self.Ui.groupBox_10:
+                continue
+            child_geo = child.geometry()
+            if child_geo.y() >= old_group_bottom:
+                child.setGeometry(
+                    child_geo.x(),
+                    child_geo.y() + delta_y,
+                    child_geo.width(),
+                    child_geo.height(),
+                )
         grid_geo = self.Ui.gridLayoutWidget_10.geometry()
         self.Ui.gridLayoutWidget_10.setGeometry(grid_geo.x(), grid_geo.y(), grid_geo.width(), 400)
         self.Ui.label_75.setGeometry(60, 450, 611, 141)
