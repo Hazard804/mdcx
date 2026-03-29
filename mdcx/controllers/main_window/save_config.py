@@ -319,11 +319,13 @@ def save_config(self: "MyMAinWindow"):
         (self.Ui.checkBox_google, Translator.GOOGLE),
         (self.Ui.checkBox_baidu, Translator.BAIDU),
         (self.Ui.checkBox_deepl, Translator.DEEPL),
+        (self.Ui.checkBox_deeplx, Translator.DEEPLX),
         (self.Ui.checkBox_llm, Translator.LLM),
     )
     manager.config.translate_config.baidu_appid = self.Ui.lineEdit_baidu_appid.text()
     manager.config.translate_config.baidu_key = self.Ui.lineEdit_baidu_key.text()
-    manager.config.translate_config.deepl_key = self.Ui.lineEdit_deepl_key.text()  # deepl key
+    manager.config.translate_config.deepl_key = self.Ui.lineEdit_deepl_key.text().strip()  # deepl api key
+    manager.config.translate_config.deeplx_url = self.Ui.lineEdit_deeplx_url.text().strip()  # deeplx url
 
     llm_url_text = self.Ui.lineEdit_llm_url.text()
     if llm_url_text:
@@ -650,6 +652,7 @@ def save_config(self: "MyMAinWindow"):
             manager.config.site_configs[site].custom_url = None
 
     manager.config.javdb = self.Ui.plainTextEdit_cookie_javdb.toPlainText()  # javdb cookie
+    manager.config.fc2ppvdb = self.Ui.plainTextEdit_cookie_fc2ppvdb.toPlainText()  # fc2ppvdb cookie
     manager.config.javbus = self.Ui.plainTextEdit_cookie_javbus.toPlainText()  # javbus cookie
     manager.config.theporndb_api_token = self.Ui.lineEdit_api_token_theporndb.text()  # api token
     if manager.config.javdb:

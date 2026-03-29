@@ -10,6 +10,7 @@ import zhconv
 from ..base.translate import (
     baidu_translate,
     deepl_translate,
+    deeplx_translate,
     get_translator_skip_reason,
     google_translate,
     llm_translate,
@@ -536,10 +537,14 @@ async def _translate_english_tag(tag_req: str, translate_by_list: list[Translato
             t, o, r = await google_translate(tag_req, "")
         elif each == Translator.BAIDU:
             t, o, r = await baidu_translate(tag_req, "", target_lang, target_lang)
+        elif each == Translator.DEEPL:
+            t, o, r = await deepl_translate(tag_req, "", ls="EN")
+        elif each == Translator.DEEPLX:
+            t, o, r = await deeplx_translate(tag_req, "", ls="EN")
         elif each == Translator.LLM:
             t, o, r = await llm_translate(tag_req, "")
-        else:  # deepl
-            t, o, r = await deepl_translate(tag_req, "", ls="EN")
+        else:
+            continue
 
         if r:
             signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {r}")
@@ -564,10 +569,14 @@ async def _translate_content(
             t, o, r = await google_translate(tag, overview_req)
         elif each == Translator.BAIDU:
             t, o, r = await baidu_translate(tag, overview_req, target_lang, target_lang)
+        elif each == Translator.DEEPL:
+            t, o, r = await deepl_translate(tag, overview_req)
+        elif each == Translator.DEEPLX:
+            t, o, r = await deeplx_translate(tag, overview_req)
         elif each == Translator.LLM:
             t, o, r = await llm_translate(tag, overview_req)
-        else:  # deepl
-            t, o, r = await deepl_translate(tag, overview_req)
+        else:
+            continue
 
         if r:
             signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {r}")

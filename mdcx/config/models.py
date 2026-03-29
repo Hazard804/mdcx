@@ -61,13 +61,15 @@ class TranslateConfig(BaseModel):
             Translator.GOOGLE,
             Translator.BAIDU,
             Translator.DEEPL,
+            Translator.DEEPLX,
             Translator.LLM,
         ],
         title="翻译服务",
     )
     baidu_appid: str = Field(default="", title="百度 APP ID")
     baidu_key: str = Field(default="", title="百度密钥")
-    deepl_key: str = Field(default="", title="Deepl密钥")
+    deepl_key: str = Field(default="", title="DeepL API Key")
+    deeplx_url: str = Field(default="", title="DeepLX URL")
     llm_url: HttpUrl = Field(default=HttpUrl("https://api.llm.com/v1"), title="LLM API Host")
     llm_model: str = Field(default="gpt-3.5-turbo", title="模型 ID")
     llm_key: str = Field(default="", title="LLM API Key")
@@ -626,6 +628,7 @@ class Config(BaseModel):
     retry: int = Field(default=3, title="重试")
     theporndb_api_token: str = Field(default="", title="Theporndb API令牌")
     javdb: str = Field(default="", title="Javdb")
+    fc2ppvdb: str = Field(default="", title="FC2PPVDB")
     javbus: str = Field(default="", title="Javbus")
     # endregion
 

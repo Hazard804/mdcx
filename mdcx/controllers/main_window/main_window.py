@@ -17,13 +17,17 @@ from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
     QFileDialog,
+    QHBoxLayout,
     QInputDialog,
     QLabel,
     QLineEdit,
     QMainWindow,
     QMenu,
     QMessageBox,
+    QPlainTextEdit,
+    QPushButton,
     QShortcut,
+    QSizePolicy,
     QSystemTrayIcon,
     QTreeWidgetItem,
     QWidget,
@@ -172,6 +176,7 @@ class MyMAinWindow(QMainWindow):
         resources.get_fonts()
         self.Ui = Ui_MDCx()  # 实例化 Ui
         self.Ui.setupUi(self)  # 初始化 Ui
+        self._setup_fc2ppvdb_cookie_ui()
         self._setup_baidu_translate_ui()
         self.cutwindow = CutWindow(self)
         self.Init_Singal()  # 信号连接
@@ -203,6 +208,92 @@ class MyMAinWindow(QMainWindow):
         # endregion
 
     # region Init
+    def _setup_fc2ppvdb_cookie_ui(self):
+        # 扩展 cookie 设置区域，并把下面分组整体下移，避免重叠
+        delta_y = 140
+        group_geo = self.Ui.groupBox_10.geometry()
+        old_group_bottom = group_geo.y() + group_geo.height()
+        self.Ui.groupBox_10.setGeometry(group_geo.x(), group_geo.y(), group_geo.width(), group_geo.height() + delta_y)
+        content_geo = self.Ui.scrollAreaWidgetContents_wangluo.geometry()
+        self.Ui.scrollAreaWidgetContents_wangluo.setGeometry(
+            content_geo.x(),
+            content_geo.y(),
+            content_geo.width(),
+            content_geo.height() + delta_y,
+        )
+        for child in self.Ui.scrollAreaWidgetContents_wangluo.children():
+            if not isinstance(child, QWidget) or child is self.Ui.groupBox_10:
+                continue
+            child_geo = child.geometry()
+            if child_geo.y() >= old_group_bottom:
+                child.setGeometry(
+                    child_geo.x(),
+                    child_geo.y() + delta_y,
+                    child_geo.width(),
+                    child_geo.height(),
+                )
+        grid_geo = self.Ui.gridLayoutWidget_10.geometry()
+        self.Ui.gridLayoutWidget_10.setGeometry(grid_geo.x(), grid_geo.y(), grid_geo.width(), 400)
+        self.Ui.label_75.setGeometry(60, 450, 611, 141)
+        self.Ui.label_get_cookie_url.setGeometry(130, 600, 430, 21)
+        self.Ui.label_7.setGeometry(60, 600, 71, 21)
+
+        self.Ui.label_fc2ppvdb_cookie = QLabel(self.Ui.gridLayoutWidget_10)
+        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.Ui.label_fc2ppvdb_cookie.sizePolicy().hasHeightForWidth())
+        self.Ui.label_fc2ppvdb_cookie.setSizePolicy(sizePolicy)
+        self.Ui.label_fc2ppvdb_cookie.setMinimumSize(130, 30)
+        self.Ui.label_fc2ppvdb_cookie.setMaximumSize(130, 16777215)
+        self.Ui.label_fc2ppvdb_cookie.setLayoutDirection(Qt.RightToLeft)
+        self.Ui.label_fc2ppvdb_cookie.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
+        self.Ui.label_fc2ppvdb_cookie.setText("fc2ppvdb：\n（登录状态）")
+        self.Ui.label_fc2ppvdb_cookie.setObjectName("label_fc2ppvdb_cookie")
+        self.Ui.gridLayout_10.addWidget(self.Ui.label_fc2ppvdb_cookie, 4, 0, 1, 1)
+
+        self.Ui.plainTextEdit_cookie_fc2ppvdb = QPlainTextEdit(self.Ui.gridLayoutWidget_10)
+        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.Ui.plainTextEdit_cookie_fc2ppvdb.sizePolicy().hasHeightForWidth())
+        self.Ui.plainTextEdit_cookie_fc2ppvdb.setSizePolicy(sizePolicy)
+        self.Ui.plainTextEdit_cookie_fc2ppvdb.setMinimumSize(400, 80)
+        self.Ui.plainTextEdit_cookie_fc2ppvdb.setStyleSheet(
+            " border: 1px solid rgba(0,0,0, 50);\n"
+            "                                border-radius: 1px;\n"
+            '                                font: "Courier";'
+        )
+        self.Ui.plainTextEdit_cookie_fc2ppvdb.setPlaceholderText("FC2 独立刮削请填写 fc2ppvdb cookie")
+        self.Ui.plainTextEdit_cookie_fc2ppvdb.setObjectName("plainTextEdit_cookie_fc2ppvdb")
+        self.Ui.gridLayout_10.addWidget(self.Ui.plainTextEdit_cookie_fc2ppvdb, 4, 1, 1, 1)
+
+        self.Ui.horizontalLayout_fc2ppvdb_cookie = QHBoxLayout()
+        self.Ui.horizontalLayout_fc2ppvdb_cookie.setObjectName("horizontalLayout_fc2ppvdb_cookie")
+        self.Ui.pushButton_check_fc2ppvdb_cookie = QPushButton(self.Ui.gridLayoutWidget_10)
+        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.Ui.pushButton_check_fc2ppvdb_cookie.sizePolicy().hasHeightForWidth())
+        self.Ui.pushButton_check_fc2ppvdb_cookie.setSizePolicy(sizePolicy)
+        self.Ui.pushButton_check_fc2ppvdb_cookie.setText("检查cookie")
+        self.Ui.pushButton_check_fc2ppvdb_cookie.setObjectName("pushButton_check_fc2ppvdb_cookie")
+        self.Ui.horizontalLayout_fc2ppvdb_cookie.addWidget(self.Ui.pushButton_check_fc2ppvdb_cookie)
+
+        self.Ui.label_fc2ppvdb_cookie_result = QLabel(self.Ui.gridLayoutWidget_10)
+        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.Ui.label_fc2ppvdb_cookie_result.sizePolicy().hasHeightForWidth())
+        self.Ui.label_fc2ppvdb_cookie_result.setSizePolicy(sizePolicy)
+        self.Ui.label_fc2ppvdb_cookie_result.setMinimumSize(0, 0)
+        self.Ui.label_fc2ppvdb_cookie_result.setLayoutDirection(Qt.RightToLeft)
+        self.Ui.label_fc2ppvdb_cookie_result.setText("")
+        self.Ui.label_fc2ppvdb_cookie_result.setAlignment(Qt.AlignLeading | Qt.AlignLeft | Qt.AlignVCenter)
+        self.Ui.label_fc2ppvdb_cookie_result.setObjectName("label_fc2ppvdb_cookie_result")
+        self.Ui.horizontalLayout_fc2ppvdb_cookie.addWidget(self.Ui.label_fc2ppvdb_cookie_result)
+        self.Ui.gridLayout_10.addLayout(self.Ui.horizontalLayout_fc2ppvdb_cookie, 5, 1, 1, 1)
+
     def _setup_baidu_translate_ui(self):
         delta_y = 70
 
@@ -233,8 +324,8 @@ class MyMAinWindow(QMainWindow):
                     child_geo.height(),
                 )
 
-        self.Ui.label_60.setText("填写 DeepLX URL / 百度 API 凭据后，将使用官方 API 翻译；未填写时会自动跳过。")
-        self.Ui.label_601.setText("填写 DeepLX URL / 百度 API 凭据后，将使用官方 API 翻译；未填写时会自动跳过。")
+        self.Ui.label_60.setText("填写 DeepL API / DeepLX URL / 百度 API 凭据后，才会生效；未填写时会自动跳过。")
+        self.Ui.label_601.setText("填写 DeepL API / DeepLX URL / 百度 API 凭据后，才会生效；未填写时会自动跳过。")
 
         self.Ui.checkBox_baidu = QCheckBox(self.Ui.layoutWidget_2)
         self.Ui.checkBox_baidu.setMinimumSize(self.Ui.checkBox_google.minimumSize())
@@ -249,13 +340,13 @@ class MyMAinWindow(QMainWindow):
         self.Ui.label_baidu_appid.setAlignment(self.Ui.label_80.alignment())
         self.Ui.label_baidu_appid.setObjectName("label_baidu_appid")
         self.Ui.label_baidu_appid.setText("百度 APP ID：")
-        self.Ui.gridLayout_32.addWidget(self.Ui.label_baidu_appid, 4, 0, 1, 1)
+        self.Ui.gridLayout_32.addWidget(self.Ui.label_baidu_appid, 5, 0, 1, 1)
 
         self.Ui.lineEdit_baidu_appid = QLineEdit(self.Ui.layoutWidget_2)
         self.Ui.lineEdit_baidu_appid.setMinimumSize(self.Ui.lineEdit_deepl_key.minimumSize())
         self.Ui.lineEdit_baidu_appid.setStyleSheet(self.Ui.lineEdit_deepl_key.styleSheet())
         self.Ui.lineEdit_baidu_appid.setObjectName("lineEdit_baidu_appid")
-        self.Ui.gridLayout_32.addWidget(self.Ui.lineEdit_baidu_appid, 4, 1, 1, 1)
+        self.Ui.gridLayout_32.addWidget(self.Ui.lineEdit_baidu_appid, 5, 1, 1, 1)
 
         self.Ui.label_baidu_key = QLabel(self.Ui.layoutWidget_2)
         self.Ui.label_baidu_key.setMinimumSize(self.Ui.label_80.minimumSize())
@@ -264,13 +355,13 @@ class MyMAinWindow(QMainWindow):
         self.Ui.label_baidu_key.setAlignment(self.Ui.label_80.alignment())
         self.Ui.label_baidu_key.setObjectName("label_baidu_key")
         self.Ui.label_baidu_key.setText("百度密钥：")
-        self.Ui.gridLayout_32.addWidget(self.Ui.label_baidu_key, 5, 0, 1, 1)
+        self.Ui.gridLayout_32.addWidget(self.Ui.label_baidu_key, 6, 0, 1, 1)
 
         self.Ui.lineEdit_baidu_key = QLineEdit(self.Ui.layoutWidget_2)
         self.Ui.lineEdit_baidu_key.setMinimumSize(self.Ui.lineEdit_deepl_key.minimumSize())
         self.Ui.lineEdit_baidu_key.setStyleSheet(self.Ui.lineEdit_deepl_key.styleSheet())
         self.Ui.lineEdit_baidu_key.setObjectName("lineEdit_baidu_key")
-        self.Ui.gridLayout_32.addWidget(self.Ui.lineEdit_baidu_key, 5, 1, 1, 1)
+        self.Ui.gridLayout_32.addWidget(self.Ui.lineEdit_baidu_key, 6, 1, 1, 1)
 
     def Init_Ui(self): ...
 
@@ -2299,8 +2390,8 @@ class MyMAinWindow(QMainWindow):
     def pushButton_check_javdb_cookie_clicked(self):
         input_cookie = self.Ui.plainTextEdit_cookie_javdb.toPlainText()
         if not input_cookie:
-            self.Ui.label_javdb_cookie_result.setText("❌ 未填写 Cookie，影响 FC2 刮削！")
-            self.show_log_text(" ❌ JavDb 未填写 Cookie，影响 FC2 刮削！可在「设置」-「网络」添加！")
+            self.Ui.label_javdb_cookie_result.setText("❌ 未填写 Cookie")
+            self.show_log_text(" ❌ JavDb 未填写 Cookie，可在「设置」-「网络」添加！")
             return
         self.Ui.label_javdb_cookie_result.setText("⏳ 正在检测中...")
         try:
@@ -2317,10 +2408,6 @@ class MyMAinWindow(QMainWindow):
             self.Ui.label_javdb_cookie_result.setText(tips)
             return tips
         # self.Ui.pushButton_check_javdb_cookie.setEnabled(False)
-        if "fc2ppvdb_session" in input_cookie:
-            tips = "✅ 作为 FC2PPVDB Cookie 使用"
-            self.Ui.label_javdb_cookie_result.setText(tips)
-            return tips
         tips = "✅ 连接正常！"
         header = {"cookie": input_cookie}
         javdb_url = manager.config.get_site_url(Website.JAVDB, "https://javdb.com") + "/v/D16Q5?locale=zh"
@@ -2370,6 +2457,40 @@ class MyMAinWindow(QMainWindow):
             self.Ui.label_javdb_cookie_result.setText(tips)
             # self.Ui.pushButton_check_javdb_cookie.setEnabled(True)
         self.show_log_text(tips.replace("❌", " ❌ JavDb").replace("✅", " ✅ JavDb"))
+        return tips
+
+    # 检查 fc2ppvdb cookie
+    def pushButton_check_fc2ppvdb_cookie_clicked(self):
+        input_cookie = self.Ui.plainTextEdit_cookie_fc2ppvdb.toPlainText().strip()
+        if not input_cookie:
+            self.Ui.label_fc2ppvdb_cookie_result.setText("❌ 未填写 Cookie")
+            self.show_log_text(" ❌ FC2PPVDB 未填写 Cookie，可在「设置」-「网络」添加！")
+            return
+        self.Ui.label_fc2ppvdb_cookie_result.setText("⏳ 正在检测中...")
+        try:
+            t = threading.Thread(target=self._check_fc2ppvdb_cookie)
+            t.start()  # 启动线程,即让线程开始执行
+        except Exception:
+            signal_qt.show_traceback_log(traceback.format_exc())
+            signal_qt.show_log_text(traceback.format_exc())
+
+    def _check_fc2ppvdb_cookie(self):
+        tips = "❌ 未填写 Cookie"
+        input_cookie = self.Ui.plainTextEdit_cookie_fc2ppvdb.toPlainText().strip()
+        if not input_cookie:
+            self.Ui.label_fc2ppvdb_cookie_result.setText(tips)
+            return tips
+
+        if "fc2ppvdb_session" not in input_cookie:
+            tips = "❌ Cookie 无效！缺少 fc2ppvdb_session"
+        elif manager.config.fc2ppvdb != input_cookie:
+            self.pushButton_save_config_clicked()
+            tips = "✅ 连接正常，Cookie 已保存！"
+        else:
+            tips = "✅ 连接正常！"
+
+        self.Ui.label_fc2ppvdb_cookie_result.setText(tips)
+        self.show_log_text(tips.replace("❌", " ❌ FC2PPVDB").replace("✅", " ✅ FC2PPVDB"))
         return tips
 
     # javbus cookie

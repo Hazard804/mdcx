@@ -8,6 +8,7 @@ import zhconv
 from ..base.translate import (
     baidu_translate,
     deepl_translate,
+    deeplx_translate,
     get_baidu_target_language,
     get_translator_skip_reason,
     google_translate,
@@ -313,8 +314,10 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
                     get_baidu_target_language(title_language),
                     get_baidu_target_language(outline_language),
                 )
-            elif each == Translator.DEEPL:  # 使用deepl翻译
+            elif each == Translator.DEEPL:  # 使用 DeepL 翻译
                 t, o, r = await deepl_translate(trans_title, trans_outline, "JA")
+            elif each == Translator.DEEPLX:  # 使用 DeepLX 翻译
+                t, o, r = await deeplx_translate(trans_title, trans_outline, "JA")
             else:  # 使用 google 翻译
                 t, o, r = await google_translate(trans_title, trans_outline)
             if r:
