@@ -17,7 +17,8 @@
 * [moyy996/AVDC](https://github.com/moyy996/AVDC): 上述项目早期的一个 Fork, 使用 PyQt 实现了图形界面, 已停止维护
 * @Hermit/MDCx: AVDC 的 Fork, 一度在 [anyabc/something](https://github.com/anyabc/something/releases) 分发源代码及可执行文件.
 * 2023-11-3 @anyabc 因未知原因销号删库, 其分发的最后一个版本号为 20231014.
-* 本项目基于 @Hermit/MDCx, 对代码进行了大幅的重构与拆分, 以提高可维护性
+* [@sqzw-x/mdcx](https://github.com/Hazard804/mdcx)当前暂时停止维护.
+* 本项目基于[@sqzw-x/mdcx](https://github.com/Hazard804/mdcx), 继续进行维护及优化.
 
 向相关开发者表示敬意.
 
