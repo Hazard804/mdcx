@@ -8,6 +8,35 @@ from mdcx.tools import emby_actor_image
 
 
 @pytest.mark.asyncio
+async def test_upload_actor_photo_uses_base64_body_for_emby(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    captured: dict = {}
+    pic_path = tmp_path / "actor.jpg"
+    pic_bytes = b"\xff\xd8\xfftest-bytes"
+    pic_path.write_bytes(pic_bytes)
+
+    async def fake_post_content(url: str, *, data=None, headers=None, use_proxy=True, **kwargs):
+        captured["url"] = url
+        captured["data"] = data
+        captured["headers"] = headers
+        captured["use_proxy"] = use_proxy
+        return b"", ""
+
+    monkeypatch.setattr(manager.config, "server_type", "emby")
+    monkeypatch.setattr(manager.computed.async_client, "post_content", fake_post_content)
+    monkeypatch.setattr(emby_actor_image.signal, "show_log_text", lambda text: None)
+
+    result, error = await emby_actor_image._upload_actor_photo(
+        "http://127.0.0.1:8096/emby/Items/1/Images/Primary?api_key=test-token", pic_path
+    )
+
+    assert result is True
+    assert error == ""
+    assert captured["data"] == base64.b64encode(pic_bytes)
+    assert captured["headers"] == {"Content-Type": "image/jpeg"}
+    assert captured["use_proxy"] is False
+
+
+@pytest.mark.asyncio
 async def test_get_emby_actor_list_uses_jellyfin_actor_endpoint(monkeypatch: pytest.MonkeyPatch):
     captured: dict = {}
 

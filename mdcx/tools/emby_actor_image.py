@@ -18,6 +18,7 @@ from ..config.enums import EmbyAction
 from ..config.manager import manager
 from ..config.resources import resources
 from ..image import cut_pic, fix_pic_async
+from ..models.flags import Flags
 from ..signals import signal
 from ..utils import get_used_time
 
@@ -39,6 +40,18 @@ def _append_query(url: str, params: dict[str, str | None]) -> str:
     return f"{url}?{query}" if query else url
 
 
+class ActorPhotoTaskStopped(Exception): ...
+
+
+def _is_stop_requested() -> bool:
+    return signal.stop or Flags.stop_requested
+
+
+def _raise_if_stop_requested() -> None:
+    if _is_stop_requested():
+        raise ActorPhotoTaskStopped("手动停止演员头像补全")
+
+
 async def _get_actor_detail(actor: dict) -> tuple[dict | None, str]:
     # Jellyfin 的 /Persons 列表已可返回补全信息所需字段，避免逐个演员再请求一次详情接口。
     if _is_jellyfin_server() and any(field in actor for field in JELLYFIN_PERSON_FIELDS):
@@ -51,19 +64,27 @@ async def _get_actor_detail(actor: dict) -> tuple[dict | None, str]:
 
 async def update_emby_actor_photo() -> None:
     signal.change_buttons_status.emit()
-    server_type = manager.config.server_type
-    if "emby" == server_type:
-        signal.show_log_text("👩🏻 开始补全 Emby 演员头像...")
-    else:
-        signal.show_log_text("👩🏻 开始补全 Jellyfin 演员头像...")
-    actor_list = await _get_emby_actor_list()
-    gfriends_actor_data = await _get_gfriends_actor_data()
-    if gfriends_actor_data:
-        await _update_emby_actor_photo_execute(actor_list, gfriends_actor_data)
-    signal.reset_buttons_status.emit()
+    try:
+        _raise_if_stop_requested()
+        server_type = manager.config.server_type
+        if "emby" == server_type:
+            signal.show_log_text("👩🏻 开始补全 Emby 演员头像...")
+        else:
+            signal.show_log_text("👩🏻 开始补全 Jellyfin 演员头像...")
+        actor_list = await _get_emby_actor_list()
+        _raise_if_stop_requested()
+        gfriends_actor_data = await _get_gfriends_actor_data()
+        _raise_if_stop_requested()
+        if gfriends_actor_data:
+            await _update_emby_actor_photo_execute(actor_list, gfriends_actor_data)
+    except ActorPhotoTaskStopped:
+        signal.show_log_text("⛔️ 演员头像补全已手动停止！")
+    finally:
+        signal.reset_buttons_status.emit()
 
 
 async def _get_emby_actor_list() -> list[dict]:
+    _raise_if_stop_requested()
     base_url = str(manager.config.emby_url).rstrip("/")
     headers = None
     # 获取 emby 的演员列表
@@ -95,6 +116,7 @@ async def _get_emby_actor_list() -> list[dict]:
         return []
 
     response, error = await manager.computed.async_client.get_json(url, headers=headers, use_proxy=False)
+    _raise_if_stop_requested()
     if response is None:
         signal.show_log_text(f"🔴 {server_name} 连接失败！请检查 {server_name} 地址 和 API 密钥是否正确填写！ {error}")
         return []
@@ -110,10 +132,11 @@ async def _upload_actor_photo(url: str, pic_path: Path) -> tuple[bool, str]:
     try:
         async with aiofiles.open(pic_path, "rb") as f:
             content = await f.read()
+        # Emby/Jellyfin 头像上传接口都要求使用 base64 编码后的图片内容。
+        content = base64.b64encode(content)
         header = {"Content-Type": "image/jpeg" if pic_path.suffix in (".jpg", ".jpeg") else "image/png"}
         if _is_jellyfin_server():
             header = _build_jellyfin_headers(header)
-            content = base64.b64encode(content)
         r, err = await manager.computed.async_client.post_content(
             url=url, data=content, headers=header, use_proxy=False
         )
@@ -149,6 +172,7 @@ def _generate_server_url(actor_js: dict) -> tuple[str, str, str, str, str, str]:
 
 
 async def _get_gfriends_actor_data() -> dict[str, str] | Literal[False] | None:
+    _raise_if_stop_requested()
     emby_on = manager.config.emby_on
     gfriends_github = manager.config.gfriends_github
     raw_url = f"{gfriends_github}".replace("github.com/", "raw.githubusercontent.com/").replace("://www.", "://")
@@ -159,6 +183,7 @@ async def _get_gfriends_actor_data() -> dict[str, str] | Literal[False] | None:
         signal.show_log_text("⏳ 连接 Gfriends 网络头像库...")
         net_url = f"{gfriends_github}/commits/master/Filetree.json"
         response, error = await manager.computed.async_client.get_text(net_url)
+        _raise_if_stop_requested()
         if response is None:
             signal.show_log_text("🔴 Gfriends 查询最新数据更新时间失败！")
             net_float = 0
@@ -204,6 +229,7 @@ async def _get_gfriends_actor_data() -> dict[str, str] | Literal[False] | None:
             signal.show_log_text("⏳ 开始缓存 Gfriends 最新数据表...")
             filetree_url = f"{raw_url}/master/Filetree.json"
             response, error = await manager.computed.async_client.get_content(filetree_url)
+            _raise_if_stop_requested()
             if response is None:
                 signal.show_log_text("🔴 Gfriends 数据表获取失败！补全已停止！")
                 return False
@@ -243,6 +269,7 @@ async def _get_gfriends_actor_data() -> dict[str, str] | Literal[False] | None:
 
 
 async def _get_graphis_pic(actor_name: str) -> tuple[Path | None, Path | None, str]:
+    _raise_if_stop_requested()
     emby_on = manager.config.emby_on
 
     # 生成图片路径和请求地址
@@ -288,6 +315,7 @@ async def _get_graphis_pic(actor_name: str) -> tuple[Path | None, Path | None, s
 
     # 请求图片
     res, error = await manager.computed.async_client.get_text(url)
+    _raise_if_stop_requested()
     if res is None:
         logs += f"🔴 graphis.ne.jp 请求失败！\n{error}"
         return None, None, logs
@@ -330,6 +358,7 @@ async def _update_emby_actor_photo_execute(actor_list: list[dict], gfriends_acto
     skip = 0
     count_all = len(actor_list)
     for actor_js in actor_list:
+        _raise_if_stop_requested()
         i += 1
         deal_percent = f"{i / count_all:.2%}"
         # Emby 有头像时处理
@@ -360,6 +389,7 @@ async def _update_emby_actor_photo_execute(actor_list: list[dict], gfriends_acto
             and (EmbyAction.GRAPHIS_BACKDROP in emby_on or EmbyAction.GRAPHIS_FACE in emby_on)
         ):
             pic_path, backdrop_path, logs = await _get_graphis_pic(jp_name)
+            _raise_if_stop_requested()
 
         # 要上传的头像图片未找到时
         if not pic_path:
@@ -402,9 +432,11 @@ async def _update_emby_actor_photo_execute(actor_list: list[dict], gfriends_acto
             backdrop_path = pic_path.with_name(pic_path.stem + "-big.jpg")
             if not await aiofiles.os.path.isfile(backdrop_path):
                 await fix_pic_async(pic_path, backdrop_path)
+        _raise_if_stop_requested()
 
         # 检查图片尺寸并裁剪为2:3
         await asyncio.to_thread(cut_pic, pic_path)
+        _raise_if_stop_requested()
 
         # 清理旧图片（backdrop可以多张，不清理会一直累积）
         if actor_backdrop_imagetages:
@@ -412,11 +444,12 @@ async def _update_emby_actor_photo_execute(actor_list: list[dict], gfriends_acto
                 headers = _build_jellyfin_headers() if _is_jellyfin_server() else None
                 await manager.computed.async_client.request("DELETE", backdrop_url_0, headers=headers, use_proxy=False)
 
-        # 上传头像到 emby
-        r, err = await _upload_actor_photo(pic_url, pic_path)
-        if not r:
-            r, err = await _upload_actor_photo(backdrop_url, backdrop_path)
-        if r:
+        # 头像和背景分别上传，避免头像成功时背景被跳过。
+        pic_ok, pic_err = await _upload_actor_photo(pic_url, pic_path)
+        _raise_if_stop_requested()
+        backdrop_ok, backdrop_err = await _upload_actor_photo(backdrop_url, backdrop_path)
+        _raise_if_stop_requested()
+        if pic_ok and backdrop_ok:
             if not logs or logs == "🍊 graphis.ne.jp 无结果！":
                 if EmbyAction.ACTOR_PHOTO_NET in manager.config.emby_on:
                     logs += " ✅ 使用 Gfriends 头像和背景！"
@@ -427,6 +460,12 @@ async def _update_emby_actor_photo_execute(actor_list: list[dict], gfriends_acto
             )
             succ += 1
         else:
+            error_parts = []
+            if not pic_ok:
+                error_parts.append(f"头像上传失败: {pic_err}")
+            if not backdrop_ok:
+                error_parts.append(f"背景上传失败: {backdrop_err}")
+            err = " | ".join(error_parts)
             signal.show_log_text(
                 f"\n{deal_percent} 🔴 {i}/{count_all} 头像上传失败！ 👩🏻 {actor_name}  {logs}\n{actor_homepage} {err}"
             )

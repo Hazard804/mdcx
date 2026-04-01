@@ -866,6 +866,10 @@ class MyMAinWindow(QMainWindow):
             self.Ui.pushButton_start_cap2.setText(" ■ 停止中 ")
             signal_qt.show_scrape_info("⛔️ 刮削停止中...")
             executor.cancel_async()  # 取消异步任务
+            if not self.threads_list:
+                self.stop_used_time = 0.0
+                self.show_stop_info_thread()
+                return
             t = threading.Thread(target=self._kill_threads)  # 关闭线程池
             t.start()
 

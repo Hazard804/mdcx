@@ -19,6 +19,7 @@ from ..config.extend import get_movie_path_setting
 from ..config.manager import manager
 from ..config.resources import resources
 from ..models.emby import EMbyActressInfo
+from ..models.flags import Flags
 from ..signals import signal
 from ..utils import get_used_time
 from ..utils.file import copy_file_async
@@ -35,64 +36,99 @@ from .emby_actor_image import (
 from .wiki import get_detail, search_wiki
 
 
+class ActorTaskStopped(Exception): ...
+
+
+def _is_stop_requested() -> bool:
+    return signal.stop or Flags.stop_requested
+
+
+def _raise_if_stop_requested() -> None:
+    if _is_stop_requested():
+        raise ActorTaskStopped("手动停止演员补全")
+
+
 async def creat_kodi_actors(add: bool) -> None:
     signal.change_buttons_status.emit()
-    signal.show_log_text(f"📂 待刮削目录: {get_movie_path_setting().movie_path}")
-    if add:
-        signal.show_log_text("💡 将为待刮削目录中的每个视频创建 .actors 文件夹，并补全演员图片到 .actors 文件夹中\n")
-        signal.show_log_text("👩🏻 开始补全 Kodi/Plex/Jvedio 演员头像...")
-        gfriends_actor_data = await _get_gfriends_actor_data()
-    else:
-        signal.show_log_text("💡 将清除该目录下的所有 .actors 文件夹...\n")
-        gfriends_actor_data = True
+    try:
+        _raise_if_stop_requested()
+        signal.show_log_text(f"📂 待刮削目录: {get_movie_path_setting().movie_path}")
+        if add:
+            signal.show_log_text(
+                "💡 将为待刮削目录中的每个视频创建 .actors 文件夹，并补全演员图片到 .actors 文件夹中\n"
+            )
+            signal.show_log_text("👩🏻 开始补全 Kodi/Plex/Jvedio 演员头像...")
+            gfriends_actor_data = await _get_gfriends_actor_data()
+        else:
+            signal.show_log_text("💡 将清除该目录下的所有 .actors 文件夹...\n")
+            gfriends_actor_data = True
 
-    if gfriends_actor_data:
-        await _deal_kodi_actors(gfriends_actor_data, add)
-    signal.reset_buttons_status.emit()
-    signal.show_log_text("================================================================================")
+        _raise_if_stop_requested()
+        if gfriends_actor_data:
+            await _deal_kodi_actors(gfriends_actor_data, add)
+    except ActorTaskStopped:
+        signal.show_log_text("⛔️ 演员头像补全已手动停止！")
+    finally:
+        signal.reset_buttons_status.emit()
+        signal.show_log_text("================================================================================")
 
 
 async def update_emby_actor_info() -> None:
     signal.change_buttons_status.emit()
     start_time = time.time()
-    emby_on = manager.config.emby_on
-    server_name = "Emby" if "emby" == manager.config.server_type else "Jellyfin"
-    signal.show_log_text(f"👩🏻 开始补全 {server_name} 演员信息...")
+    tasks: list[asyncio.Task[tuple[int, str]]] = []
+    try:
+        _raise_if_stop_requested()
+        emby_on = manager.config.emby_on
+        server_name = "Emby" if "emby" == manager.config.server_type else "Jellyfin"
+        signal.show_log_text(f"👩🏻 开始补全 {server_name} 演员信息...")
 
-    actor_list = await _get_emby_actor_list()
-    tasks = []
+        actor_list = await _get_emby_actor_list()
+        _raise_if_stop_requested()
 
-    for actor in actor_list:
-        actor_name = actor.get("Name")
-        # 名字含有空格时跳过
-        if re.search(r"[ .·・-]", actor_name):
-            signal.show_log_text(f"🔍 {actor_name}: 名字含有空格等分隔符，识别为非女优，跳过！")
-            continue
-        task = asyncio.create_task(_process_actor_async(actor, emby_on))
-        tasks.append(task)
+        for actor in actor_list:
+            _raise_if_stop_requested()
+            actor_name = actor.get("Name")
+            # 名字含有空格时跳过
+            if re.search(r"[ .·・-]", actor_name):
+                signal.show_log_text(f"🔍 {actor_name}: 名字含有空格等分隔符，识别为非女优，跳过！")
+                continue
+            task = asyncio.create_task(_process_actor_async(actor, emby_on))
+            tasks.append(task)
 
-    db = 0
-    wiki = 0
-    updated = 0
-    for task in asyncio.as_completed(tasks):
-        flag, msg = await task
-        updated += flag != 0
-        wiki += flag & 1
-        db += flag >> 1
-        signal.show_log_text(msg)
+        db = 0
+        wiki = 0
+        updated = 0
+        for task in asyncio.as_completed(tasks):
+            _raise_if_stop_requested()
+            flag, msg = await task
+            _raise_if_stop_requested()
+            updated += flag != 0
+            wiki += flag & 1
+            db += flag >> 1
+            signal.show_log_text(msg)
 
-    signal.show_log_text(
-        f"\n🎉🎉🎉 补全完成！！！ 用时 {get_used_time(start_time)} 秒 共更新: {updated} Wiki 获取: {wiki} 数据库: {db}"
-    )
+        signal.show_log_text(
+            f"\n🎉🎉🎉 补全完成！！！ 用时 {get_used_time(start_time)} 秒 共更新: {updated} Wiki 获取: {wiki} 数据库: {db}"
+        )
 
-    if EmbyAction.ACTOR_INFO_PHOTO in emby_on:
-        signal.show_log_text("5 秒后开始补全演员头像头像...")
-        await asyncio.sleep(5)
-        signal.show_log_text("\n")
-        signal.change_buttons_status.emit()
-        await update_emby_actor_photo()
-        signal.reset_buttons_status.emit()
-    else:
+        if EmbyAction.ACTOR_INFO_PHOTO in emby_on:
+            signal.show_log_text("5 秒后开始补全演员头像头像...")
+            for _ in range(5):
+                _raise_if_stop_requested()
+                await asyncio.sleep(1)
+            signal.show_log_text("\n")
+            signal.change_buttons_status.emit()
+            await update_emby_actor_photo()
+            signal.reset_buttons_status.emit()
+    except ActorTaskStopped:
+        signal.show_log_text("⛔️ 演员信息补全已手动停止！")
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
         signal.reset_buttons_status.emit()
 
 
@@ -100,11 +136,13 @@ async def _process_actor_async(actor: dict, emby_on: list[EmbyAction]) -> tuple[
     """异步处理单个演员信息"""
     actor_name = actor.get("Name", "Unknown Actor")
     try:
+        _raise_if_stop_requested()
         server_id = actor.get("ServerId", "")
         actor_id = actor.get("Id", "")
         # 已有资料时跳过
         actor_homepage, _, _, _, _, update_url = _generate_server_url(actor)
         res, error = await _get_actor_detail(actor)
+        _raise_if_stop_requested()
         if res is None:
             return 0, f"🔴 {actor_name}: Emby/Jellyfin 获取演员信息错误！\n    错误信息: {error}"
 
@@ -118,9 +156,11 @@ async def _process_actor_async(actor: dict, emby_on: list[EmbyAction]) -> tuple[
         # wiki
         logs = []
         res, msg = await search_wiki(actor_info)
+        _raise_if_stop_requested()
         logs.append(msg)
         if res is not None:
             result, error = await get_detail(res, msg, actor_info)
+            _raise_if_stop_requested()
             if result:  # 成功
                 wiki_found = 1
         # db
@@ -138,6 +178,7 @@ async def _process_actor_async(actor: dict, emby_on: list[EmbyAction]) -> tuple[
             res, error = await manager.computed.async_client.post_text(
                 update_url, json_data=actor_info.dump(), headers=headers, use_proxy=False
             )
+            _raise_if_stop_requested()
             if res is not None:
                 return (
                     wiki_found + (db_exist << 1),
@@ -148,6 +189,8 @@ async def _process_actor_async(actor: dict, emby_on: list[EmbyAction]) -> tuple[
         else:
             return 0, f"🔴 {actor_name}: 未检索到演员信息！跳过！"
 
+    except ActorTaskStopped:
+        raise
     except Exception:
         return 0, f"🔴 {actor_name} 未知异常:\n    {traceback.format_exc()}"
 
@@ -155,29 +198,33 @@ async def _process_actor_async(actor: dict, emby_on: list[EmbyAction]) -> tuple[
 async def show_emby_actor_list(mode: int) -> None:
     signal.change_buttons_status.emit()
     start_time = time.time()
+    try:
+        _raise_if_stop_requested()
+        mode += 1
+        if mode == 1:
+            signal.show_log_text("🚀 开始查询所有演员列表...")
+        elif mode == 2:
+            signal.show_log_text("🚀 开始查询 有头像，有信息 的演员列表...")
+        elif mode == 3:
+            signal.show_log_text("🚀 开始查询 没头像，有信息 的演员列表...")
+        elif mode == 4:
+            signal.show_log_text("🚀 开始查询 有头像，没信息 的演员列表...")
+        elif mode == 5:
+            signal.show_log_text("🚀 开始查询 没信息，没头像 的演员列表...")
+        elif mode == 6:
+            signal.show_log_text("🚀 开始查询 有信息 的演员列表...")
+        elif mode == 7:
+            signal.show_log_text("🚀 开始查询 没信息 的演员列表...")
+        elif mode == 8:
+            signal.show_log_text("🚀 开始查询 有头像 的演员列表...")
+        elif mode == 9:
+            signal.show_log_text("🚀 开始查询 没头像 的演员列表...")
 
-    mode += 1
-    if mode == 1:
-        signal.show_log_text("🚀 开始查询所有演员列表...")
-    elif mode == 2:
-        signal.show_log_text("🚀 开始查询 有头像，有信息 的演员列表...")
-    elif mode == 3:
-        signal.show_log_text("🚀 开始查询 没头像，有信息 的演员列表...")
-    elif mode == 4:
-        signal.show_log_text("🚀 开始查询 有头像，没信息 的演员列表...")
-    elif mode == 5:
-        signal.show_log_text("🚀 开始查询 没信息，没头像 的演员列表...")
-    elif mode == 6:
-        signal.show_log_text("🚀 开始查询 有信息 的演员列表...")
-    elif mode == 7:
-        signal.show_log_text("🚀 开始查询 没信息 的演员列表...")
-    elif mode == 8:
-        signal.show_log_text("🚀 开始查询 有头像 的演员列表...")
-    elif mode == 9:
-        signal.show_log_text("🚀 开始查询 没头像 的演员列表...")
+        actor_list = await _get_emby_actor_list()
+        _raise_if_stop_requested()
+        if not actor_list:
+            return
 
-    actor_list = await _get_emby_actor_list()
-    if actor_list:
         count = 1
         succ_pic = 0
         fail_pic = 0
@@ -191,6 +238,7 @@ async def show_emby_actor_list(mode: int) -> None:
         actor_list_temp = ""
         logs = ""
         for actor_js in actor_list:
+            _raise_if_stop_requested()
             actor_name = actor_js["Name"]
             actor_imagetages = actor_js.get("ImageTags")
             actor_homepage, _, _, _, _, _ = _generate_server_url(actor_js)
@@ -217,6 +265,7 @@ async def show_emby_actor_list(mode: int) -> None:
             else:
                 # http://192.168.5.191:8096/emby/Persons/梦乃爱华?api_key=ee9a2f2419704257b1dd60b975f2d64e
                 res, error = await _get_actor_detail(actor_js)
+                _raise_if_stop_requested()
                 if res is None:
                     signal.show_log_text(
                         f"\n🔴 {count}/{total} Emby/Jellyfin 获取演员信息错误！👩🏻 {actor_name} \n    错误信息: {error}"
@@ -301,6 +350,9 @@ async def show_emby_actor_list(mode: int) -> None:
         else:
             signal.show_log_text(f"👩🏻 演员数量: {total} ✅ 已有头像: {succ_pic} 🔴 没有头像: {fail_pic}\n")
         signal.show_log_text("================================================================================")
+    except ActorTaskStopped:
+        signal.show_log_text("⛔️ 演员列表查询已手动停止！")
+    finally:
         signal.reset_buttons_status.emit()
 
 
@@ -320,8 +372,10 @@ async def _deal_kodi_actors(gfriends_actor_data, add):
         no_pic = set()
         actor_clear = set()
         for root, dirs, files in all_files:
+            _raise_if_stop_requested()
             if not add:
                 for each_dir in dirs:
+                    _raise_if_stop_requested()
                     if each_dir == ".actors":
                         kodi_actor_folder = os.path.join(root, each_dir)
                         await asyncio.to_thread(shutil.rmtree, kodi_actor_folder, ignore_errors=True)
@@ -329,6 +383,7 @@ async def _deal_kodi_actors(gfriends_actor_data, add):
                         actor_clear.add(kodi_actor_folder)
                 continue
             for file in files:
+                _raise_if_stop_requested()
                 if file.lower().endswith(".nfo"):
                     nfo_path = os.path.join(root, file)
                     vedio_actor_folder = os.path.join(root, ".actors")
@@ -339,9 +394,11 @@ async def _deal_kodi_actors(gfriends_actor_data, add):
                         xml_nfo = etree.HTML(content.encode("utf-8"), parser)
                         actor_list = xml_nfo.xpath("//actor/name/text()")
                         for each in actor_list:
+                            _raise_if_stop_requested()
                             all_actor.add(each)
                             actor_name_list = resources.get_actor_data(each)["keyword"]
                             for actor_name in actor_name_list:
+                                _raise_if_stop_requested()
                                 if actor_name:
                                     net_pic_path = gfriends_actor_data.get(f"{actor_name}.jpg")
                                     if net_pic_path:
