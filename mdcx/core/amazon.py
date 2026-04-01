@@ -711,7 +711,7 @@ async def get_big_pic_by_amazon(
         return title
 
     def normalize_amazon_search_title(base_title: str) -> tuple[str, bool]:
-        normalized = re.sub(r"【.*】", "", base_title or "")
+        normalized = re.sub(r"【.*?】", "", base_title or "")
         normalized = re.sub(r"\s+", " ", normalized).strip()
         if not normalized:
             return "", False
@@ -725,8 +725,8 @@ async def get_big_pic_by_amazon(
     originaltitle_amazon_raw, originaltitle_amazon_raw_simplified = normalize_amazon_search_title(
         originaltitle_amazon_raw
     )
-    series = strip_trailing_media_noise(re.sub(r"【.*】", "", series).strip())
-    series_raw = strip_trailing_media_noise(re.sub(r"【.*】", "", series_raw).strip())
+    series = strip_trailing_media_noise(re.sub(r"【.*?】", "", series).strip())
+    series_raw = strip_trailing_media_noise(re.sub(r"【.*?】", "", series_raw).strip())
     if originaltitle_amazon_simplified or originaltitle_amazon_raw_simplified:
         LogBuffer.log().write("\n 🔎 Amazon清洗关键词: 已移除标题尾部的演员/媒介噪音")
     search_queue: list[tuple[str, str, bool]] = []
@@ -1008,6 +1008,12 @@ async def get_big_pic_by_amazon(
                 expected_titles.append(stripped_title)
                 expected_title_set.add(stripped_title)
 
+    def get_best_title_confidence(candidate_title: str, *extra_titles: str) -> float:
+        title_candidates = [each for each in [*expected_titles, *extra_titles] if each]
+        if not title_candidates or not candidate_title:
+            return 0.0
+        return max(calculate_title_confidence(each_title, candidate_title) for each_title in title_candidates)
+
     def get_media_priority(pic_ver: str) -> int:
         if not pic_ver:
             return 2
@@ -1067,9 +1073,7 @@ async def get_big_pic_by_amazon(
                     update_best_rejected(0.0, actor_name, pic_title, "图片地址不是JPG")
                     continue
                 cleaned_title = clean_amazon_title_for_compare(pic_title)
-                confidence = max(
-                    calculate_title_confidence(each_title, cleaned_title) for each_title in expected_titles
-                )
+                confidence = get_best_title_confidence(cleaned_title)
                 if confidence < confidence_threshold:
                     update_best_rejected(
                         confidence,
@@ -1210,7 +1214,7 @@ async def get_big_pic_by_amazon(
         if detail_title:
             candidate["title_confidence"] = max(
                 float(candidate["title_confidence"]),
-                max(calculate_title_confidence(each_title, detail_title) for each_title in expected_titles),
+                get_best_title_confidence(detail_title),
             )
         detail_blob = " ".join(detail_actor_names + detail_texts)
         detail_barcodes = tuple(sorted(_extract_labeled_amazon_barcodes(detail_blob)))
@@ -1386,9 +1390,7 @@ async def get_big_pic_by_amazon(
                 detail_url = detail_url_list[0]
                 if not (is_supported_pic_ver(pic_ver) and ".jpg" in pic_url):
                     continue
-                title_confidence = max(
-                    calculate_title_confidence(each_title, pic_title) for each_title in expected_titles
-                )
+                title_confidence = get_best_title_confidence(pic_title)
                 quick_number_match = text_has_target_number(pic_title)
                 quick_actor_matches = count_actor_group_matches(pic_title)
                 normalized_detail_url = normalize_detail_url(detail_url)
@@ -1537,10 +1539,7 @@ async def get_big_pic_by_amazon(
                 detail_url = detail_url_list[0]
                 if not (is_supported_pic_ver(pic_ver) and ".jpg" in pic_url):
                     continue
-                title_confidence = max(
-                    max(calculate_title_confidence(each_title, pic_title) for each_title in expected_titles),
-                    calculate_title_confidence(current_title, pic_title),
-                )
+                title_confidence = get_best_title_confidence(pic_title, current_title)
                 collect_threshold = 0.45 if text_has_target_number(current_title) else 0.58
                 quick_number_match = text_has_target_number(pic_title)
                 quick_actor_matches = count_actor_group_matches(pic_title)
