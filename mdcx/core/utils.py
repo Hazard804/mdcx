@@ -149,7 +149,29 @@ def show_movie_info(file_info: FileInfo, result: CrawlersResult):
 
 
 def _normalize_path_for_definition(file_path: Path, file_number: str = "") -> str:
-    normalized = strip_escape_strings(file_path.as_posix(), manager.config.string)
+    definition_markers = {
+        "8K",
+        "4K",
+        "4KS",
+        "4K60FPS",
+        "UHD",
+        "UHD8",
+        "QHD",
+        "FHD",
+        "HD",
+        "1440P",
+        "1080P",
+        "960P",
+        "720P",
+        "540P",
+        "480P",
+        "360P",
+        "144P",
+    }
+    escape_strings = [
+        each for each in manager.config.string if re.sub(r"[^A-Z0-9]", "", each.upper()) not in definition_markers
+    ]
+    normalized = strip_escape_strings(file_path.as_posix(), escape_strings)
     number_candidates = {file_number.upper()} if file_number else set()
 
     if file_number:
