@@ -13,6 +13,21 @@ from ..crawlers import getchu_dl
 from ..models.log_buffer import LogBuffer
 
 
+def normalize_detail_url(url: str) -> str:
+    if not url:
+        return ""
+    match = re.search(r"(?:soft\.phtml\?id=|/item/)(\d+)", url)
+    if not match:
+        return url
+    item_id = match.group(1)
+    return f"https://www.getchu.com/item/{item_id}/?gc=gc"
+
+
+def get_attestation_continue_url(html) -> str:
+    result = html.xpath("//h1[contains(., '年齢認証ページ')]/following::a[contains(., 'すすむ')][1]/@href")
+    return normalize_detail_url(result[0].strip()) if result else ""
+
+
 def get_web_number(html, number):
     result = html.xpath('//td[contains(text(), "品番：")]/following-sibling::td/text()')
     return result[0].strip().upper() if result else number
@@ -20,7 +35,22 @@ def get_web_number(html, number):
 
 def get_title(html):
     result = html.xpath('//h1[@id="soft-title"]/text()')
-    return result[0].strip() if result else ""
+    if result:
+        return result[0].strip()
+
+    result = html.xpath('//meta[@property="og:title"]/@content')
+    if result:
+        title = re.sub(r"\s*\|\s*.*$", "", result[0]).strip()
+        if title:
+            return title
+
+    result = html.xpath("//title/text()")
+    if result:
+        title = re.sub(r"\s+", " ", result[0]).strip()
+        title = re.sub(r"\s*\|.*$", "", title).strip()
+        title = re.sub(r"\s*\(.*?\)$", "", title).strip()
+        return title
+    return ""
 
 
 def get_studio(html):
@@ -96,9 +126,13 @@ def get_mosaic(html, mosaic):
 
 def get_extrafanart(html):
     result_list = html.xpath("//div[contains(text(),'サンプル画像')]/following-sibling::div[1]/a/@href")
+    if not result_list:
+        result_list = html.xpath("//div[contains(@class,'item-Samplecard')]//a[contains(@class,'highslide')]/@href")
     result = []
     for each in result_list:
-        each = each.replace("./", "http://www.getchu.com/")
+        each = each.replace("./", "https://www.getchu.com/")
+        if each.startswith("/"):
+            each = "https://www.getchu.com" + each
         result.append(each)
     return result
 
@@ -153,12 +187,12 @@ async def main(
             title_list = html.xpath("//a[@class='blueb']/text()")
 
             if url_list:
-                real_url = getchu_url + url_list[0].replace("../", "/") + "&gc=gc"
+                real_url = normalize_detail_url(getchu_url + url_list[0].replace("../", "/") + "&gc=gc")
                 keyword_temp = re.sub(r"[ \[\]\［\］]+", "", keyword)
                 for i in range(len(url_list)):
                     title_temp = re.sub(r"[ \[\]\［\］]+", "", title_list[i])
                     if keyword_temp in title_temp:  # 有多个分集时，用标题符合的
-                        real_url = getchu_url + url_list[i].replace("../", "/") + "&gc=gc"
+                        real_url = normalize_detail_url(getchu_url + url_list[i].replace("../", "/") + "&gc=gc")
                         break
             else:
                 debug_info = "搜索结果: 未匹配到番号！"
@@ -166,6 +200,7 @@ async def main(
                 return await getchu_dl.main(number, appoint_url)
 
         if real_url:
+            real_url = normalize_detail_url(real_url)
             debug_info = f"番号地址: {real_url} "
             LogBuffer.info().write(web_info + debug_info)
 
@@ -175,6 +210,17 @@ async def main(
                 LogBuffer.info().write(web_info + debug_info)
                 raise Exception(debug_info)
             html_info = etree.fromstring(html_content, etree.HTMLParser())
+            continue_url = get_attestation_continue_url(html_info)
+            if continue_url:
+                debug_info = f"检测到年龄确认页，继续访问: {continue_url} "
+                LogBuffer.info().write(web_info + debug_info)
+                real_url = continue_url
+                html_content, error = await manager.computed.async_client.get_text(real_url, encoding="euc-jp")
+                if html_content is None:
+                    debug_info = f"网络请求错误: {error} "
+                    LogBuffer.info().write(web_info + debug_info)
+                    raise Exception(debug_info)
+                html_info = etree.fromstring(html_content, etree.HTMLParser())
             title = get_title(html_info)
             if not title:
                 debug_info = "数据获取失败: 未获取到title！"
