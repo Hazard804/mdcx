@@ -6,19 +6,12 @@ import traceback
 import zhconv
 
 from ..base.translate import (
-    baidu_translate,
-    deepl_translate,
-    deeplx_translate,
-    get_baidu_target_language,
     get_translator_skip_reason,
-    google_translate,
-    llm_translate,
-    youdao_translate,
+    translate_with_engine,
 )
 from ..base.web import get_actorname, get_yesjav_title
 from ..config.enums import FieldRule, Language, TagInclude
 from ..config.manager import manager
-from ..config.models import Translator
 from ..config.resources import resources
 from ..gen.field_enums import CrawlerResultFields
 from ..models.log_buffer import LogBuffer
@@ -254,6 +247,8 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
     title_yesjav = manager.config.title_yesjav
     title_is_jp = is_japanese(json_data.title)
     title_is_en = is_probably_english_for_translation(json_data.title)
+    title_translation_applied = False
+    outline_translation_applied = False
 
     # 处理title
     if title_language != Language.JP:
@@ -303,32 +298,24 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
             if skip_reason := get_translator_skip_reason(each):
                 LogBuffer.log().write(f"\n 🟡 Translation skipped!({each.capitalize()}) {skip_reason}")
                 continue
-            if each == Translator.YOUDAO:  # 使用有道翻译
-                t, o, r = await youdao_translate(trans_title, trans_outline)
-            elif each == Translator.LLM:  # 使用 llm 翻译
-                t, o, r = await llm_translate(trans_title, trans_outline)
-            elif each == Translator.BAIDU:  # 使用百度翻译
-                t, o, r = await baidu_translate(
-                    trans_title,
-                    trans_outline,
-                    get_baidu_target_language(title_language),
-                    get_baidu_target_language(outline_language),
-                )
-            elif each == Translator.DEEPL:  # 使用 DeepL 翻译
-                t, o, r = await deepl_translate(trans_title, trans_outline, "JA")
-            elif each == Translator.DEEPLX:  # 使用 DeepLX 翻译
-                t, o, r = await deeplx_translate(trans_title, trans_outline, "JA")
-            else:  # 使用 google 翻译
-                t, o, r = await google_translate(trans_title, trans_outline)
-            if r:
+            result = await translate_with_engine(
+                each,
+                trans_title,
+                trans_outline,
+                title_language=title_language,
+                outline_language=outline_language,
+            )
+            if result.error:
                 LogBuffer.log().write(
-                    f"\n 🔴 Translation failed!({each.capitalize()})({get_used_time(start_time)}s) Error: {r}"
+                    f"\n 🔴 Translation failed!({each.capitalize()})({get_used_time(start_time)}s) Error: {result.error}"
                 )
                 continue
-            if t:
-                json_data.title = t
-            if o:
-                json_data.outline = o
+            if result.translated_title:
+                json_data.title = result.title
+                title_translation_applied = True
+            if result.translated_outline:
+                json_data.outline = result.outline
+                outline_translation_applied = True
             LogBuffer.log().write(f"\n 🍀 Translation done!({each.capitalize()})({get_used_time(start_time)}s)")
             json_data.outline_from = each
             break
@@ -338,15 +325,25 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
             )
 
     # 简繁转换
-    if title_language == "zh_cn":
+    if title_language == "zh_cn" and (not trans_title or title_translation_applied or not (title_is_jp or title_is_en)):
         json_data.title = zhconv.convert(json_data.title, "zh-cn")
-    elif title_language == "zh_tw":
+    elif title_language == "zh_tw" and (
+        not trans_title or title_translation_applied or not (title_is_jp or title_is_en)
+    ):
         json_data.title = zhconv.convert(json_data.title, "zh-hant")
         json_data.mosaic = zhconv.convert(json_data.mosaic, "zh-hant")
 
-    if outline_language == "zh_cn":
+    if outline_language == "zh_cn" and (
+        not trans_outline
+        or outline_translation_applied
+        or not (is_japanese(json_data.outline) or is_probably_english_for_translation(json_data.outline))
+    ):
         json_data.outline = zhconv.convert(json_data.outline, "zh-cn")
-    elif outline_language == "zh_tw":
+    elif outline_language == "zh_tw" and (
+        not trans_outline
+        or outline_translation_applied
+        or not (is_japanese(json_data.outline) or is_probably_english_for_translation(json_data.outline))
+    ):
         json_data.outline = zhconv.convert(json_data.outline, "zh-hant")
 
     return json_data

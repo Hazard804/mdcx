@@ -1007,7 +1007,7 @@ export type TagInclude = 'actor' | 'letters' | 'series' | 'studio' | 'publisher'
 /**
  * Translator
  */
-export type Translator = 'youdao' | 'google' | 'deepl' | 'llm';
+export type Translator = 'google' | 'baidu' | 'deepl' | 'deeplx' | 'llm';
 
 /**
  * ValidationError

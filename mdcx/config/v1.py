@@ -167,7 +167,7 @@ class ConfigV1:
     wanted_website: str = r"javlibrary,javdb"
 
     # translate
-    translate_by: str = r"youdao,google,baidu,deepl,deeplx,"
+    translate_by: str = r"google,baidu,deepl,deeplx,"
     baidu_appid: str = r""
     baidu_key: str = r""
     deepl_key: str = r""

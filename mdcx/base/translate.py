@@ -3,6 +3,7 @@ import hashlib
 import random
 import re
 import time
+from dataclasses import dataclass
 from typing import Literal, cast
 from urllib.parse import quote
 
@@ -10,74 +11,67 @@ from ..config.enums import Language
 from ..config.manager import manager
 from ..config.models import Translator
 from ..signals import signal
+from ..utils.language import is_probably_english_for_translation
 
 
-async def youdao_translate(title: str, outline: str):
-    url = "https://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule"
-    msg = f"{title}\n{outline}"
-    lts = str(int(time.time() * 1000))
-    salt = lts + str(random.randint(0, 10))
-    sign = hashlib.md5(("fanyideskweb" + msg + salt + "Ygy_4c=r#e#4EX^NUGUc5").encode("utf-8")).hexdigest()
+@dataclass(slots=True)
+class TranslateResult:
+    title: str
+    outline: str
+    error: str | None
+    engine: Translator
+    translated_title: bool = False
+    translated_outline: bool = False
 
-    data = {
-        "i": msg,
-        "from": "AUTO",
-        "to": "zh-CHS",
-        "smartresult": "dict",
-        "client": "fanyideskweb",
-        "salt": salt,
-        "sign": sign,
-        "lts": lts,
-        "bv": "c6b8c998b2cbaa29bd94afc223bc106c",
-        "doctype": "json",
-        "version": "2.1",
-        "keyfrom": "fanyi.web",
-        "ue": "UTF-8",
-        "typoResult": "true",
-        "action": "FY_BY_CLICKBUTTION",
-    }
-    headers = {
-        "Cookie": random.choice(
-            [
-                "OUTFOX_SEARCH_USER_ID=833904829@10.169.0.84",
-                "OUTFOX_SEARCH_USER_ID=-10218418@11.136.67.24;",
-                "OUTFOX_SEARCH_USER_ID=1989505748@10.108.160.19;",
-                "OUTFOX_SEARCH_USER_ID=2072418438@218.82.240.196;",
-                "OUTFOX_SEARCH_USER_ID=1768574849@220.181.76.83;",
-                "OUTFOX_SEARCH_USER_ID=-2153895048@10.168.8.76;",
-            ]
-        ),
-        "Referer": "https://fanyi.youdao.com/?keyfrom=dict2.top",
-    }
-    res, error = await manager.computed.async_client.post_json(url, data=data, headers=headers)
-    if res is None:
-        return title, outline, f"请求失败！可能是被封了，可尝试更换代理！错误：{error}"
-    else:
-        res = cast("dict", res)
-        translateResult = res.get("translateResult")
-        if not translateResult:
-            return title, outline, f"返回数据未找到翻译结果！返回内容：{res}"
-        else:
-            list_count = len(translateResult)
-            if list_count:
-                i = 0
-                if title:
-                    i = 1
-                    title_result_list = translateResult[0]
-                    title_list = [a.get("tgt") for a in title_result_list]
-                    title_temp = "".join(title_list)
-                    if title_temp:
-                        title = title_temp
-                if outline:
-                    outline_temp = ""
-                    for j in range(i, list_count):
-                        outline_result_list = translateResult[j]
-                        outline_list = [a.get("tgt") for a in outline_result_list]
-                        outline_temp += "".join(outline_list) + "\n"
-                    outline_temp = outline_temp.strip("\n")
-                    if outline_temp:
-                        outline = outline_temp
-    return title, outline.strip("\n"), ""
+    @property
+    def success(self) -> bool:
+        return self.error is None and (self.translated_title or self.translated_outline)
+
+
+def _has_effective_translation(source: str, translated: str) -> bool:
+    return bool(source and translated and translated.strip() != source.strip())
+
+
+def _build_translate_result(
+    engine: Translator,
+    source_title: str,
+    source_outline: str,
+    title: str,
+    outline: str,
+    error: str | None,
+) -> TranslateResult:
+    translated_title = _has_effective_translation(source_title, title)
+    translated_outline = _has_effective_translation(source_outline, outline)
+    if error is None and not translated_title and not translated_outline:
+        error = "未获得有效翻译结果"
+    return TranslateResult(
+        title=title or source_title,
+        outline=outline or source_outline,
+        error=error,
+        engine=engine,
+        translated_title=translated_title,
+        translated_outline=translated_outline,
+    )
+
+
+def _get_deepl_source_language(text: str) -> Literal["JA", "EN"]:
+    return "EN" if is_probably_english_for_translation(text) else "JA"
+
+
+def _is_chinese_target(language: Language | str) -> bool:
+    return language in (Language.ZH_CN, Language.ZH_CN.value, Language.ZH_TW, Language.ZH_TW.value)
+
+
+def get_llm_target_language(language: Language | str) -> str:
+    if language == Language.ZH_CN or language == Language.ZH_CN.value:
+        return "简体中文"
+    if language == Language.ZH_TW or language == Language.ZH_TW.value:
+        return "繁体中文"
+    if language == Language.EN or language == Language.EN.value:
+        return "English"
+    if language == Language.JP or language == Language.JP.value:
+        return "日本語"
+    return "简体中文"
 
 
 async def _deepl_translate(text: str, source_lang: Literal["JA", "EN"] = "JA") -> str | None:
@@ -181,6 +175,65 @@ async def llm_translate(title: str, outline: str, target_language: str = "简体
     if r1 is None or r2 is None:
         return "", "", "LLM 翻译失败! 查看网络日志以获取更多信息"
     return r1, r2, None
+
+
+async def translate_with_engine(
+    engine: Translator,
+    title: str,
+    outline: str,
+    *,
+    title_language: Language | str,
+    outline_language: Language | str,
+) -> TranslateResult:
+    if engine == Translator.LLM:
+        title_result, outline_result = await asyncio.gather(
+            _llm_translate(
+                title, manager.config.translate_config.llm_prompt_title, get_llm_target_language(title_language)
+            ),
+            _llm_translate(
+                outline,
+                manager.config.translate_config.llm_prompt_outline,
+                get_llm_target_language(outline_language),
+            ),
+        )
+        error = "LLM 翻译失败! 查看网络日志以获取更多信息" if title_result is None or outline_result is None else None
+        return _build_translate_result(engine, title, outline, title_result or "", outline_result or "", error)
+
+    if engine == Translator.BAIDU:
+        title_result, outline_result, error = await baidu_translate(
+            title,
+            outline,
+            get_baidu_target_language(title_language),
+            get_baidu_target_language(outline_language),
+        )
+        return _build_translate_result(engine, title, outline, title_result, outline_result, error)
+
+    if engine == Translator.DEEPL:
+        if (title and not _is_chinese_target(title_language)) or (outline and not _is_chinese_target(outline_language)):
+            return _build_translate_result(engine, title, outline, "", "", "DeepL 当前仅支持中文目标语言")
+        title_result, outline_result = await asyncio.gather(
+            _deepl_translate(title, _get_deepl_source_language(title)),
+            _deepl_translate(outline, _get_deepl_source_language(outline)),
+        )
+        error = "DeepL 翻译失败! 查看网络日志以获取更多信息" if title_result is None or outline_result is None else None
+        return _build_translate_result(engine, title, outline, title_result or "", outline_result or "", error)
+
+    if engine == Translator.DEEPLX:
+        if (title and not _is_chinese_target(title_language)) or (outline and not _is_chinese_target(outline_language)):
+            return _build_translate_result(engine, title, outline, "", "", "DeepLX 当前仅支持中文目标语言")
+        title_result, outline_result = await asyncio.gather(
+            _deeplx_translate(title, _get_deepl_source_language(title)),
+            _deeplx_translate(outline, _get_deepl_source_language(outline)),
+        )
+        error = (
+            "DeepLX 翻译失败! 查看网络日志以获取更多信息" if title_result is None or outline_result is None else None
+        )
+        return _build_translate_result(engine, title, outline, title_result or "", outline_result or "", error)
+
+    if (title and not _is_chinese_target(title_language)) or (outline and not _is_chinese_target(outline_language)):
+        return _build_translate_result(engine, title, outline, "", "", "Google 当前仅支持中文目标语言")
+    title_result, outline_result, error = await google_translate(title, outline)
+    return _build_translate_result(engine, title, outline, title_result, outline_result, error)
 
 
 async def _google_translate(msg: str) -> tuple[str | None, str]:

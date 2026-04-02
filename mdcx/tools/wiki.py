@@ -8,15 +8,10 @@ import bs4
 import zhconv
 
 from ..base.translate import (
-    baidu_translate,
-    deepl_translate,
-    deeplx_translate,
     get_translator_skip_reason,
-    google_translate,
-    llm_translate,
-    youdao_translate,
+    translate_with_engine,
 )
-from ..config.enums import EmbyAction
+from ..config.enums import EmbyAction, Language
 from ..config.manager import manager
 from ..config.models import Translator
 from ..config.resources import resources
@@ -520,36 +515,31 @@ async def _process_translation(actor_info: EMbyActressInfo, overview: str, ja: b
     return overview
 
 
-def _get_actor_info_baidu_target_lang(emby_on: list[EmbyAction]) -> str:
-    return "zh"
+def _get_actor_info_translate_language(emby_on: list[EmbyAction]) -> Language:
+    if EmbyAction.ACTOR_INFO_ZH_TW in emby_on:
+        return Language.ZH_TW
+    return Language.ZH_CN
 
 
 async def _translate_english_tag(tag_req: str, translate_by_list: list[Translator], actor_info: EMbyActressInfo) -> str:
     """翻译英文标签"""
-    target_lang = _get_actor_info_baidu_target_lang(manager.config.emby_on)
+    target_language = _get_actor_info_translate_language(manager.config.emby_on)
     for each in translate_by_list:
         if skip_reason := get_translator_skip_reason(each):
             signal.add_log(f"🟡 Translation skipped!({each.capitalize()}) {skip_reason}")
             continue
-        if each == Translator.YOUDAO:
-            t, o, r = await youdao_translate(tag_req, "")
-        elif each == Translator.GOOGLE:
-            t, o, r = await google_translate(tag_req, "")
-        elif each == Translator.BAIDU:
-            t, o, r = await baidu_translate(tag_req, "", target_lang, target_lang)
-        elif each == Translator.DEEPL:
-            t, o, r = await deepl_translate(tag_req, "", ls="EN")
-        elif each == Translator.DEEPLX:
-            t, o, r = await deeplx_translate(tag_req, "", ls="EN")
-        elif each == Translator.LLM:
-            t, o, r = await llm_translate(tag_req, "")
-        else:
-            continue
 
-        if r:
-            signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {r}")
+        result = await translate_with_engine(
+            each,
+            tag_req,
+            "",
+            title_language=target_language,
+            outline_language=target_language,
+        )
+        if result.error:
+            signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {result.error}")
             continue
-        actor_info.taglines = [t]
+        actor_info.taglines = [result.title]
         return ""  # 清空tag_req表示已翻译
     return tag_req
 
@@ -558,34 +548,31 @@ async def _translate_content(
     tag: str, overview_req: str, translators: list[Translator], info: EMbyActressInfo, overview: str
 ) -> str:
     """翻译主要内容"""
-    target_lang = _get_actor_info_baidu_target_lang(manager.config.emby_on)
+    target_language = _get_actor_info_translate_language(manager.config.emby_on)
     for each in translators:
         if skip_reason := get_translator_skip_reason(each):
             signal.add_log(f"🟡 Translation skipped!({each.capitalize()}) {skip_reason}")
             continue
-        if each == Translator.YOUDAO:
-            t, o, r = await youdao_translate(tag, overview_req)
-        elif each == Translator.GOOGLE:
-            t, o, r = await google_translate(tag, overview_req)
-        elif each == Translator.BAIDU:
-            t, o, r = await baidu_translate(tag, overview_req, target_lang, target_lang)
-        elif each == Translator.DEEPL:
-            t, o, r = await deepl_translate(tag, overview_req)
-        elif each == Translator.DEEPLX:
-            t, o, r = await deeplx_translate(tag, overview_req)
-        elif each == Translator.LLM:
-            t, o, r = await llm_translate(tag, overview_req)
-        else:
-            continue
 
-        if r:
-            signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {r}")
+        result = await translate_with_engine(
+            each,
+            tag,
+            overview_req,
+            title_language=target_language,
+            outline_language=target_language,
+        )
+        if result.error:
+            signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {result.error}")
             continue
-        if tag:
-            info.taglines = [t]
-        if overview_req:
-            overview = _clean_translated_overview(o)
-        break
+        translated = False
+        if tag and result.translated_title:
+            info.taglines = [result.title]
+            translated = True
+        if overview_req and result.translated_outline:
+            overview = _clean_translated_overview(result.outline)
+            translated = True
+        if translated:
+            break
     return overview
 
 

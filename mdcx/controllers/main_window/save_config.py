@@ -315,7 +315,6 @@ def save_config(self: "MyMAinWindow"):
     )
     # endregion
     manager.config.translate_config.translate_by = get_checkboxes(
-        (self.Ui.checkBox_youdao, Translator.YOUDAO),
         (self.Ui.checkBox_google, Translator.GOOGLE),
         (self.Ui.checkBox_baidu, Translator.BAIDU),
         (self.Ui.checkBox_deepl, Translator.DEEPL),

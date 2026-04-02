@@ -1474,9 +1474,9 @@ export const TagIncludeSchema = {
 
 export const TranslatorSchema = {
     type: 'string',
-    enum: ['youdao', 'google', 'deepl', 'llm'],
+    enum: ['google', 'baidu', 'deepl', 'deeplx', 'llm'],
     title: 'Translator',
-    showNames: ['有道', '谷歌', 'Deepl', 'LLM']
+    showNames: ['谷歌', '百度', 'Deepl', 'DeepLX', 'LLM']
 } as const;
 
 export const ValidationErrorSchema = {

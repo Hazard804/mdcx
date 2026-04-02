@@ -1,5 +1,6 @@
 import pytest
 
+from mdcx.base.translate import TranslateResult
 from mdcx.config.enums import Language, Translator
 from mdcx.config.models import Config
 from mdcx.models.types import CrawlersResult
@@ -30,6 +31,18 @@ def test_config_update_migrate_legacy_llm_prompt_top_level():
     tc = data["translate_config"]
     assert tc["llm_prompt_title"] == "legacy-top {content}"
     assert tc["llm_prompt_outline"] == "legacy-top {content}"
+
+
+def test_config_update_ignores_legacy_youdao_translator():
+    data = {
+        "translate_config": {
+            "translate_by": ["youdao", "google", "baidu"],
+        }
+    }
+
+    Config.update(data)
+
+    assert data["translate_config"]["translate_by"] == ["google", "baidu"]
 
 
 @pytest.mark.asyncio
@@ -123,11 +136,20 @@ async def test_translate_title_outline_supports_english(monkeypatch: pytest.Monk
         def __init__(self):
             self.config = _Cfg()
 
-    async def fake_llm_translate(title: str, outline: str):
-        return f"CN::{title}", f"CN::{outline}", ""
+    async def fake_translate_with_engine(*args, **kwargs):
+        title = args[1]
+        outline = args[2]
+        return TranslateResult(
+            title=f"CN::{title}",
+            outline=f"CN::{outline}",
+            error=None,
+            engine=Translator.LLM,
+            translated_title=True,
+            translated_outline=True,
+        )
 
     monkeypatch.setattr(core_translate, "manager", _Manager())
-    monkeypatch.setattr(core_translate, "llm_translate", fake_llm_translate)
+    monkeypatch.setattr(core_translate, "translate_with_engine", fake_translate_with_engine)
     monkeypatch.setattr(core_translate, "get_translator_skip_reason", lambda _translator: None)
 
     data = CrawlersResult.empty()
@@ -167,11 +189,20 @@ async def test_translate_title_outline_supports_long_english_outline(monkeypatch
         def __init__(self):
             self.config = _Cfg()
 
-    async def fake_llm_translate(title: str, outline: str):
-        return f"CN::{title}", f"CN::{outline}", ""
+    async def fake_translate_with_engine(*args, **kwargs):
+        title = args[1]
+        outline = args[2]
+        return TranslateResult(
+            title=f"CN::{title}",
+            outline=f"CN::{outline}",
+            error=None,
+            engine=Translator.LLM,
+            translated_title=True,
+            translated_outline=True,
+        )
 
     monkeypatch.setattr(core_translate, "manager", _Manager())
-    monkeypatch.setattr(core_translate, "llm_translate", fake_llm_translate)
+    monkeypatch.setattr(core_translate, "translate_with_engine", fake_translate_with_engine)
     monkeypatch.setattr(core_translate, "get_translator_skip_reason", lambda _translator: None)
 
     data = CrawlersResult.empty()
@@ -227,11 +258,20 @@ async def test_translate_title_outline_skips_unconfigured_baidu_and_falls_back(m
         def __init__(self):
             self.config = _Cfg()
 
-    async def fake_llm_translate(title: str, outline: str):
-        return f"CN::{title}", f"CN::{outline}", ""
+    async def fake_translate_with_engine(*args, **kwargs):
+        title = args[1]
+        outline = args[2]
+        return TranslateResult(
+            title=f"CN::{title}",
+            outline=f"CN::{outline}",
+            error=None,
+            engine=Translator.LLM,
+            translated_title=True,
+            translated_outline=True,
+        )
 
     monkeypatch.setattr(core_translate, "manager", _Manager())
-    monkeypatch.setattr(core_translate, "llm_translate", fake_llm_translate)
+    monkeypatch.setattr(core_translate, "translate_with_engine", fake_translate_with_engine)
     monkeypatch.setattr(core_translate.random, "shuffle", lambda items: None)
     monkeypatch.setattr(
         core_translate,
@@ -247,3 +287,49 @@ async def test_translate_title_outline_skips_unconfigured_baidu_and_falls_back(m
 
     assert data.title == "CN::A western movie title"
     assert data.outline == "CN::An English overview."
+
+
+@pytest.mark.asyncio
+async def test_translate_title_outline_skip_does_not_fake_translate_via_zhconv(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.core import translate as core_translate
+
+    class _FieldCfg:
+        def __init__(self, language: Language, translate: bool):
+            self.language = language
+            self.translate = translate
+
+    class _TranslateCfg:
+        def __init__(self):
+            self.translate_by = [Translator.BAIDU]
+            self.baidu_appid = ""
+            self.baidu_key = ""
+
+    class _Cfg:
+        def __init__(self):
+            self.title_sehua = False
+            self.title_sehua_zh = False
+            self.title_yesjav = False
+            self.translate_config = _TranslateCfg()
+
+        def get_field_config(self, _field):
+            return _FieldCfg(Language.ZH_CN, True)
+
+    class _Manager:
+        def __init__(self):
+            self.config = _Cfg()
+
+    monkeypatch.setattr(core_translate, "manager", _Manager())
+    monkeypatch.setattr(
+        core_translate,
+        "get_translator_skip_reason",
+        lambda translator: "APP ID、密钥 未配置" if translator == Translator.BAIDU else None,
+    )
+
+    data = CrawlersResult.empty()
+    data.title = "乳首快楽"
+    data.outline = "女優の物語"
+
+    await core_translate.translate_title_outline(data, cd_part="", movie_number="ABC-123")
+
+    assert data.title == "乳首快楽"
+    assert data.outline == "女優の物語"

@@ -57,7 +57,6 @@ def str_to_list(v: str | list[Any] | None, sep: Literal[",", "|"] = ",", unique:
 class TranslateConfig(BaseModel):
     translate_by: list[Translator] = Field(
         default_factory=lambda: [
-            Translator.YOUDAO,
             Translator.GOOGLE,
             Translator.BAIDU,
             Translator.DEEPL,
@@ -786,6 +785,8 @@ class Config(BaseModel):
             if isinstance(old_prompt, str):
                 translate_config.setdefault("llm_prompt_title", old_prompt)
                 translate_config.setdefault("llm_prompt_outline", old_prompt)
+            if isinstance(translate_by := translate_config.get("translate_by"), list):
+                translate_config["translate_by"] = [item for item in translate_by if item != "youdao"]
         if isinstance(old_prompt := d.get("llm_prompt"), str):
             translate_config = d.setdefault("translate_config", {})
             if isinstance(translate_config, dict):

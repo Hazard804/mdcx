@@ -13002,19 +13002,6 @@
                               </widget>
                             </item>
                             <item>
-                              <widget class="QCheckBox" name="checkBox_youdao">
-                                <property name="minimumSize">
-                                  <size>
-                                    <width>93</width>
-                                    <height>30</height>
-                                  </size>
-                                </property>
-                                <property name="text">
-                                  <string>有道</string>
-                                </property>
-                              </widget>
-                            </item>
-                            <item>
                               <widget class="QCheckBox" name="checkBox_llm">
                                 <property name="minimumSize">
                                   <size>
