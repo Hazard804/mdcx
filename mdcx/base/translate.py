@@ -89,7 +89,12 @@ async def _deepl_translate(text: str, source_lang: Literal["JA", "EN"] = "JA") -
     # 构造请求头
     headers = {"Content-Type": "application/json", "Authorization": f"DeepL-Auth-Key {deepl_key}"}
     # 构造请求体
-    data = {"text": [text], "source_lang": source_lang, "target_lang": "ZH"}
+    data = {
+        "text": [text],
+        "source_lang": source_lang,
+        "target_lang": "ZH",
+        "model_type": "quality_optimized",
+    }
     res, error = await manager.computed.async_client.post_json(url, json_data=data, headers=headers)
     if res is None:
         signal.add_log(f"DeepL API 请求失败: {error}")
