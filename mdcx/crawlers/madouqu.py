@@ -2,6 +2,7 @@
 import re
 import time
 from datetime import datetime
+from urllib.parse import urlsplit, urlunsplit
 
 from lxml import etree
 
@@ -18,6 +19,35 @@ def get_actor_photo(actor):
         actor_photo = {i: ""}
         data.update(actor_photo)
     return data
+
+
+def normalize_cover_url(cover_url: str) -> str:
+    cover_url = (cover_url or "").strip()
+    if not cover_url:
+        return ""
+
+    if cover_url.startswith("//"):
+        cover_url = "https:" + cover_url
+    elif cover_url.startswith("/"):
+        cover_url = "https://madouqu.com" + cover_url
+
+    if "/wp-content/uploads/" not in cover_url:
+        return cover_url
+
+    parsed = urlsplit(cover_url)
+    if not parsed.netloc:
+        return cover_url
+
+    if parsed.netloc == "i0.wp.com" and parsed.path.startswith("/madouqu.com/wp-content/uploads/"):
+        return cover_url
+
+    uploads_path = parsed.path[parsed.path.index("/wp-content/uploads/") :]
+
+    # madouqu 详情页会混入旧镜像域名，统一回站点当前可访问的 WordPress CDN 地址。
+    if parsed.netloc == "i0.wp.com":
+        return urlunsplit((parsed.scheme or "https", "i0.wp.com", "/madouqu.com" + uploads_path, parsed.query, ""))
+
+    return urlunsplit(("https", "madouqu.com", uploads_path, "", ""))
 
 
 def get_detail_info(html, number, file_path):
@@ -42,6 +72,7 @@ def get_detail_info(html, number, file_path):
     studio = html.xpath('string(//span[@class="meta-category"])').strip()
     cover_url = html.xpath('//div[@class="entry-content u-text-format u-clearfix"]/p/img/@src')
     cover_url = cover_url[0] if cover_url else ""
+    cover_url = normalize_cover_url(cover_url)
     actor = get_extra_info(title, file_path, info_type="actor") if actor == "" else actor
     # 处理发行时间，年份
     try:
@@ -62,13 +93,17 @@ def get_real_url(html, number_list):
         detail_url = each.get("href")
         # lazyload属性容易改变，去掉也能拿到结果
         title = each.xpath("img[@class]/@alt")[0]
+        cover_url = each.xpath(".//img/@data-src")
+        if not cover_url:
+            cover_url = each.xpath(".//img/@src")
+        cover_url = normalize_cover_url(cover_url[0] if cover_url else "")
         if title and detail_url:
             for n in number_list:
                 temp_n = re.sub(r"[\W_]", "", n).upper()
                 temp_title = re.sub(r"[\W_]", "", title).upper()
                 if temp_n in temp_title:
-                    return True, n, title, detail_url
-    return False, "", "", ""
+                    return True, n, title, detail_url, cover_url
+    return False, "", "", "", ""
 
 
 async def main(
@@ -106,7 +141,7 @@ async def main(
                     LogBuffer.info().write(web_info + debug_info)
                     raise Exception(debug_info)
                 search_page = etree.fromstring(response, etree.HTMLParser())
-                result, number, title, real_url = get_real_url(search_page, n_list)
+                result, number, title, real_url, cover_url = get_real_url(search_page, n_list)
                 if result:
                     break
             else:
@@ -124,7 +159,9 @@ async def main(
             raise Exception(debug_info)
 
         detail_page = etree.fromstring(response, etree.HTMLParser())
-        number, title, actor, cover_url, studio, release, year = get_detail_info(detail_page, number, file_path)
+        number, title, actor, detail_cover_url, studio, release, year = get_detail_info(detail_page, number, file_path)
+        if detail_cover_url:
+            cover_url = detail_cover_url
         actor_photo = get_actor_photo(actor)
 
         try:
