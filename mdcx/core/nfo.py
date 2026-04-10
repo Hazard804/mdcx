@@ -402,18 +402,15 @@ async def get_nfo_data(file_path: Path, movie_number: str) -> tuple[CrawlersResu
             originaltitle_amazon = originaltitle_amazon.replace(value, key)
     actor = ",".join(xml_nfo.xpath("//actor/name/text()"))
     originalplot = "".join(xml_nfo.xpath("//originalplot/text()"))
-    outline = ""
-    temp_outline = re.findall(r"<plot>(.+)</plot>", content)
-    if not temp_outline:
-        temp_outline = re.findall(r"<outline>(.+)</outline>", content)
-    if temp_outline:
-        outline = temp_outline[0]
-        if "<br>  <br>" in outline:
-            temp_from = re.findall(r"<br>  <br>由 .+ 提供翻译", outline)
-            if temp_from:
-                outline = outline.replace(temp_from[0], "")
-                json_data.outline_from = temp_from[0].replace("<br>  <br>由 ", "").replace(" 提供翻译", "")
-            outline = outline.replace(originalplot, "").replace("<br>  <br>", "")
+    outline = xml_nfo.xpath("string(//plot)") or xml_nfo.xpath("string(//outline)")
+    outline = outline.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if outline:
+        if match := re.search(r"(?:\n\s*\n|<br>\s*<br>)由\s*(.+?)\s*提供翻译\s*$", outline, re.S):
+            json_data.outline_from = match.group(1).strip()
+            outline = outline[: match.start()].rstrip()
+        if originalplot and originalplot in outline:
+            outline = outline.replace(originalplot, "", 1).strip()
+            outline = re.sub(r"(?:\n\s*){3,}", "\n\n", outline)
     tag = ",".join(xml_nfo.xpath("//tag/text()"))
     release = "".join(xml_nfo.xpath("//release/text()"))
     if not release:
