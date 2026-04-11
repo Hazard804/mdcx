@@ -79,6 +79,7 @@ from mdcx.utils.file import (
     delete_file_sync,
     open_file_thread,
     resolve_link_source_sync,
+    resolve_success_record_source_sync,
 )
 from mdcx.views.MDCx import Ui_MDCx
 
@@ -1175,6 +1176,24 @@ class MyMAinWindow(QMainWindow):
             return "未知错误"
 
         lines = [line.strip() for line in str(error_text).splitlines() if line.strip()]
+        full_text = "\n".join(lines).lower()
+
+        if "symbolic link privilege not held" in full_text or "winerror 1314" in full_text:
+            return "当前没有创建软链接权限，请尝试以管理员身份运行或开启开发者模式"
+
+        if (
+            "winerror 17" in full_text
+            or "different disk drive" in full_text
+            or "cross-device link" in full_text
+            or "not same device" in full_text
+        ):
+            return "硬链接要求源文件与目标路径位于同一磁盘，请改用软链接"
+
+        if "目标已存在:" in str(error_text):
+            for line in lines:
+                if "目标已存在:" in line:
+                    return line.strip()
+
         for line in lines:
             if line.startswith("错误:"):
                 return line.removeprefix("错误:").strip()
@@ -1189,71 +1208,19 @@ class MyMAinWindow(QMainWindow):
 
         return lines[-1]
 
-    def _localize_message_box_detail_buttons(self, box: QMessageBox) -> None:
-        for button in box.findChildren(QPushButton):
-            text = button.text().strip()
-            if text == "Show Details...":
-                button.setText("显示详情")
-            elif text == "Hide Details...":
-                button.setText("隐藏详情")
+    def _build_action_result_text(self, success_count: int, failure_count: int, skipped_count: int = 0) -> str:
+        parts = [f"成功 {success_count} 个"]
+        if skipped_count:
+            parts.append(f"跳过 {skipped_count} 个")
+        parts.append(f"失败 {failure_count} 个")
+        return "，".join(parts)
 
-    def _bind_localized_message_box_detail_buttons(self, box: QMessageBox) -> None:
-        def relocalize() -> None:
-            self._localize_message_box_detail_buttons(box)
-
-        relocalize()
-        QTimer.singleShot(0, relocalize)
-        for button in box.findChildren(QPushButton):
-            button.clicked.connect(lambda _checked=False: QTimer.singleShot(0, relocalize))
-
-    def _show_delete_failure_feedback(
+    def _show_action_failure_feedback(
         self,
         action_name: str,
         success_count: int,
         failure_details: list[tuple[Path, str]],
-    ) -> None:
-        if not failure_details:
-            return
-
-        preview_limit = 3
-        preview_lines = [
-            f"- {self._shorten_text(str(path), 90)}\n  原因：{self._shorten_text(reason, 70)}"
-            for path, reason in failure_details[:preview_limit]
-        ]
-        if len(failure_details) > preview_limit:
-            preview_lines.append(f"... 其余 {len(failure_details) - preview_limit} 条请展开“显示详情”或查看日志")
-
-        detail_lines = []
-        detail_limit = 20
-        for index, (path, reason) in enumerate(failure_details[:detail_limit], start=1):
-            detail_lines.append(f"{index}. {path}\n   原因：{reason}")
-        if len(failure_details) > detail_limit:
-            detail_lines.append(f"... 其余 {len(failure_details) - detail_limit} 条请查看日志")
-        detail_text = "\n\n".join(detail_lines)
-
-        signal_qt.show_log_text(f" ⚠ {action_name}完成：成功 {success_count} 个，失败 {len(failure_details)} 个")
-        signal_qt.show_log_text(" 失败详情：")
-        for path, reason in failure_details:
-            signal_qt.show_log_text(f"   - {path}\n     原因：{reason}")
-
-        box = QMessageBox(QMessageBox.Warning, f"{action_name}结果", f"{action_name}完成")
-        box.setInformativeText(f"成功 {success_count} 个，失败 {len(failure_details)} 个\n\n{'\n'.join(preview_lines)}")
-        box.setDetailedText(detail_text)
-        view_log_button = box.addButton("查看日志", QMessageBox.ActionRole)
-        box.addButton("确定", QMessageBox.AcceptRole)
-        self._bind_localized_message_box_detail_buttons(box)
-        box.exec()
-
-        if box.clickedButton() == view_log_button:
-            self.pushButton_show_log_clicked()
-            self.show_hide_logs(True)
-
-    def _show_batch_action_failure_feedback(
-        self,
-        action_name: str,
-        success_count: int,
-        skipped_count: int,
-        failure_details: list[tuple[Path, str]],
+        skipped_count: int = 0,
     ) -> None:
         if not failure_details:
             return
@@ -1275,16 +1242,9 @@ class MyMAinWindow(QMainWindow):
             detail_lines.append(f"... 其余 {len(failure_details) - detail_limit} 条请查看日志")
         detail_text = "\n\n".join(detail_lines)
 
-        signal_qt.show_log_text(
-            f" ⚠ {action_name}完成：成功 {success_count} 个，跳过 {skipped_count} 个，失败 {len(failure_details)} 个"
-        )
-        signal_qt.show_log_text(" 失败详情：")
-        for path, reason in failure_details:
-            signal_qt.show_log_text(f"   - {path}\n     原因：{reason}")
-
         box = QMessageBox(QMessageBox.Warning, f"{action_name}结果", f"{action_name}完成")
         box.setInformativeText(
-            f"成功 {success_count} 个，跳过 {skipped_count} 个，失败 {len(failure_details)} 个\n\n"
+            f"{self._build_action_result_text(success_count, len(failure_details), skipped_count)}\n\n"
             f"{'\n'.join(preview_lines)}"
         )
         box.setDetailedText(detail_text)
@@ -1296,6 +1256,23 @@ class MyMAinWindow(QMainWindow):
         if box.clickedButton() == view_log_button:
             self.pushButton_show_log_clicked()
             self.show_hide_logs(True)
+
+    def _localize_message_box_detail_buttons(self, box: QMessageBox) -> None:
+        for button in box.findChildren(QPushButton):
+            text = button.text().strip()
+            if text == "Show Details...":
+                button.setText("显示详情")
+            elif text == "Hide Details...":
+                button.setText("隐藏详情")
+
+    def _bind_localized_message_box_detail_buttons(self, box: QMessageBox) -> None:
+        def relocalize() -> None:
+            self._localize_message_box_detail_buttons(box)
+
+        relocalize()
+        QTimer.singleShot(0, relocalize)
+        for button in box.findChildren(QPushButton):
+            button.clicked.connect(lambda _checked=False: QTimer.singleShot(0, relocalize))
 
     def _select_link_output_dir(self, link_name: str) -> Path | None:
         default_dir = str(get_movie_path_setting().softlink_path)
@@ -1352,7 +1329,6 @@ class MyMAinWindow(QMainWindow):
 
         try:
             target_dir.mkdir(parents=True, exist_ok=False)
-            signal_qt.show_log_text(f" 📁 已创建目录: {target_dir}")
             return True, "", True
         except Exception as error:
             return False, self._normalize_delete_error_reason(str(error)), False
@@ -1365,10 +1341,10 @@ class MyMAinWindow(QMainWindow):
         try:
             if target_dir.exists() and target_dir.is_dir() and not any(target_dir.iterdir()):
                 target_dir.rmdir()
-                signal_qt.show_log_text(f" 🧹 已清理空目录: {target_dir}")
+                signal_qt.show_log_text(f" ↩ 创建失败，已回滚空目录: {target_dir}")
         except Exception as error:
             signal_qt.show_log_text(
-                f" ⚠ 清理空目录失败: {target_dir}\n    原因: {self._normalize_delete_error_reason(str(error))}"
+                f" ⚠ 回滚空目录失败: {target_dir}\n    原因: {self._normalize_delete_error_reason(str(error))}"
             )
 
     def _create_links_for_selected_files(
@@ -1426,16 +1402,27 @@ class MyMAinWindow(QMainWindow):
             else:
                 result, info = create_hardlink_sync(source_path, target_path)
 
+            record_success, success_record_path, record_info = resolve_success_record_source_sync(file_path)
+            if not record_success:
+                success_record_path = file_path
+                record_info = (
+                    f"解析成功列表源路径失败，已回退记录当前路径: {self._normalize_delete_error_reason(record_info)}"
+                )
+
             if result:
                 if "已存在同源" in info:
                     skipped_count += 1
                     if should_record_success:
-                        success_paths_to_record.add(target_path)
+                        success_paths_to_record.add(success_record_path)
+                    if record_info:
+                        signal_qt.show_log_text(f" ℹ 成功列表记录路径: {success_record_path}\n    说明: {record_info}")
                     signal_qt.show_log_text(f" ⏭ 已跳过{link_name}: {target_path}\n    原因: {info}")
                 else:
                     success_count += 1
                     if should_record_success:
-                        success_paths_to_record.add(target_path)
+                        success_paths_to_record.add(success_record_path)
+                    if record_info:
+                        signal_qt.show_log_text(f" ℹ 成功列表记录路径: {success_record_path}\n    说明: {record_info}")
                     signal_qt.show_log_text(f" ✅ 已创建{link_name}: {target_path}\n    源文件: {source_path}")
             else:
                 self._cleanup_empty_link_target_dir(target_path, created_dir)
@@ -1457,7 +1444,7 @@ class MyMAinWindow(QMainWindow):
             signal_qt.show_scrape_info(
                 f"💡 创建{link_name}完成，成功 {success_count} 个，跳过 {skipped_count} 个，失败 {fail_count} 个！{get_current_time()}"
             )
-            self._show_batch_action_failure_feedback(f"创建{link_name}", success_count, skipped_count, failure_details)
+            self._show_action_failure_feedback(f"创建{link_name}", success_count, failure_details, skipped_count)
         elif skipped_count and not success_count:
             signal_qt.show_scrape_info(
                 f"💡 所选文件的{link_name}已存在，已跳过 {skipped_count} 个！{get_current_time()}"
@@ -1683,7 +1670,7 @@ class MyMAinWindow(QMainWindow):
             signal_qt.show_scrape_info(
                 f"💡 文件删除完成，成功 {success_count} 个，失败 {fail_count} 个！{get_current_time()}"
             )
-            self._show_delete_failure_feedback("删除文件", success_count, failure_details)
+            self._show_action_failure_feedback("删除文件", success_count, failure_details)
         elif success_count == 1:
             signal_qt.show_scrape_info(f"💡 已删除文件！{get_current_time()}")
         else:
@@ -1760,7 +1747,7 @@ class MyMAinWindow(QMainWindow):
             self.show_scrape_info(
                 f"💡 文件夹删除完成，成功 {success_folder_count} 个，失败 {fail_count} 个！{get_current_time()}"
             )
-            self._show_delete_failure_feedback("删除文件夹", success_folder_count, failure_details)
+            self._show_action_failure_feedback("删除文件夹", success_folder_count, failure_details)
         elif success_folder_count == 1:
             self.show_scrape_info(f"💡 已删除文件夹！{get_current_time()}")
         else:

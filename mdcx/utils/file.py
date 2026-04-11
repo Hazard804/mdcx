@@ -81,6 +81,23 @@ def resolve_link_source_sync(p: str | Path):
         return False, p, error_info
 
 
+def resolve_success_record_source_sync(p: str | Path):
+    p = Path(p)
+    try:
+        if p.is_symlink():
+            return True, p.resolve(strict=True), "检测到源文件为软链接，成功列表将记录其真实源文件路径"
+
+        if not p.exists():
+            return False, p, f"不存在: {p}"
+
+        return True, p, ""
+    except Exception as e:
+        error_info = f" 解析成功列表源文件: {p}\n 错误: {e}\n{traceback.format_exc()}"
+        signal.add_log(error_info)
+        print(error_info)
+        return False, p, error_info
+
+
 def create_symlink_sync(source: str | Path, target: str | Path):
     source = Path(source)
     target = Path(target)
