@@ -5,6 +5,7 @@ import time
 from lxml import etree
 
 from ..base.web import check_url, is_dmm_image_url, normalize_media_url
+from ..config.enums import DownloadableFile
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 
@@ -113,10 +114,25 @@ async def _validate_dmm_image_if_needed(url: str, label: str) -> str:
     if not is_dmm_image_url(normalized):
         return normalized
 
-    validated = await check_url(normalized)
-    if validated:
+    candidates: list[str] = []
+    if "pics.dmm.co.jp" in normalized:
+        candidates.append(normalized.replace("pics.dmm.co.jp", "awsimgsrc.dmm.co.jp/pics_dig").replace("/adult/", "/"))
+    candidates.append(normalized)
+
+    seen: set[str] = set()
+    for index, candidate in enumerate(candidates):
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+
+        validated = await check_url(candidate)
+        if not validated:
+            continue
+
         validated_url = normalize_media_url(str(validated).strip())
-        if validated_url != normalized:
+        if index == 0 and candidate != normalized:
+            LogBuffer.info().write(f"\n       图片高清图命中: {label} {normalized} -> {validated_url}")
+        elif validated_url != normalized:
             LogBuffer.info().write(f"\n       图片校验重定向: {label} {normalized} -> {validated_url}")
         return validated_url
 
@@ -130,6 +146,15 @@ async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
         validated_url = await _validate_dmm_image_if_needed(image_url, f"extrafanart[{index}]")
         if validated_url and validated_url not in valid_urls:
             valid_urls.append(validated_url)
+    return valid_urls
+
+
+def _normalize_extrafanart_urls(image_urls: list[str]) -> list[str]:
+    valid_urls: list[str] = []
+    for image_url in image_urls:
+        normalized = normalize_media_url(str(image_url or "").strip())
+        if normalized and normalized not in valid_urls:
+            valid_urls.append(normalized)
     return valid_urls
 
 
@@ -197,7 +222,10 @@ async def main(
         extrafanart = getExtraFanart(detail_page)
         cover_url = await _validate_dmm_image_if_needed(cover_url, "thumb")
         poster_url = await _validate_dmm_image_if_needed(poster_url, "poster")
-        extrafanart = await _filter_dmm_extrafanart(extrafanart)
+        if DownloadableFile.EXTRAFANART in manager.config.download_files:
+            extrafanart = await _filter_dmm_extrafanart(extrafanart)
+        else:
+            extrafanart = _normalize_extrafanart_urls(extrafanart)
         # 判断无码
         uncensorted_list = [
             "一本道",
