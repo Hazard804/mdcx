@@ -141,6 +141,28 @@ def getScore(html):
     return str(result)
 
 
+def remove_number_leading_zero(number: str) -> str:
+    if not number:
+        return ""
+    normalized = number.upper().strip()
+    if not (matched := re.fullmatch(r"([A-Z0-9]+)-0+(\d+)", normalized)):
+        return normalized
+    return f"{matched[1]}-{matched[2]}"
+
+
+def build_candidate_numbers(number: str, short_number: str) -> list[str]:
+    candidates = []
+    for each in [
+        remove_number_leading_zero(number),
+        remove_number_leading_zero(short_number),
+        (number or "").upper().strip(),
+        (short_number or "").upper().strip(),
+    ]:
+        if each and each not in candidates:
+            candidates.append(each)
+    return candidates
+
+
 async def main(
     number,
     appoint_url="",
@@ -160,14 +182,16 @@ async def main(
     web_info = "\n       "
     LogBuffer.info().write(" \n    🌐 mgstage")
     debug_info = ""
+    raw_number = number
 
     try:
         if not real_url:
             number = number.upper()
             short_number = short_number.upper()
-            real_url_list = [f"https://www.mgstage.com/product/product_detail/{number}/"]
-            if short_number and short_number != number:
-                real_url_list.append(f"https://www.mgstage.com/product/product_detail/{short_number}/")
+            candidate_numbers = build_candidate_numbers(number, short_number)
+            real_url_list = [f"https://www.mgstage.com/product/product_detail/{each}/" for each in candidate_numbers]
+            if len(candidate_numbers) > 1:
+                LogBuffer.info().write(web_info + f"候选番号: {', '.join(candidate_numbers)}")
         else:
             real_url_list = [real_url]
         for real_url in real_url_list:
@@ -183,12 +207,14 @@ async def main(
                 LogBuffer.info().write(web_info + debug_info)
                 raise Exception(debug_info)
             htmlcode = etree.fromstring(htmlcode, etree.HTMLParser())
+            web_number = getNum(htmlcode).strip(",")
             actor = getActor(htmlcode).replace(" ", "").strip(",")
             title = getTitle(htmlcode).replace("\\n", "").replace("        ", "").strip(",").strip()  # 获取标题
-            if title:
+            if title and web_number:
+                number = web_number
                 break
             else:
-                debug_info = "数据获取失败: 未获取到title！"
+                debug_info = "数据获取失败: 未获取到title或番号！"
                 LogBuffer.info().write(web_info + debug_info)
         else:
             raise Exception(debug_info)
@@ -208,7 +234,7 @@ async def main(
         trailer = await get_trailer(htmlcode)
         try:
             dic = {
-                "number": number,
+                "number": number or raw_number,
                 "title": title,
                 "originaltitle": title,
                 "actor": actor,
