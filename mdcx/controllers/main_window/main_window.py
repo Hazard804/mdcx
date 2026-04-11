@@ -387,7 +387,13 @@ class MyMAinWindow(QMainWindow):
         self.menu_del_file = QAction(QIcon(resources.del_file_icon), "  删除文件\tD", self)
         self.menu_del_folder = QAction(QIcon(resources.del_folder_icon), "  删除文件和文件夹\tA", self)
         self.menu_make_symlink = QAction(QIcon(resources.open_folder_icon), "  在指定位置创建软链接", self)
+        self.menu_make_symlink_in_dir = QAction(
+            QIcon(resources.open_folder_icon), "  在指定位置创建软链接（按文件名建目录）", self
+        )
         self.menu_make_hardlink = QAction(QIcon(resources.open_folder_icon), "  在指定位置创建硬链接", self)
+        self.menu_make_hardlink_in_dir = QAction(
+            QIcon(resources.open_folder_icon), "  在指定位置创建硬链接（按文件名建目录）", self
+        )
         self.menu_folder = QAction(QIcon(resources.open_folder_icon), "  打开文件夹\tF", self)
         self.menu_nfo = QAction(QIcon(resources.open_nfo_icon), "  编辑 NFO\tE", self)
         self.menu_play = QAction(QIcon(resources.play_icon), "  播放\tP", self)
@@ -400,7 +406,9 @@ class MyMAinWindow(QMainWindow):
         self.menu_del_file.triggered.connect(self.main_del_file_click)
         self.menu_del_folder.triggered.connect(self.main_del_folder_click)
         self.menu_make_symlink.triggered.connect(self.main_make_symlink_click)
+        self.menu_make_symlink_in_dir.triggered.connect(self.main_make_symlink_in_dir_click)
         self.menu_make_hardlink.triggered.connect(self.main_make_hardlink_click)
+        self.menu_make_hardlink_in_dir.triggered.connect(self.main_make_hardlink_in_dir_click)
         self.menu_folder.triggered.connect(self.main_open_folder_click)
         self.menu_nfo.triggered.connect(self.main_open_nfo_click)
         self.menu_play.triggered.connect(self.main_play_click)
@@ -434,7 +442,9 @@ class MyMAinWindow(QMainWindow):
             menu.addAction(self.menu_del_file)
             menu.addAction(self.menu_del_folder)
             menu.addAction(self.menu_make_symlink)
+            menu.addAction(self.menu_make_symlink_in_dir)
             menu.addAction(self.menu_make_hardlink)
+            menu.addAction(self.menu_make_hardlink_in_dir)
             menu.exec_(self.Ui.page_main.mapToGlobal(pos))
             return
 
@@ -455,7 +465,9 @@ class MyMAinWindow(QMainWindow):
         menu.addAction(self.menu_del_file)
         menu.addAction(self.menu_del_folder)
         menu.addAction(self.menu_make_symlink)
+        menu.addAction(self.menu_make_symlink_in_dir)
         menu.addAction(self.menu_make_hardlink)
+        menu.addAction(self.menu_make_hardlink_in_dir)
         menu.addSeparator()
         menu.addAction(self.menu_folder)
         menu.addAction(self.menu_nfo)
@@ -1312,11 +1324,56 @@ class MyMAinWindow(QMainWindow):
             return None
         return reply == QMessageBox.Yes
 
-    def _build_link_target_path(self, source_path: Path, output_dir: Path, display_path: Path | None = None) -> Path:
+    def _build_link_target_path(
+        self,
+        source_path: Path,
+        output_dir: Path,
+        display_path: Path | None = None,
+        group_in_named_dir: bool = False,
+    ) -> Path:
         file_name = display_path.name if display_path is not None else source_path.name
-        return output_dir / file_name
+        if not group_in_named_dir:
+            return output_dir / file_name
 
-    def _create_links_for_selected_files(self, link_type: Literal["soft", "hard"]) -> None:
+        dir_name = Path(file_name).stem or file_name
+        return output_dir / dir_name / file_name
+
+    def _prepare_link_target_dir(self, target_path: Path, group_in_named_dir: bool) -> tuple[bool, str, bool]:
+        if not group_in_named_dir:
+            return True, "", False
+
+        target_dir = target_path.parent
+        if target_dir == target_path:
+            return False, "目标目录无效", False
+        if target_dir.exists():
+            if target_dir.is_dir():
+                return True, "", False
+            return False, f"目标目录已存在同名文件: {target_dir}", False
+
+        try:
+            target_dir.mkdir(parents=True, exist_ok=False)
+            signal_qt.show_log_text(f" 📁 已创建目录: {target_dir}")
+            return True, "", True
+        except Exception as error:
+            return False, self._normalize_delete_error_reason(str(error)), False
+
+    def _cleanup_empty_link_target_dir(self, target_path: Path, created_dir: bool) -> None:
+        if not created_dir:
+            return
+
+        target_dir = target_path.parent
+        try:
+            if target_dir.exists() and target_dir.is_dir() and not any(target_dir.iterdir()):
+                target_dir.rmdir()
+                signal_qt.show_log_text(f" 🧹 已清理空目录: {target_dir}")
+        except Exception as error:
+            signal_qt.show_log_text(
+                f" ⚠ 清理空目录失败: {target_dir}\n    原因: {self._normalize_delete_error_reason(str(error))}"
+            )
+
+    def _create_links_for_selected_files(
+        self, link_type: Literal["soft", "hard"], group_in_named_dir: bool = False
+    ) -> None:
         selected_entries = self._get_selected_entries()
         if selected_entries:
             link_targets = [(show_name, file_path) for _, show_name, _, file_path in selected_entries]
@@ -1329,6 +1386,8 @@ class MyMAinWindow(QMainWindow):
             return
 
         link_name = "软链接" if link_type == "soft" else "硬链接"
+        if group_in_named_dir:
+            link_name = f"{link_name}（按文件名建目录）"
         should_record_success = self._confirm_record_link_paths(link_name)
         if should_record_success is None:
             return
@@ -1353,7 +1412,15 @@ class MyMAinWindow(QMainWindow):
                 )
                 continue
 
-            target_path = self._build_link_target_path(source_path, output_dir, file_path)
+            target_path = self._build_link_target_path(source_path, output_dir, file_path, group_in_named_dir)
+            ok, dir_error, created_dir = self._prepare_link_target_dir(target_path, group_in_named_dir)
+            if not ok:
+                failure_details.append((target_path, dir_error))
+                signal_qt.show_log_text(
+                    f" ❌ {link_name}失败: {target_path}\n    源文件: {source_path}\n    原因: {dir_error}"
+                )
+                continue
+
             if link_type == "soft":
                 result, info = create_symlink_sync(source_path, target_path)
             else:
@@ -1371,6 +1438,7 @@ class MyMAinWindow(QMainWindow):
                         success_paths_to_record.add(target_path)
                     signal_qt.show_log_text(f" ✅ 已创建{link_name}: {target_path}\n    源文件: {source_path}")
             else:
+                self._cleanup_empty_link_target_dir(target_path, created_dir)
                 failure_details.append((target_path, self._normalize_delete_error_reason(info)))
                 signal_qt.show_log_text(
                     f" ❌ {link_name}失败: {target_path}\n    源文件: {source_path}\n    原因: {self._normalize_delete_error_reason(info)}"
@@ -1704,11 +1772,23 @@ class MyMAinWindow(QMainWindow):
         """
         self._create_links_for_selected_files("soft")
 
+    def main_make_symlink_in_dir_click(self):
+        """
+        主界面在指定位置创建软链接，并按文件名创建目录
+        """
+        self._create_links_for_selected_files("soft", group_in_named_dir=True)
+
     def main_make_hardlink_click(self):
         """
         主界面在指定位置创建硬链接
         """
         self._create_links_for_selected_files("hard")
+
+    def main_make_hardlink_in_dir_click(self):
+        """
+        主界面在指定位置创建硬链接，并按文件名创建目录
+        """
+        self._create_links_for_selected_files("hard", group_in_named_dir=True)
 
     def _pic_main_clicked(self):
         """
