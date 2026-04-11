@@ -4,6 +4,7 @@ import time
 
 from lxml import etree
 
+from ..base.web import check_url, is_dmm_image_url, normalize_media_url
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 
@@ -104,6 +105,34 @@ def getOutline(detail_page):
     return detail_page.xpath("string(/html/body/div[2]/div[1]/div[1]/div[2]/div[3]/div/text())")
 
 
+async def _validate_dmm_image_if_needed(url: str, label: str) -> str:
+    normalized = normalize_media_url(str(url or "").strip())
+    if not normalized:
+        return ""
+
+    if not is_dmm_image_url(normalized):
+        return normalized
+
+    validated = await check_url(normalized)
+    if validated:
+        validated_url = normalize_media_url(str(validated).strip())
+        if validated_url != normalized:
+            LogBuffer.info().write(f"\n       图片校验重定向: {label} {normalized} -> {validated_url}")
+        return validated_url
+
+    LogBuffer.info().write(f"\n       图片校验失败: {label} {normalized}")
+    return ""
+
+
+async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
+    valid_urls: list[str] = []
+    for index, image_url in enumerate(image_urls, start=1):
+        validated_url = await _validate_dmm_image_if_needed(image_url, f"extrafanart[{index}]")
+        if validated_url and validated_url not in valid_urls:
+            valid_urls.append(validated_url)
+    return valid_urls
+
+
 async def main(
     number,
     appoint_url="",
@@ -166,6 +195,9 @@ async def main(
         studio = getStudio(detail_page)
         series = getSeries(detail_page)
         extrafanart = getExtraFanart(detail_page)
+        cover_url = await _validate_dmm_image_if_needed(cover_url, "thumb")
+        poster_url = await _validate_dmm_image_if_needed(poster_url, "poster")
+        extrafanart = await _filter_dmm_extrafanart(extrafanart)
         # 判断无码
         uncensorted_list = [
             "一本道",
