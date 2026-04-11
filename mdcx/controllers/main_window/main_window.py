@@ -73,7 +73,13 @@ from mdcx.utils import (
     kill_a_thread,
     split_path,
 )
-from mdcx.utils.file import delete_file_sync, open_file_thread
+from mdcx.utils.file import (
+    create_hardlink_sync,
+    create_symlink_sync,
+    delete_file_sync,
+    open_file_thread,
+    resolve_link_source_sync,
+)
 from mdcx.views.MDCx import Ui_MDCx
 
 from ..cut_window import CutWindow
@@ -380,6 +386,8 @@ class MyMAinWindow(QMainWindow):
         self.menu_website = QAction(QIcon(resources.input_website_icon), "  输入网址重新刮削\tU", self)
         self.menu_del_file = QAction(QIcon(resources.del_file_icon), "  删除文件\tD", self)
         self.menu_del_folder = QAction(QIcon(resources.del_folder_icon), "  删除文件和文件夹\tA", self)
+        self.menu_make_symlink = QAction(QIcon(resources.open_folder_icon), "  在指定位置创建软链接", self)
+        self.menu_make_hardlink = QAction(QIcon(resources.open_folder_icon), "  在指定位置创建硬链接", self)
         self.menu_folder = QAction(QIcon(resources.open_folder_icon), "  打开文件夹\tF", self)
         self.menu_nfo = QAction(QIcon(resources.open_nfo_icon), "  编辑 NFO\tE", self)
         self.menu_play = QAction(QIcon(resources.play_icon), "  播放\tP", self)
@@ -391,6 +399,8 @@ class MyMAinWindow(QMainWindow):
         self.menu_website.triggered.connect(self.search_by_url_clicked)
         self.menu_del_file.triggered.connect(self.main_del_file_click)
         self.menu_del_folder.triggered.connect(self.main_del_folder_click)
+        self.menu_make_symlink.triggered.connect(self.main_make_symlink_click)
+        self.menu_make_hardlink.triggered.connect(self.main_make_hardlink_click)
         self.menu_folder.triggered.connect(self.main_open_folder_click)
         self.menu_nfo.triggered.connect(self.main_open_nfo_click)
         self.menu_play.triggered.connect(self.main_play_click)
@@ -417,6 +427,17 @@ class MyMAinWindow(QMainWindow):
             pos = self.Ui.pushButton_right_menu.pos() + QPoint(40, 10)
             # pos = QCursor().pos()
         menu = QMenu()
+        selected_entries = self._get_selected_entries()
+        if len(selected_entries) > 1:
+            menu.addAction(QAction(f"已选择 {len(selected_entries)} 项", self))
+            menu.addSeparator()
+            menu.addAction(self.menu_del_file)
+            menu.addAction(self.menu_del_folder)
+            menu.addAction(self.menu_make_symlink)
+            menu.addAction(self.menu_make_hardlink)
+            menu.exec_(self.Ui.page_main.mapToGlobal(pos))
+            return
+
         if self.file_main_open_path:
             file_name = split_path(self.file_main_open_path)[1]
             menu.addAction(QAction(file_name, self))
@@ -433,6 +454,8 @@ class MyMAinWindow(QMainWindow):
         menu.addSeparator()
         menu.addAction(self.menu_del_file)
         menu.addAction(self.menu_del_folder)
+        menu.addAction(self.menu_make_symlink)
+        menu.addAction(self.menu_make_hardlink)
         menu.addSeparator()
         menu.addAction(self.menu_folder)
         menu.addAction(self.menu_nfo)
@@ -1100,17 +1123,338 @@ class MyMAinWindow(QMainWindow):
 
     # endregion
 
+    def _get_selected_result_items(self) -> list[QTreeWidgetItem]:
+        """
+        获取当前树状图中有效的结果项（不包含成功/失败根节点）。
+        """
+        selected_items = []
+        for item in self.Ui.treeWidget_number.selectedItems():
+            if not item or item.text(0) in {"成功", "失败"}:
+                continue
+            if item.text(0) not in self.json_array:
+                continue
+            selected_items.append(item)
+        return selected_items
+
+    def _get_selected_entries(self) -> list[tuple[QTreeWidgetItem, str, ShowData, Path]]:
+        result = []
+        for item in self._get_selected_result_items():
+            show_name = item.text(0)
+            show_data = self.json_array.get(show_name)
+            if show_data is None or not show_data.file_info.file_path:
+                continue
+            result.append((item, show_name, show_data, show_data.file_info.file_path))
+        return result
+
+    def _build_delete_preview(self, paths: list[Path], limit: int = 8) -> str:
+        preview = "\n".join(str(path) for path in paths[:limit])
+        if len(paths) > limit:
+            preview += f"\n... 其余 {len(paths) - limit} 项省略"
+        return preview
+
+    def _shorten_text(self, text: str, limit: int) -> str:
+        text = str(text).strip()
+        if len(text) <= limit:
+            return text
+        return text[: limit - 1] + "…"
+
+    def _normalize_delete_error_reason(self, error_text: str) -> str:
+        if not error_text:
+            return "未知错误"
+
+        lines = [line.strip() for line in str(error_text).splitlines() if line.strip()]
+        for line in lines:
+            if line.startswith("错误:"):
+                return line.removeprefix("错误:").strip()
+
+        for line in reversed(lines):
+            if "PermissionError:" in line:
+                return line.split("PermissionError:", 1)[1].strip()
+            if "FileNotFoundError:" in line:
+                return line.split("FileNotFoundError:", 1)[1].strip()
+            if "OSError:" in line:
+                return line.split("OSError:", 1)[1].strip()
+
+        return lines[-1]
+
+    def _localize_message_box_detail_buttons(self, box: QMessageBox) -> None:
+        for button in box.findChildren(QPushButton):
+            text = button.text().strip()
+            if text == "Show Details...":
+                button.setText("显示详情")
+            elif text == "Hide Details...":
+                button.setText("隐藏详情")
+
+    def _bind_localized_message_box_detail_buttons(self, box: QMessageBox) -> None:
+        def relocalize() -> None:
+            self._localize_message_box_detail_buttons(box)
+
+        relocalize()
+        QTimer.singleShot(0, relocalize)
+        for button in box.findChildren(QPushButton):
+            button.clicked.connect(lambda _checked=False: QTimer.singleShot(0, relocalize))
+
+    def _show_delete_failure_feedback(
+        self,
+        action_name: str,
+        success_count: int,
+        failure_details: list[tuple[Path, str]],
+    ) -> None:
+        if not failure_details:
+            return
+
+        preview_limit = 3
+        preview_lines = [
+            f"- {self._shorten_text(str(path), 90)}\n  原因：{self._shorten_text(reason, 70)}"
+            for path, reason in failure_details[:preview_limit]
+        ]
+        if len(failure_details) > preview_limit:
+            preview_lines.append(f"... 其余 {len(failure_details) - preview_limit} 条请展开“显示详情”或查看日志")
+
+        detail_lines = []
+        detail_limit = 20
+        for index, (path, reason) in enumerate(failure_details[:detail_limit], start=1):
+            detail_lines.append(f"{index}. {path}\n   原因：{reason}")
+        if len(failure_details) > detail_limit:
+            detail_lines.append(f"... 其余 {len(failure_details) - detail_limit} 条请查看日志")
+        detail_text = "\n\n".join(detail_lines)
+
+        signal_qt.show_log_text(f" ⚠ {action_name}完成：成功 {success_count} 个，失败 {len(failure_details)} 个")
+        signal_qt.show_log_text(" 失败详情：")
+        for path, reason in failure_details:
+            signal_qt.show_log_text(f"   - {path}\n     原因：{reason}")
+
+        box = QMessageBox(QMessageBox.Warning, f"{action_name}结果", f"{action_name}完成")
+        box.setInformativeText(f"成功 {success_count} 个，失败 {len(failure_details)} 个\n\n{'\n'.join(preview_lines)}")
+        box.setDetailedText(detail_text)
+        view_log_button = box.addButton("查看日志", QMessageBox.ActionRole)
+        box.addButton("确定", QMessageBox.AcceptRole)
+        self._bind_localized_message_box_detail_buttons(box)
+        box.exec()
+
+        if box.clickedButton() == view_log_button:
+            self.pushButton_show_log_clicked()
+            self.show_hide_logs(True)
+
+    def _show_batch_action_failure_feedback(
+        self,
+        action_name: str,
+        success_count: int,
+        skipped_count: int,
+        failure_details: list[tuple[Path, str]],
+    ) -> None:
+        if not failure_details:
+            return
+
+        preview_limit = 3
+        preview_lines = [
+            f"- {self._shorten_text(str(path), 90)}\n  原因：{self._shorten_text(reason, 70)}"
+            for path, reason in failure_details[:preview_limit]
+        ]
+        if len(failure_details) > preview_limit:
+            preview_lines.append(f"... 其余 {len(failure_details) - preview_limit} 条请展开“显示详情”或查看日志")
+
+        detail_limit = 20
+        detail_lines = [
+            f"{index}. {path}\n   原因：{reason}"
+            for index, (path, reason) in enumerate(failure_details[:detail_limit], start=1)
+        ]
+        if len(failure_details) > detail_limit:
+            detail_lines.append(f"... 其余 {len(failure_details) - detail_limit} 条请查看日志")
+        detail_text = "\n\n".join(detail_lines)
+
+        signal_qt.show_log_text(
+            f" ⚠ {action_name}完成：成功 {success_count} 个，跳过 {skipped_count} 个，失败 {len(failure_details)} 个"
+        )
+        signal_qt.show_log_text(" 失败详情：")
+        for path, reason in failure_details:
+            signal_qt.show_log_text(f"   - {path}\n     原因：{reason}")
+
+        box = QMessageBox(QMessageBox.Warning, f"{action_name}结果", f"{action_name}完成")
+        box.setInformativeText(
+            f"成功 {success_count} 个，跳过 {skipped_count} 个，失败 {len(failure_details)} 个\n\n"
+            f"{'\n'.join(preview_lines)}"
+        )
+        box.setDetailedText(detail_text)
+        view_log_button = box.addButton("查看日志", QMessageBox.ActionRole)
+        box.addButton("确定", QMessageBox.AcceptRole)
+        self._bind_localized_message_box_detail_buttons(box)
+        box.exec()
+
+        if box.clickedButton() == view_log_button:
+            self.pushButton_show_log_clicked()
+            self.show_hide_logs(True)
+
+    def _select_link_output_dir(self, link_name: str) -> Path | None:
+        default_dir = str(get_movie_path_setting().softlink_path)
+        selected_dir = QFileDialog.getExistingDirectory(
+            None,
+            f"选择{link_name}目标目录",
+            default_dir,
+            options=self.options,
+        )
+        return Path(selected_dir) if selected_dir else None
+
+    def _confirm_record_link_paths(self, link_name: str) -> bool | None:
+        box = QMessageBox(
+            QMessageBox.Question,
+            f"创建{link_name}",
+            f"是否将本次成功创建的{link_name}路径写入程序的刮削成功列表？",
+        )
+        box.setInformativeText("已存在的同源链接会自动去重；取消则中止本次创建。")
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        box.button(QMessageBox.Yes).setText("写入并继续")
+        box.button(QMessageBox.No).setText("仅创建")
+        box.button(QMessageBox.Cancel).setText("取消")
+        box.setDefaultButton(QMessageBox.Yes)
+        reply = box.exec()
+        if reply == QMessageBox.Cancel:
+            return None
+        return reply == QMessageBox.Yes
+
+    def _build_link_target_path(self, source_path: Path, output_dir: Path, display_path: Path | None = None) -> Path:
+        file_name = display_path.name if display_path is not None else source_path.name
+        return output_dir / file_name
+
+    def _create_links_for_selected_files(self, link_type: Literal["soft", "hard"]) -> None:
+        selected_entries = self._get_selected_entries()
+        if selected_entries:
+            link_targets = [(show_name, file_path) for _, show_name, _, file_path in selected_entries]
+        else:
+            if not self._check_main_file_path():
+                return
+            link_targets = [(self.show_name or "", self.file_main_open_path)]
+
+        if not link_targets:
+            return
+
+        link_name = "软链接" if link_type == "soft" else "硬链接"
+        should_record_success = self._confirm_record_link_paths(link_name)
+        if should_record_success is None:
+            return
+        output_dir = self._select_link_output_dir(link_name)
+        if output_dir is None:
+            return
+
+        signal_qt.show_log_text(f" 🔗 开始创建{link_name}")
+        signal_qt.show_log_text(f" 📁 目标目录: {output_dir}")
+        signal_qt.show_log_text(f" 📝 成功列表写入: {'是' if should_record_success else '否'}")
+
+        success_count = 0
+        skipped_count = 0
+        success_paths_to_record: set[Path] = set()
+        failure_details: list[tuple[Path, str]] = []
+        for _show_name, file_path in link_targets:
+            success, source_path, error_info = resolve_link_source_sync(file_path)
+            if not success:
+                failure_details.append((file_path, self._normalize_delete_error_reason(error_info)))
+                signal_qt.show_log_text(
+                    f" ❌ {link_name}失败: {file_path}\n    原因: {self._normalize_delete_error_reason(error_info)}"
+                )
+                continue
+
+            target_path = self._build_link_target_path(source_path, output_dir, file_path)
+            if link_type == "soft":
+                result, info = create_symlink_sync(source_path, target_path)
+            else:
+                result, info = create_hardlink_sync(source_path, target_path)
+
+            if result:
+                if "已存在同源" in info:
+                    skipped_count += 1
+                    if should_record_success:
+                        success_paths_to_record.add(target_path)
+                    signal_qt.show_log_text(f" ⏭ 已跳过{link_name}: {target_path}\n    原因: {info}")
+                else:
+                    success_count += 1
+                    if should_record_success:
+                        success_paths_to_record.add(target_path)
+                    signal_qt.show_log_text(f" ✅ 已创建{link_name}: {target_path}\n    源文件: {source_path}")
+            else:
+                failure_details.append((target_path, self._normalize_delete_error_reason(info)))
+                signal_qt.show_log_text(
+                    f" ❌ {link_name}失败: {target_path}\n    源文件: {source_path}\n    原因: {self._normalize_delete_error_reason(info)}"
+                )
+
+        if should_record_success and success_paths_to_record:
+            Flags.success_list.update(success_paths_to_record)
+            executor.run(save_success_list())
+            signal_qt.show_log_text(f" 💾 已写入成功列表 {len(success_paths_to_record)} 项")
+
+        fail_count = len(failure_details)
+        signal_qt.show_log_text(
+            f" 🎉 创建{link_name}完成：成功 {success_count} 个，跳过 {skipped_count} 个，失败 {fail_count} 个"
+        )
+        if fail_count:
+            signal_qt.show_scrape_info(
+                f"💡 创建{link_name}完成，成功 {success_count} 个，跳过 {skipped_count} 个，失败 {fail_count} 个！{get_current_time()}"
+            )
+            self._show_batch_action_failure_feedback(f"创建{link_name}", success_count, skipped_count, failure_details)
+        elif skipped_count and not success_count:
+            signal_qt.show_scrape_info(
+                f"💡 所选文件的{link_name}已存在，已跳过 {skipped_count} 个！{get_current_time()}"
+            )
+        elif skipped_count:
+            signal_qt.show_scrape_info(
+                f"💡 创建{link_name}完成，成功 {success_count} 个，跳过 {skipped_count} 个！{get_current_time()}"
+            )
+        elif success_count == 1:
+            signal_qt.show_scrape_info(f"💡 已创建{link_name}！{get_current_time()}")
+        else:
+            signal_qt.show_scrape_info(f"💡 已创建 {success_count} 个{link_name}！{get_current_time()}")
+
+    def _find_result_item_by_name(self, show_name: str) -> QTreeWidgetItem | None:
+        for root_item in (self.item_succ, self.item_fail):
+            for i in range(root_item.childCount()):
+                child = root_item.child(i)
+                if child.text(0) == show_name:
+                    return child
+        return None
+
+    def _clear_main_info_panel(self) -> None:
+        self.set_main_info(None)
+        self.file_main_open_path = Path()
+        self.show_name = None
+        self.show_data = None
+        if not self.Ui.widget_nfo.isHidden():
+            self.Ui.widget_nfo.hide()
+
+    def _remove_deleted_result_items(self, show_names: list[str]) -> None:
+        if not show_names:
+            return
+
+        current_show_name = self.show_name
+        for show_name in show_names:
+            self.json_array.pop(show_name, None)
+
+        for show_name in show_names:
+            item = self._find_result_item_by_name(show_name)
+            if item is None:
+                continue
+            parent = item.parent()
+            if parent is not None:
+                parent.removeChild(item)
+
+        self.Ui.treeWidget_number.clearSelection()
+        if current_show_name in show_names:
+            self._clear_main_info_panel()
+
     # 主界面-点击树状条目
-    def treeWidget_number_clicked(self, qmodeLindex):
-        item = self.Ui.treeWidget_number.currentItem()
-        if item and item.text(0) != "成功" and item.text(0) != "失败":
-            try:
-                index_json = str(item.text(0))
-                self.set_main_info(self.json_array[str(index_json)])
-                if not self.Ui.widget_nfo.isHidden():
-                    self._show_nfo_info()
-            except Exception:
-                signal_qt.show_traceback_log(item.text(0) + ": No info!")
+    def treeWidget_number_clicked(self, *_args):
+        selected_items = self._get_selected_result_items()
+        if len(selected_items) != 1:
+            if len(selected_items) > 1:
+                self._clear_main_info_panel()
+            return
+
+        item = selected_items[0]
+        try:
+            index_json = str(item.text(0))
+            self.set_main_info(self.json_array[index_json])
+            if not self.Ui.widget_nfo.isHidden():
+                self._show_nfo_info()
+        except Exception:
+            signal_qt.show_traceback_log(item.text(0) + ": No info!")
 
     def _check_main_file_path(self):
         if self.file_main_open_path == Path() or not self.file_main_open_path.is_file():
@@ -1219,35 +1563,152 @@ class MyMAinWindow(QMainWindow):
         """
         主界面点删除文件
         """
-        if self._check_main_file_path():
-            file_path = self.file_main_open_path
-            box = QMessageBox(QMessageBox.Warning, "删除文件", f"将要删除文件: \n{file_path}\n\n 你确定要删除吗？")
-            box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            box.button(QMessageBox.Yes).setText("删除文件")
-            box.button(QMessageBox.No).setText("取消")
-            box.setDefaultButton(QMessageBox.No)
-            reply = box.exec()
-            if reply != QMessageBox.Yes:
+        selected_entries = self._get_selected_entries()
+        if selected_entries:
+            delete_targets = [(show_name, file_path) for _, show_name, _, file_path in selected_entries]
+        else:
+            if not self._check_main_file_path():
                 return
-            delete_file_sync(file_path)
+            delete_targets = [(self.show_name or "", self.file_main_open_path)]
+
+        if not delete_targets:
+            return
+
+        file_paths = [file_path for _, file_path in delete_targets]
+        if len(file_paths) == 1:
+            box_text = f"将要删除文件: \n{file_paths[0]}\n\n 你确定要删除吗？"
+        else:
+            box_text = (
+                f"将要删除 {len(file_paths)} 个文件：\n{self._build_delete_preview(file_paths)}\n\n你确定要继续吗？"
+            )
+
+        box = QMessageBox(QMessageBox.Warning, "删除文件", box_text)
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        box.button(QMessageBox.Yes).setText("删除文件")
+        box.button(QMessageBox.No).setText("取消")
+        box.setDefaultButton(QMessageBox.No)
+        reply = box.exec()
+        if reply != QMessageBox.Yes:
+            return
+
+        signal_qt.show_log_text(" 🗑 开始删除文件")
+        signal_qt.show_log_text(f" 📦 本次待删除文件数: {len(file_paths)}")
+
+        success_show_names = []
+        failure_details: list[tuple[Path, str]] = []
+        for show_name, file_path in delete_targets:
+            result, error_info = delete_file_sync(file_path)
+            if result:
+                if show_name:
+                    success_show_names.append(show_name)
+                signal_qt.show_log_text(f" ✅ 已删除文件: {file_path}")
+            else:
+                reason = self._normalize_delete_error_reason(error_info)
+                failure_details.append((file_path, reason))
+                signal_qt.show_log_text(f" ❌ 删除文件失败: {file_path}\n    原因: {reason}")
+
+        self._remove_deleted_result_items(success_show_names)
+        fail_count = len(failure_details)
+        success_count = len(file_paths) - fail_count
+        signal_qt.show_log_text(f" 🎉 删除文件完成：成功 {success_count} 个，失败 {fail_count} 个")
+        if fail_count:
+            signal_qt.show_scrape_info(
+                f"💡 文件删除完成，成功 {success_count} 个，失败 {fail_count} 个！{get_current_time()}"
+            )
+            self._show_delete_failure_feedback("删除文件", success_count, failure_details)
+        elif success_count == 1:
             signal_qt.show_scrape_info(f"💡 已删除文件！{get_current_time()}")
+        else:
+            signal_qt.show_scrape_info(f"💡 已删除 {success_count} 个文件！{get_current_time()}")
 
     def main_del_folder_click(self):
         """
         主界面点删除文件夹
         """
-        if self._check_main_file_path():
-            folder_path = split_path(self.file_main_open_path)[0]
-            box = QMessageBox(QMessageBox.Warning, "删除文件", f"将要删除文件夹: \n{folder_path}\n\n 你确定要删除吗？")
-            box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            box.button(QMessageBox.Yes).setText("删除文件和文件夹")
-            box.button(QMessageBox.No).setText("取消")
-            box.setDefaultButton(QMessageBox.No)
-            reply = box.exec()
-            if reply != QMessageBox.Yes:
+        selected_entries = self._get_selected_entries()
+        if selected_entries:
+            delete_targets = [(show_name, file_path) for _, show_name, _, file_path in selected_entries]
+        else:
+            if not self._check_main_file_path():
                 return
-            shutil.rmtree(folder_path, ignore_errors=True)
+            delete_targets = [(self.show_name or "", self.file_main_open_path)]
+
+        if not delete_targets:
+            return
+
+        file_paths = [file_path for _, file_path in delete_targets]
+        folder_to_show_names: dict[Path, list[str]] = {}
+        for show_name, file_path in delete_targets:
+            folder_path = Path(split_path(file_path)[0])
+            folder_to_show_names.setdefault(folder_path, [])
+            if show_name:
+                folder_to_show_names[folder_path].append(show_name)
+
+        folder_paths = sorted(folder_to_show_names, key=lambda p: len(p.parts), reverse=True)
+        if len(folder_paths) == 1:
+            box_text = f"将要删除文件夹: \n{folder_paths[0]}\n\n 你确定要删除吗？"
+        else:
+            box_text = (
+                f"将要删除 {len(folder_paths)} 个文件夹（来源于 {len(file_paths)} 个选中项）：\n"
+                f"{self._build_delete_preview(folder_paths)}\n\n你确定要继续吗？"
+            )
+
+        box = QMessageBox(QMessageBox.Warning, "删除文件", box_text)
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        box.button(QMessageBox.Yes).setText("删除文件和文件夹")
+        box.button(QMessageBox.No).setText("取消")
+        box.setDefaultButton(QMessageBox.No)
+        reply = box.exec()
+        if reply != QMessageBox.Yes:
+            return
+
+        signal_qt.show_log_text(" 🗑 开始删除文件夹")
+        signal_qt.show_log_text(f" 📦 本次待删除文件夹数: {len(folder_paths)}")
+
+        success_folder_count = 0
+        success_show_names: list[str] = []
+        failure_details: list[tuple[Path, str]] = []
+        for folder_path in folder_paths:
+            try:
+                shutil.rmtree(folder_path)
+                success_folder_count += 1
+                success_show_names.extend(folder_to_show_names.get(folder_path, []))
+                signal_qt.show_log_text(f" ✅ 已删除文件夹: {folder_path}")
+            except FileNotFoundError:
+                success_folder_count += 1
+                success_show_names.extend(folder_to_show_names.get(folder_path, []))
+                signal_qt.show_log_text(f" ✅ 文件夹不存在，按已删除处理: {folder_path}")
+            except Exception as error:
+                reason = self._normalize_delete_error_reason(str(error))
+                failure_details.append((folder_path, reason))
+                signal_qt.show_log_text(f" ❌ 删除文件夹失败: {folder_path}\n    原因: {reason}")
+
+        if success_show_names:
+            self._remove_deleted_result_items(success_show_names)
+
+        fail_count = len(failure_details)
+        signal_qt.show_log_text(f" 🎉 删除文件夹完成：成功 {success_folder_count} 个，失败 {fail_count} 个")
+        if fail_count:
+            self.show_scrape_info(
+                f"💡 文件夹删除完成，成功 {success_folder_count} 个，失败 {fail_count} 个！{get_current_time()}"
+            )
+            self._show_delete_failure_feedback("删除文件夹", success_folder_count, failure_details)
+        elif success_folder_count == 1:
             self.show_scrape_info(f"💡 已删除文件夹！{get_current_time()}")
+        else:
+            self.show_scrape_info(f"💡 已删除 {success_folder_count} 个文件夹！{get_current_time()}")
+
+    def main_make_symlink_click(self):
+        """
+        主界面在指定位置创建软链接
+        """
+        self._create_links_for_selected_files("soft")
+
+    def main_make_hardlink_click(self):
+        """
+        主界面在指定位置创建硬链接
+        """
+        self._create_links_for_selected_files("hard")
 
     def _pic_main_clicked(self):
         """

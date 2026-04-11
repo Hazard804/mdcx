@@ -66,6 +66,61 @@ def read_link_sync(p: str):
     return p
 
 
+def resolve_link_source_sync(p: str | Path):
+    p = Path(p)
+    try:
+        if p.is_symlink():
+            return True, p.resolve(strict=True), ""
+        if p.exists():
+            return True, p, ""
+        return False, p, f"不存在: {p}"
+    except Exception as e:
+        error_info = f" 解析链接源文件: {p}\n 错误: {e}\n{traceback.format_exc()}"
+        signal.add_log(error_info)
+        print(error_info)
+        return False, p, error_info
+
+
+def create_symlink_sync(source: str | Path, target: str | Path):
+    source = Path(source)
+    target = Path(target)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            if target.is_symlink() and target.resolve(strict=False) == source.resolve(strict=False):
+                return True, "已存在同源软链接"
+            return False, f"目标已存在: {target}"
+        os.symlink(source, target)
+        return True, ""
+    except Exception as e:
+        error_info = f" 创建软链接: {target}\n 源文件: {source}\n 错误: {e}\n{traceback.format_exc()}"
+        signal.add_log(error_info)
+        print(error_info)
+        return False, error_info
+
+
+def create_hardlink_sync(source: str | Path, target: str | Path):
+    source = Path(source)
+    target = Path(target)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            if target.exists() and not target.is_symlink():
+                try:
+                    if source.exists() and source.samefile(target):
+                        return True, "已存在同源硬链接/文件"
+                except Exception:
+                    pass
+            return False, f"目标已存在: {target}"
+        os.link(source, target)
+        return True, ""
+    except Exception as e:
+        error_info = f" 创建硬链接: {target}\n 源文件: {source}\n 错误: {e}\n{traceback.format_exc()}"
+        signal.add_log(error_info)
+        print(error_info)
+        return False, error_info
+
+
 def check_pic_sync(p: str):
     if os.path.exists(p):
         try:

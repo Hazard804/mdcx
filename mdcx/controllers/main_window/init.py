@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QMenu, QSystemTrayIcon, QTreeWidgetItem
+from PyQt5.QtWidgets import QAbstractItemView, QAction, QMenu, QSystemTrayIcon, QTreeWidgetItem
 
 from mdcx.config.enums import Website
 from mdcx.config.extend import get_movie_path_setting
@@ -32,6 +32,36 @@ def Init_Ui(self: "MyMAinWindow"):
     self.Ui.progressBar_scrape.setTextVisible(False)  # 不显示进度条文字
     self.Ui.pushButton_start_cap.setCheckable(True)  # 主界面开始按钮可点状态
     self.init_QTreeWidget()  # 初始化树状图
+    self.Ui.treeWidget_number.setSelectionMode(QAbstractItemView.ExtendedSelection)  # 支持 Shift/Ctrl 多选结果项
+    self.Ui.treeWidget_number.setAllColumnsShowFocus(False)  # 关闭默认焦点框，避免与选中边框叠加
+    self.Ui.treeWidget_number.setStyleSheet("""
+        QTreeWidget {
+            outline: 0;
+        }
+        QTreeWidget::item {
+            border: 1px solid transparent;
+            padding: 1px 2px;
+        }
+        QTreeWidget::item:hover {
+            background: rgba(76, 110, 255, 18);
+            border: 1px solid rgba(76, 110, 255, 100);
+        }
+        QTreeWidget::item:selected {
+            color: black;
+            background: rgba(76, 110, 255, 35);
+            border: 1px solid rgba(76, 110, 255, 180);
+        }
+        QTreeWidget::item:selected:active {
+            color: black;
+            background: rgba(76, 110, 255, 35);
+            border: 1px solid rgba(76, 110, 255, 180);
+        }
+        QTreeWidget::item:selected:!active {
+            color: black;
+            background: rgba(76, 110, 255, 25);
+            border: 1px solid rgba(76, 110, 255, 140);
+        }
+    """)
     self.Ui.label_poster.setScaledContents(True)  # 图片自适应窗口
     self.Ui.label_thumb.setScaledContents(True)  # 图片自适应窗口
     self.Ui.pushButton_right_menu.setIcon(QIcon(resources.right_menu))
