@@ -9,6 +9,8 @@ from ..crawlers import prestige
 from ..models.log_buffer import LogBuffer
 from ..number import get_number_letters
 
+DIRECTOR_PLACEHOLDER_CHARS = frozenset("-—－ー―‐~～·•. ")
+
 
 def get_title(html):
     result = html.xpath('//h2[@class="p-workPage__title"]/text()')
@@ -65,7 +67,12 @@ def get_publisher(html):
 
 def get_director(html):
     result = html.xpath('//div[@class="th" and contains(text(), "監督")]/following-sibling::div/div/p/text()')
-    return result[0].strip() if result else ""
+    if not result:
+        return ""
+    director = result[0].strip()
+    if not director or director == "N/A" or all(char in DIRECTOR_PLACEHOLDER_CHARS for char in director):
+        return ""
+    return director
 
 
 def get_trailer(html):
