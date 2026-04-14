@@ -207,7 +207,13 @@ def get_real_url(
 
 
 def get_search_keyword(file_path):
-    file_path = remove_escape_string(file_path)
+    file_path = remove_escape_string(file_path).replace("'", "").replace("'", "")
+    file_path = re.sub(
+        r"(?i)[-_ .]?(1080p|720p|2160p|480p|540p|360p|mp4|mkv|avi|wmv|mov|ts|m4v|xxx)[-_ .]?",
+        "-",
+        file_path,
+    )
+    file_path = file_path.replace("--", "-").strip("-_ .")
     file_name = os.path.basename(file_path.replace("\\", "/")).replace(",", ".")
     file_name = os.path.splitext(file_name)[0]
 
@@ -223,7 +229,7 @@ def get_search_keyword(file_path):
         temp_title = re.sub(r"[-_&\.]", " ", file_name.replace(full_number, "")).strip()
         temp_title_list = []
         [temp_title_list.append(i) for i in temp_title.split(" ") if i and i != series_ex]
-        keyword_list.append(series_ex + " " + " ".join(temp_title_list[:2]))  # 系列 + 标题（去掉日期）
+        keyword_list.append(series_ex + " " + " ".join(temp_title_list))  # 系列 + 完整标题
     else:
         keyword_list.append(" ".join(file_name.split(".")[:2]).replace("-", " "))
     return keyword_list, series_ex, date
