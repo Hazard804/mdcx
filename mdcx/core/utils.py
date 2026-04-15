@@ -175,7 +175,7 @@ def _normalize_path_for_definition(file_path: Path, file_number: str = "") -> st
     number_candidates = {file_number.upper()} if file_number else set()
 
     if file_number:
-        short_number = re.findall(r"\d{3,}([A-Z]+-\d+)", file_number.upper())
+        short_number = re.findall(r"\d{3,}([A-Z]+\d*-\d+)", file_number.upper())
         number_candidates.update(short_number)
 
     for each in sorted((candidate for candidate in number_candidates if candidate), key=len, reverse=True):

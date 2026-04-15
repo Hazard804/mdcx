@@ -449,7 +449,7 @@ async def get_file_info_v2(file_path: Path, copy_sub: bool = True) -> FileInfo:
             movie_number = get_file_number(file_path_str, manager.computed.escape_string_list)
 
         # 259LUXU-1111, 非mgstage、avsex去除前面的数字前缀
-        temp_n = re.findall(r"\d{3,}([a-zA-Z]+-\d+)", movie_number)
+        temp_n = re.findall(r"\d{3,}([a-zA-Z]+\d*-\d+)", movie_number)
         optional_data["short_number"] = temp_n[0] if temp_n else ""
 
         # 去掉各种乱七八糟的字符

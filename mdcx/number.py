@@ -243,7 +243,7 @@ def get_file_number(filepath: str, escape_string_list: list[str]) -> str:
     elif r := re.search(r"([A-Z]{2,})00(\d{3})", filename):  # 提取ssni00644为ssni-644
         file_number = r[1] + "-" + r[2]
 
-    elif r := re.search(r"\d{2,}[A-Z]{2,}-\d{2,}[A-Z]?", filename):  # 提取类似259luxu-1456番号
+    elif r := re.search(r"\d{2,}[A-Z]{2,}\d*-\d{2,}[A-Z]?", filename):  # 提取类似259luxu-1456番号
         file_number = r.group()
 
     elif r := re.search(r"[A-Z]{2,}-\d{2,}[Z]?", filename):  # 提取类似mkbd-120番号

@@ -39,6 +39,7 @@ def test_get_file_number_normalizes_uncensored_digit_numbers(raw_number: str, ex
         (r"D:/test/LUXU-1488.mp4", "259LUXU-1488"),
         (r"D:/test/SCUTE-953.mp4", "229SCUTE-953"),
         (r"D:/test/MAAN-673.mp4", "300MAAN-673"),
+        (r"D:/test/PA0-002.mp4", "483PA0-002"),
     ],
 )
 def test_get_file_number_normalizes_suren_numbers(raw_number: str, expected_number: str):
@@ -116,6 +117,7 @@ async def test_get_file_info_marks_uncensored_digit_numbers(file_path: Path, exp
         (Path("D:/test/LUXU-1488.mp4"), "259LUXU-1488", "LUXU-1488"),
         (Path("D:/test/SCUTE-953.mp4"), "229SCUTE-953", "SCUTE-953"),
         (Path("D:/test/259LUXU-1488.mp4"), "259LUXU-1488", "LUXU-1488"),
+        (Path("D:/test/483PA0-002.mp4"), "483PA0-002", "PA0-002"),
     ],
 )
 async def test_get_file_info_extracts_suren_short_number(
