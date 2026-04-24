@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 from urllib.parse import quote_plus
 
-from PyQt5.QtCore import QEvent, QPoint, Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import QEvent, QItemSelectionModel, QPoint, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QCursor, QHoverEvent, QIcon, QKeySequence
 from PyQt5.QtWidgets import (
     QAction,
@@ -452,6 +452,7 @@ class MyMAinWindow(QMainWindow):
             # pos = QCursor().pos()
         menu = QMenu()
         selected_entries = self._get_selected_entries()
+        selected_entry = selected_entries[0] if len(selected_entries) == 1 else None
         if len(selected_entries) > 1:
             menu.addAction(QAction(f"已选择 {len(selected_entries)} 项", self))
             menu.addSeparator()
@@ -464,7 +465,12 @@ class MyMAinWindow(QMainWindow):
             menu.exec_(self.Ui.page_main.mapToGlobal(pos))
             return
 
-        if self.file_main_open_path:
+        if selected_entry is not None:
+            _, _, _, file_path = selected_entry
+            file_name = split_path(file_path)[1]
+            menu.addAction(QAction(file_name, self))
+            menu.addSeparator()
+        elif self.file_main_open_path:
             file_name = split_path(self.file_main_open_path)[1]
             menu.addAction(QAction(file_name, self))
             menu.addSeparator()
@@ -492,6 +498,13 @@ class MyMAinWindow(QMainWindow):
         menu.exec_(self.Ui.page_main.mapToGlobal(pos))
         # menu.move(pos)
         # menu.show()
+
+    def _tree_result_context_menu(self, pos: QPoint):
+        item = self.Ui.treeWidget_number.itemAt(pos)
+        if item is not None and item.text(0) not in {"成功", "失败"}:
+            self._set_result_item_as_current_selection(item)
+        global_pos = self.Ui.treeWidget_number.viewport().mapToGlobal(pos)
+        self._menu(self.Ui.page_main.mapFromGlobal(global_pos))
 
     # endregion
 
@@ -1023,6 +1036,28 @@ class MyMAinWindow(QMainWindow):
         # self.Ui.treeWidget_number.setCurrentItem(node)
         # self.Ui.treeWidget_number.scrollToItem(node)
 
+    def _get_single_selected_entry(self) -> tuple[QTreeWidgetItem, str, ShowData, Path] | None:
+        selected_entries = self._get_selected_entries()
+        if len(selected_entries) != 1:
+            return None
+        return selected_entries[0]
+
+    def _has_single_selected_result_item(self) -> bool:
+        return self._get_single_selected_entry() is not None
+
+    def _set_result_item_as_current_selection(self, item: QTreeWidgetItem) -> None:
+        if item.text(0) in {"成功", "失败"}:
+            return
+
+        tree = self.Ui.treeWidget_number
+        selected_items = tree.selectedItems()
+        if item not in selected_items:
+            tree.clearSelection()
+            item.setSelected(True)
+        model_index = tree.indexFromItem(item)
+        if model_index.isValid():
+            tree.selectionModel().setCurrentIndex(model_index, QItemSelectionModel.NoUpdate)
+
     def show_list_name(self, status: Literal["succ", "fail"], show_data: ShowData, real_number=""):
         # 添加树状节点
         self._addTreeChild(status, show_data.show_name)
@@ -1030,9 +1065,10 @@ class MyMAinWindow(QMainWindow):
         if not show_data.data.title:
             show_data.data.title = LogBuffer.error().get()
             show_data.data.number = real_number
-        self.show_name = show_data.show_name
-        self.set_main_info(show_data)
         self.json_array[show_data.show_name] = show_data
+        if not self._has_single_selected_result_item():
+            self.show_name = show_data.show_name
+            self.set_main_info(show_data)
 
     def set_main_info(self, show_data: "ShowData | None"):
         if show_data is not None:
@@ -1607,6 +1643,17 @@ class MyMAinWindow(QMainWindow):
             signal_qt.show_traceback_log(item.text(0) + ": No info!")
 
     def _check_main_file_path(self):
+        selected_entries = self._get_selected_entries()
+        if len(selected_entries) > 1:
+            QMessageBox.about(self, "选择过多", "请只选择一个项目后再使用！！")
+            signal_qt.show_scrape_info(f"💡 请只选择一个项目后再使用！{get_current_time()}")
+            return False
+        if len(selected_entries) == 1:
+            _, show_name, show_data, file_path = selected_entries[0]
+            self.show_name = show_name
+            self.set_main_info(show_data)
+            self.file_main_open_path = file_path
+
         if self.file_main_open_path == Path() or not self.file_main_open_path.is_file():
             QMessageBox.about(self, "没有目标文件", "请刮削后再使用！！")
             signal_qt.show_scrape_info(f"💡 请刮削后使用！{get_current_time()}")

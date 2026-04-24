@@ -34,6 +34,7 @@ def Init_Ui(self: "MyMAinWindow"):
     self.init_QTreeWidget()  # 初始化树状图
     self.Ui.treeWidget_number.setSelectionMode(QAbstractItemView.ExtendedSelection)  # 支持 Shift/Ctrl 多选结果项
     self.Ui.treeWidget_number.setAllColumnsShowFocus(False)  # 关闭默认焦点框，避免与选中边框叠加
+    self.Ui.treeWidget_number.setContextMenuPolicy(Qt.CustomContextMenu)
     self.Ui.treeWidget_number.setStyleSheet("""
         QTreeWidget {
             outline: 0;
@@ -175,6 +176,7 @@ def Init_Singal(self: "MyMAinWindow"):
     # region 控件点击
     # self.Ui.treeWidget_number.clicked.connect(self.treeWidget_number_clicked)
     self.Ui.treeWidget_number.selectionModel().selectionChanged.connect(self.treeWidget_number_clicked)
+    self.Ui.treeWidget_number.customContextMenuRequested.connect(self._tree_result_context_menu)
     self.Ui.pushButton_close.clicked.connect(self.pushButton_close_clicked)
     self.Ui.pushButton_min.clicked.connect(self.pushButton_min_clicked)
     self.Ui.pushButton_main.clicked.connect(self.pushButton_main_clicked)
