@@ -45,6 +45,17 @@ def test_get_file_number_normalizes_suren_numbers(raw_number: str, expected_numb
     assert get_file_number(raw_number, []) == expected_number
 
 
+@pytest.mark.parametrize(
+    ("raw_number", "expected_number"),
+    [
+        (r"D:/test/DANDY-818.mp4", "DANDY-818"),
+        (r"D:/test/KIWVR-254.mp4", "KIWVR-254"),
+    ],
+)
+def test_get_file_number_keeps_non_suren_prefixes(raw_number: str, expected_number: str):
+    assert get_file_number(raw_number, []) == expected_number
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("file_path", "file_number", "custom_strings", "expected_definition"),
@@ -130,3 +141,25 @@ async def test_get_file_info_extracts_suren_short_number(
 
     assert file_info.number == expected_number
     assert file_info.short_number == expected_short_number
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("file_path", "expected_number"),
+    [
+        (Path("D:/test/DANDY-818.mp4"), "DANDY-818"),
+        (Path("D:/test/KIWVR-254.mp4"), "KIWVR-254"),
+    ],
+)
+async def test_get_file_info_does_not_extract_short_number_for_non_suren_prefixes(
+    file_path: Path, expected_number: str
+):
+    old_file_mode = Flags.file_mode
+    Flags.file_mode = FileMode.Default
+    try:
+        file_info = await get_file_info_v2(file_path, copy_sub=False)
+    finally:
+        Flags.file_mode = old_file_mode
+
+    assert file_info.number == expected_number
+    assert file_info.short_number == ""

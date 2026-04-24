@@ -397,7 +397,6 @@ class ManualConfig:
         "SIMM-": "345",  # 345SIMM-662
         "NTR-": "348",  # 348NTR-001
         "JAC-": "390",  # 390JAC-034
-        "KIWVR": "408",  # 408KIWVR-254
         "INST": "413",  # 413INST-202
         "SRYA": "417",  # 417SRYA-015
         "SUKE-": "428",  # 428SUKE-086
@@ -410,7 +409,6 @@ class ManualConfig:
         "SEI-": "502",  # 502SEI-001
         "STCV": "529",  # 529STCV-009
         "MY-": "292",  # 292MY-425
-        "DANDY": "104",  # 104DANDY-852A
         "ICHK": "368",  # 368ICHK-018
     }
     REPL_LIST = [
