@@ -102,8 +102,11 @@ class MyMAinWindow(QMainWindow):
     main_req_logs_show = pyqtSignal(str)  # 显示刮削后台日志信号
     net_logs_show = pyqtSignal(str)  # 显示网络检测日志信号
     set_javdb_cookie = pyqtSignal(str)  # 加载javdb cookie文本内容到设置页面
+    set_javdb_status = pyqtSignal(str)  # javdb 检查状态更新
+    set_fc2ppvdb_status = pyqtSignal(str)  # fc2ppvdb 检查状态更新
     set_javbus_cookie = pyqtSignal(str)  # 加载javbus cookie文本内容到设置页面
     set_javbus_status = pyqtSignal(str)  # javbus 检查状态更新
+    exec_save_config = pyqtSignal()  # 主线程执行保存配置
     set_label_file_path = pyqtSignal(str)  # 主界面更新路径信息显示
     set_pic_pixmap = pyqtSignal(list, list)  # 主界面显示封面、缩略图
     set_pic_text = pyqtSignal(str)  # 主界面显示封面信息
@@ -2922,22 +2925,21 @@ class MyMAinWindow(QMainWindow):
     def pushButton_check_javdb_cookie_clicked(self):
         input_cookie = self.Ui.plainTextEdit_cookie_javdb.toPlainText()
         if not input_cookie:
-            self.Ui.label_javdb_cookie_result.setText("❌ 未填写 Cookie")
+            self.set_javdb_status.emit("❌ 未填写 Cookie")
             self.show_log_text(" ❌ JavDb 未填写 Cookie，可在「设置」-「网络」添加！")
             return
-        self.Ui.label_javdb_cookie_result.setText("⏳ 正在检测中...")
+        self.set_javdb_status.emit("⏳ 正在检测中...")
         try:
-            t = threading.Thread(target=self._check_javdb_cookie)
+            t = threading.Thread(target=self._check_javdb_cookie, args=(input_cookie,))
             t.start()  # 启动线程,即让线程开始执行
         except Exception:
             signal_qt.show_traceback_log(traceback.format_exc())
             signal_qt.show_log_text(traceback.format_exc())
 
-    def _check_javdb_cookie(self):
+    def _check_javdb_cookie(self, input_cookie: str):
         tips = "❌ 未填写 Cookie，影响 FC2 刮削！"
-        input_cookie = self.Ui.plainTextEdit_cookie_javdb.toPlainText()
         if not input_cookie:
-            self.Ui.label_javdb_cookie_result.setText(tips)
+            self.set_javdb_status.emit(tips)
             return tips
         # self.Ui.pushButton_check_javdb_cookie.setEnabled(False)
         tips = "✅ 连接正常！"
@@ -2952,7 +2954,7 @@ class MyMAinWindow(QMainWindow):
                     else:
                         tips = "❌ Cookie 已过期！已清理！(不清理无法访问)"
                         self.set_javdb_cookie.emit("")
-                        self.pushButton_save_config_clicked()
+                        self.exec_save_config.emit()
                 else:
                     tips = f"❌ 连接失败！请检查网络或代理设置！ {response}"
             else:
@@ -2972,7 +2974,7 @@ class MyMAinWindow(QMainWindow):
                             vip_info = "已开通 VIP"
                         if manager.config.javdb != input_cookie:  # 保存cookie
                             tips = f"✅ 连接正常！（{vip_info}）Cookie 已保存！"
-                            self.pushButton_save_config_clicked()
+                            self.exec_save_config.emit()
                         else:
                             tips = f"✅ 连接正常！（{vip_info}）"
                 else:
@@ -2981,12 +2983,12 @@ class MyMAinWindow(QMainWindow):
                     else:
                         tips = "❌ Cookie 无效！已清理！"
                         self.set_javdb_cookie.emit("")
-                        self.pushButton_save_config_clicked()
+                        self.exec_save_config.emit()
         except Exception as e:
             tips = f"❌ 连接失败！请检查网络或代理设置！ {e}"
             signal_qt.show_traceback_log(tips)
         if input_cookie:
-            self.Ui.label_javdb_cookie_result.setText(tips)
+            self.set_javdb_status.emit(tips)
             # self.Ui.pushButton_check_javdb_cookie.setEnabled(True)
         self.show_log_text(tips.replace("❌", " ❌ JavDb").replace("✅", " ✅ JavDb"))
         return tips
@@ -2995,51 +2997,49 @@ class MyMAinWindow(QMainWindow):
     def pushButton_check_fc2ppvdb_cookie_clicked(self):
         input_cookie = self.Ui.plainTextEdit_cookie_fc2ppvdb.toPlainText().strip()
         if not input_cookie:
-            self.Ui.label_fc2ppvdb_cookie_result.setText("❌ 未填写 Cookie")
+            self.set_fc2ppvdb_status.emit("❌ 未填写 Cookie")
             self.show_log_text(" ❌ FC2PPVDB 未填写 Cookie，可在「设置」-「网络」添加！")
             return
-        self.Ui.label_fc2ppvdb_cookie_result.setText("⏳ 正在检测中...")
+        self.set_fc2ppvdb_status.emit("⏳ 正在检测中...")
         try:
-            t = threading.Thread(target=self._check_fc2ppvdb_cookie)
+            t = threading.Thread(target=self._check_fc2ppvdb_cookie, args=(input_cookie,))
             t.start()  # 启动线程,即让线程开始执行
         except Exception:
             signal_qt.show_traceback_log(traceback.format_exc())
             signal_qt.show_log_text(traceback.format_exc())
 
-    def _check_fc2ppvdb_cookie(self):
+    def _check_fc2ppvdb_cookie(self, input_cookie: str):
         tips = "❌ 未填写 Cookie"
-        input_cookie = self.Ui.plainTextEdit_cookie_fc2ppvdb.toPlainText().strip()
         if not input_cookie:
-            self.Ui.label_fc2ppvdb_cookie_result.setText(tips)
+            self.set_fc2ppvdb_status.emit(tips)
             return tips
 
         if "fc2ppvdb_session" not in input_cookie:
             tips = "❌ Cookie 无效！缺少 fc2ppvdb_session"
         elif manager.config.fc2ppvdb != input_cookie:
-            self.pushButton_save_config_clicked()
+            self.exec_save_config.emit()
             tips = "✅ 连接正常，Cookie 已保存！"
         else:
             tips = "✅ 连接正常！"
 
-        self.Ui.label_fc2ppvdb_cookie_result.setText(tips)
+        self.set_fc2ppvdb_status.emit(tips)
         self.show_log_text(tips.replace("❌", " ❌ FC2PPVDB").replace("✅", " ✅ FC2PPVDB"))
         return tips
 
     # javbus cookie
     def pushButton_check_javbus_cookie_clicked(self):
+        input_cookie = self.Ui.plainTextEdit_cookie_javbus.toPlainText()
+        self.set_javbus_status.emit("⏳ 正在检测中...")
         try:
-            t = threading.Thread(target=self._check_javbus_cookie)
+            t = threading.Thread(target=self._check_javbus_cookie, args=(input_cookie,))
             t.start()  # 启动线程,即让线程开始执行
         except Exception:
             signal_qt.show_traceback_log(traceback.format_exc())
             self.show_log_text(traceback.format_exc())
 
-    def _check_javbus_cookie(self):
-        self.set_javbus_status.emit("⏳ 正在检测中...")
-
+    def _check_javbus_cookie(self, input_cookie: str):
         # self.Ui.pushButton_check_javbus_cookie.setEnabled(False)
         tips = "✅ 连接正常！"
-        input_cookie = self.Ui.plainTextEdit_cookie_javbus.toPlainText()
         headers = {"Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja;q=0.6", "cookie": input_cookie}
         javbus_url = manager.config.get_site_url(Website.JAVBUS, "https://javbus.com") + "/FSDSS-660"
 
@@ -3054,7 +3054,7 @@ class MyMAinWindow(QMainWindow):
                 else:
                     tips = "❌ 当前节点需要 Cookie 才能刮削！请填写 Cookie 或更换节点！"
             elif manager.config.javbus != input_cookie:
-                self.pushButton_save_config_clicked()
+                self.exec_save_config.emit()
                 tips = "✅ 连接正常！Cookie 已保存！  "
 
         except Exception as e:
