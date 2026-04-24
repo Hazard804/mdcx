@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import time
 
-from curl_cffi.requests import AsyncSession
-
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 
@@ -55,7 +53,23 @@ def get_video_url(data):  # 获取视频URL
 
 
 def get_video_time(data):  # 获取视频时长
-    return data.get("article", {}).get("duration", "")
+    duration = str(data.get("article", {}).get("duration", "")).strip()
+    if not duration:
+        return ""
+
+    temp_list = duration.split(":")
+    if len(temp_list) == 3:
+        hours, minutes, seconds = temp_list
+        try:
+            total_minutes = int(hours) * 60 + int(minutes)
+            if total_minutes == 0 and int(seconds) > 0:
+                return "1"
+            return str(total_minutes)
+        except ValueError:
+            return duration
+    if len(temp_list) <= 2 and temp_list[0].isdigit():
+        return str(int(temp_list[0]))
+    return duration
 
 
 def cookie_str_to_dict(cookie_str: str) -> dict:  # cookie 转为字典
@@ -91,30 +105,31 @@ async def main(
         debug_info = f"番号地址: {real_url}"
         LogBuffer.info().write(web_info + debug_info)
         # ========================================================================番号详情页
-        # 创建 session
-        # 使用独立的 fc2ppvdb cookie
         cookies = cookie_str_to_dict(manager.config.fc2ppvdb)
-        if manager.config.use_proxy:
-            proxies = {
-                "http": manager.config.proxy,
-                "https": manager.config.proxy,
-            }
-        else:
-            proxies = None
-        async with AsyncSession(cookies=cookies, proxies=proxies) as session:
-            # 访问详情页面，提交 cookie
-            url_article = f"https://fc2ppvdb.com/articles/{number}"
-            response_article = await session.get(url_article)
-            if response_article.status_code != 200:
-                raise Exception(f"详情页请求失败: {response_article.status_code}")
+        use_proxy = manager.config.use_proxy
 
-            # 访问 XHR 接口获取 JSON 数据
-            xhr_url = f"https://fc2ppvdb.com/articles/article-info?videoid={number}"
-            response_xhr = await session.get(xhr_url)
-            if response_xhr.status_code != 200:
-                raise Exception(f"XHR 请求失败: {response_xhr.status_code}")
+        # 先访问详情页，让站点接受配置中的独立 cookie。
+        url_article = f"https://fc2ppvdb.com/articles/{number}"
+        response_article, error = await manager.computed.async_client.request(
+            "GET",
+            url_article,
+            cookies=cookies,
+            use_proxy=use_proxy,
+        )
+        if response_article is None:
+            raise Exception(f"详情页请求失败: {error}")
+        if response_article.status_code != 200:
+            raise Exception(f"详情页请求失败: {response_article.status_code}")
 
-        html_info = response_xhr.json()  # json 传给旧变量
+        # 再访问 XHR 接口获取 JSON 数据。
+        xhr_url = f"https://fc2ppvdb.com/articles/article-info?videoid={number}"
+        html_info, error = await manager.computed.async_client.get_json(
+            xhr_url,
+            cookies=cookies,
+            use_proxy=use_proxy,
+        )
+        if html_info is None:
+            raise Exception(f"XHR 请求失败: {error}")
 
         title = get_title(html_info)
         if not title:
