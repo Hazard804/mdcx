@@ -143,12 +143,16 @@ def normalize_media_url(url: str, *, strip_dmm_probe_params: bool = False) -> st
     if strip_dmm_probe_params:
         query_items = [(k, v) for k, v in query_items if (k, v) not in _DMM_IMAGE_PROBE_PARAMS]
 
+    path = split_result.path
+    if split_result.netloc.lower().endswith(("dmm.co.jp", "dmm.com")):
+        path = re.sub(r"/{2,}", "/", path)
+
     query = urlencode(query_items, doseq=True)
     cleaned = urlunsplit(
         (
             split_result.scheme,
             split_result.netloc,
-            split_result.path,
+            path,
             query,
             split_result.fragment,
         )

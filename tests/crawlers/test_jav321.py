@@ -85,8 +85,8 @@ async def test_filter_dmm_extrafanart_filters_invalid_dmm_and_keeps_non_dmm(monk
     assert called_urls == [
         "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample1.jpg",
         "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/badextra.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/badextra.jpg",
         "https://pics.dmm.co.jp/digital/video/knld00010/badextra.jpg",
-        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample1.jpg",
     ]
 
 
@@ -108,6 +108,62 @@ async def test_filter_dmm_extrafanart_prefers_aws_for_dmm_pics(monkeypatch: pyte
     assert called_urls == ["https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample1.jpg"]
 
 
+@pytest.mark.asyncio
+async def test_filter_dmm_extrafanart_upgrades_unsampled_dmm_images_to_aws(monkeypatch: pytest.MonkeyPatch):
+    called_urls: list[str] = []
+
+    async def fake_check_url(url: str, length: bool = False, real_url: bool = False):
+        called_urls.append(url)
+        if url.endswith("unchecked.jpg"):
+            raise AssertionError("抽检通过后不应继续校验未抽中的剧照")
+        return url
+
+    monkeypatch.setattr(jav321_module, "check_url", fake_check_url)
+    monkeypatch.setattr(jav321_module.random, "sample", lambda population, k: [0, 1, 2])
+
+    result = await jav321_module._filter_dmm_extrafanart(
+        [
+            "https://pics.dmm.co.jp/digital/video/knld00010/sample1.jpg",
+            "https://pics.dmm.co.jp/digital/video/knld00010/sample2.jpg",
+            "https://pics.dmm.co.jp/digital/video/knld00010/sample3.jpg",
+            "https://pics.dmm.co.jp/digital/video/knld00010/unchecked.jpg",
+        ]
+    )
+
+    assert result == [
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample1.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample2.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample3.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/unchecked.jpg",
+    ]
+    assert called_urls == [
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample1.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample2.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/sample3.jpg",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_resolve_dmm_poster_url_uses_thumb_ps_candidate(monkeypatch: pytest.MonkeyPatch):
+    called_urls: list[str] = []
+
+    async def fake_check_url(url: str, length: bool = False, real_url: bool = False):
+        called_urls.append(url)
+        if url.endswith("ps.jpg"):
+            return url
+        return None
+
+    monkeypatch.setattr(jav321_module, "check_url", fake_check_url)
+
+    result = await jav321_module._resolve_dmm_poster_url(
+        "https://pics.dmm.co.jp/digital/video/knld00010/knld00010pl.jpg",
+        "",
+    )
+
+    assert result == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/knld00010ps.jpg"
+    assert called_urls == ["https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/knld00010ps.jpg"]
+
+
 def test_normalize_extrafanart_urls_dedupes_without_validation():
     result = jav321_module._normalize_extrafanart_urls(
         [
@@ -122,6 +178,18 @@ def test_normalize_extrafanart_urls_dedupes_without_validation():
         "https://cdn.example.com/sample2.jpg",
         "https://pics.dmm.co.jp/digital/video/knld00010/sample1.jpg",
     ]
+
+
+def test_remove_cover_from_extrafanart_handles_equivalent_dmm_hosts():
+    result = jav321_module._remove_cover_from_extrafanart(
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/knld00010/knld00010pl.jpg",
+        [
+            "https://pics.dmm.co.jp/digital/video/knld00010/knld00010pl.jpg",
+            "https://pics.dmm.co.jp/digital/video/knld00010/sample1.jpg",
+        ],
+    )
+
+    assert result == ["https://pics.dmm.co.jp/digital/video/knld00010/sample1.jpg"]
 
 
 @pytest.mark.asyncio
@@ -176,7 +244,4 @@ async def test_main_skips_extrafanart_validation_when_download_disabled(monkeypa
     data = result["jav321"]["zh_cn"]
 
     assert called_labels == ["thumb", "poster"]
-    assert data["extrafanart"] == [
-        "https://pics.dmm.co.jp/digital/video/knld00010/knld00010pl.jpg",
-        "https://pics.dmm.co.jp/digital/video/knld00010/sample1.jpg",
-    ]
+    assert data["extrafanart"] == ["https://pics.dmm.co.jp/digital/video/knld00010/sample1.jpg"]

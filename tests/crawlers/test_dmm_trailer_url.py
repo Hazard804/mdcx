@@ -581,6 +581,7 @@ async def test_finalize_result_images_validates_poster_and_filters_invalid_extra
         return url
 
     monkeypatch.setattr(dmm_module, "check_url", fake_check_url)
+    monkeypatch.setattr(dmm_module.random, "sample", lambda population, k: [0, 1, 2])
     monkeypatch.setattr(
         manager.config,
         "download_files",
@@ -596,18 +597,65 @@ async def test_finalize_result_images_validates_poster_and_filters_invalid_extra
         extrafanart=[
             "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
             "https://pics.dmm.co.jp/digital/video/pred00816/badextra.jpg",
-            "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
+            "https://pics.dmm.co.jp/digital/video/pred00816/sample2.jpg",
         ],
     )
 
     finalized = await crawler._finalize_result_images(ctx, data, label="最终图片", validate_thumb=False)
 
     assert finalized.poster == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/pred00816ps.jpg"
-    assert finalized.extrafanart == ["https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg"]
+    assert finalized.extrafanart == [
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample1.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample2.jpg",
+    ]
     assert called_urls == [
         "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/pred00816ps.jpg",
-        "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample1.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/badextra.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample2.jpg",
         "https://pics.dmm.co.jp/digital/video/pred00816/badextra.jpg",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_sanitize_image_list_keeps_full_batch_when_random_probe_passes(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    called_urls: list[str] = []
+
+    async def fake_check_url(url: str, length: bool = False, real_url: bool = False):
+        called_urls.append(url)
+        if url.endswith("unchecked.jpg"):
+            raise AssertionError("随机抽检通过后不应继续校验未抽中的剧照")
+        return url
+
+    monkeypatch.setattr(dmm_module, "check_url", fake_check_url)
+    monkeypatch.setattr(dmm_module.random, "sample", lambda population, k: [0, 1, 2])
+
+    crawler = DmmCrawler(client=None)
+    ctx = DMMContext(input=CrawlerInput.empty())
+
+    result = await crawler._sanitize_image_list(
+        ctx,
+        [
+            "https://pics.dmm.co.jp/digital/video/pred00816/sample1.jpg",
+            "https://pics.dmm.co.jp/digital/video/pred00816/sample2.jpg",
+            "https://pics.dmm.co.jp/digital/video/pred00816/sample3.jpg",
+            "https://pics.dmm.co.jp/digital/video/pred00816/unchecked.jpg",
+        ],
+        label="最终图片 extrafanart",
+    )
+
+    assert result == [
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample1.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample2.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample3.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/unchecked.jpg",
+    ]
+    assert called_urls == [
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample1.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample2.jpg",
+        "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/pred00816/sample3.jpg",
     ]
 
 

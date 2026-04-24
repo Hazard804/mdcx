@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+import asyncio
+import random
 import re
 import time
+from urllib.parse import urlsplit
 
 from lxml import etree
 
@@ -97,6 +100,74 @@ def getCoverSmall(detail_page):
     return str(detail_page.xpath('//img[@class="img-responsive"]/@src')[0])
 
 
+def _prefer_dmm_aws_url(url: str) -> str:
+    normalized = normalize_media_url(str(url or "").strip())
+    if not normalized:
+        return ""
+    if "pics.dmm.co.jp" in normalized:
+        return normalized.replace("pics.dmm.co.jp", "awsimgsrc.dmm.co.jp/pics_dig").replace("/adult/", "/")
+    return normalized
+
+
+def _iter_dmm_image_candidates(url: str) -> list[str]:
+    normalized = normalize_media_url(str(url or "").strip())
+    if not normalized:
+        return []
+
+    seen: set[str] = set()
+    candidates: list[str] = []
+    for candidate in (_prefer_dmm_aws_url(normalized), normalized):
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        candidates.append(candidate)
+    return candidates
+
+
+def _to_poster_url(thumb_url: str) -> str:
+    normalized = normalize_media_url(str(thumb_url or "").strip())
+    if normalized.endswith("pl.jpg"):
+        return normalized[:-6] + "ps.jpg"
+    return normalized
+
+
+def _normalize_thumb_poster(thumb_url: str, poster_url: str) -> tuple[str, str]:
+    normalized_thumb = normalize_media_url(str(thumb_url or "").strip())
+    normalized_poster = normalize_media_url(str(poster_url or "").strip())
+
+    for candidate in (normalized_thumb, normalized_poster):
+        if candidate.endswith("pl.jpg") or candidate.endswith("ps.jpg"):
+            base_url = candidate[:-6]
+            return base_url + "pl.jpg", base_url + "ps.jpg"
+
+    if normalized_thumb and not normalized_poster:
+        return normalized_thumb, normalized_thumb
+    if normalized_poster and not normalized_thumb:
+        return normalized_poster, normalized_poster
+    return normalized_thumb, normalized_poster
+
+
+def _image_match_key(url: str) -> str:
+    normalized = normalize_media_url(str(url or "").strip())
+    if not normalized:
+        return ""
+    if not is_dmm_image_url(normalized):
+        return normalized
+
+    split_result = urlsplit(normalized)
+    path = split_result.path
+    if split_result.netloc.lower() == "awsimgsrc.dmm.co.jp" and path.startswith("/pics_dig/"):
+        path = path[len("/pics_dig") :]
+    return path.replace("/adult/", "/")
+
+
+def _remove_cover_from_extrafanart(cover_url: str, image_urls: list[str]) -> list[str]:
+    cover_key = _image_match_key(cover_url)
+    if not cover_key:
+        return image_urls
+    return [image_url for image_url in image_urls if _image_match_key(image_url) != cover_key]
+
+
 def getTag(response):  # 获取演员
     return re.findall(r'<a href="/genre/\S+">(\S+)</a>', response)
 
@@ -114,17 +185,7 @@ async def _validate_dmm_image_if_needed(url: str, label: str) -> str:
     if not is_dmm_image_url(normalized):
         return normalized
 
-    candidates: list[str] = []
-    if "pics.dmm.co.jp" in normalized:
-        candidates.append(normalized.replace("pics.dmm.co.jp", "awsimgsrc.dmm.co.jp/pics_dig").replace("/adult/", "/"))
-    candidates.append(normalized)
-
-    seen: set[str] = set()
-    for index, candidate in enumerate(candidates):
-        if candidate in seen:
-            continue
-        seen.add(candidate)
-
+    for index, candidate in enumerate(_iter_dmm_image_candidates(normalized)):
         validated = await check_url(candidate)
         if not validated:
             continue
@@ -140,13 +201,92 @@ async def _validate_dmm_image_if_needed(url: str, label: str) -> str:
     return ""
 
 
+async def _validate_preferred_dmm_image_if_needed(url: str, label: str) -> str:
+    normalized = normalize_media_url(str(url or "").strip())
+    if not normalized:
+        return ""
+
+    preferred = _prefer_dmm_aws_url(normalized)
+    if not is_dmm_image_url(preferred):
+        return preferred
+
+    validated = await check_url(preferred)
+    if not validated:
+        LogBuffer.info().write(f"\n       图片抽检失败: {label} {preferred}")
+        return ""
+
+    validated_url = normalize_media_url(str(validated).strip())
+    if preferred != normalized and validated_url == preferred:
+        LogBuffer.info().write(f"\n       图片高清图命中: {label} {normalized} -> {validated_url}")
+    elif validated_url != preferred:
+        LogBuffer.info().write(f"\n       图片校验重定向: {label} {preferred} -> {validated_url}")
+    return validated_url
+
+
 async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
+    candidates = _normalize_extrafanart_urls(image_urls)
+    if not candidates:
+        return []
+
+    sample_indexes = list(range(len(candidates)))
+    if len(candidates) > 3:
+        sample_indexes = sorted(random.sample(range(len(candidates)), 3))
+
+    sampled_candidates = [(index, candidates[index]) for index in sample_indexes]
+    sampled_results = await asyncio.gather(
+        *[
+            _validate_preferred_dmm_image_if_needed(image_url, f"extrafanart[{index + 1}]")
+            for index, image_url in sampled_candidates
+        ]
+    )
+    validated_by_index = {
+        index: validated for (index, _), validated in zip(sampled_candidates, sampled_results, strict=True)
+    }
+
+    if all(sampled_results):
+        LogBuffer.info().write(
+            f"\n       剧照抽检通过: 随机抽检 {len(sampled_candidates)}/{len(candidates)}，整批升级 AWS"
+        )
+        valid_urls: list[str] = []
+        for index, image_url in enumerate(candidates):
+            resolved_url = validated_by_index.get(index) or _prefer_dmm_aws_url(image_url) or image_url
+            if resolved_url not in valid_urls:
+                valid_urls.append(resolved_url)
+        return valid_urls
+
+    passed_count = sum(1 for image_url in sampled_results if image_url)
+    LogBuffer.info().write(
+        f"\n       剧照抽检失败: 随机抽检 {passed_count}/{len(sampled_candidates)} 通过，回退全量校验"
+    )
+
+    remaining_candidates = [
+        (index, image_url) for index, image_url in enumerate(candidates) if not validated_by_index.get(index)
+    ]
+    if remaining_candidates:
+        remaining_results = await asyncio.gather(
+            *[
+                _validate_dmm_image_if_needed(image_url, f"extrafanart[{index + 1}]")
+                for index, image_url in remaining_candidates
+            ]
+        )
+        for (index, _), validated in zip(remaining_candidates, remaining_results, strict=True):
+            validated_by_index[index] = validated
+
     valid_urls: list[str] = []
-    for index, image_url in enumerate(image_urls, start=1):
-        validated_url = await _validate_dmm_image_if_needed(image_url, f"extrafanart[{index}]")
+    for index in range(len(candidates)):
+        validated_url = validated_by_index.get(index, "")
         if validated_url and validated_url not in valid_urls:
             valid_urls.append(validated_url)
     return valid_urls
+
+
+async def _resolve_dmm_poster_url(thumb_url: str, poster_url: str) -> str:
+    candidates = _normalize_extrafanart_urls([poster_url, _to_poster_url(thumb_url)])
+    for candidate in candidates:
+        validated_url = await _validate_dmm_image_if_needed(candidate, "poster")
+        if validated_url:
+            return validated_url
+    return ""
 
 
 def _normalize_extrafanart_urls(image_urls: list[str]) -> list[str]:
@@ -220,8 +360,10 @@ async def main(
         studio = getStudio(detail_page)
         series = getSeries(detail_page)
         extrafanart = getExtraFanart(detail_page)
+        cover_url, poster_url = _normalize_thumb_poster(cover_url, poster_url)
+        extrafanart = _remove_cover_from_extrafanart(cover_url, extrafanart)
         cover_url = await _validate_dmm_image_if_needed(cover_url, "thumb")
-        poster_url = await _validate_dmm_image_if_needed(poster_url, "poster")
+        poster_url = await _resolve_dmm_poster_url(cover_url, poster_url)
         if DownloadableFile.EXTRAFANART in manager.config.download_files:
             extrafanart = await _filter_dmm_extrafanart(extrafanart)
         else:

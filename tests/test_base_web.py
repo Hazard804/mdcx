@@ -30,6 +30,21 @@ def test_normalize_media_url_removes_empty_query_and_probe_params():
     )
 
 
+def test_normalize_media_url_collapses_duplicate_slashes_for_dmm_hosts():
+    assert (
+        base_web.normalize_media_url(
+            "https://awsimgsrc.dmm.co.jp/pics_dig//digital/video/ssis00100/ssis00100pl.jpg",
+        )
+        == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ssis00100/ssis00100pl.jpg"
+    )
+    assert (
+        base_web.normalize_media_url(
+            "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ssis00100/ssis00100pl.jpg",
+        )
+        == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ssis00100/ssis00100pl.jpg"
+    )
+
+
 @pytest.mark.asyncio
 async def test_check_url_cleans_dmm_probe_params_from_final_url(monkeypatch: pytest.MonkeyPatch):
     async def fake_request(method: str, url: str, **kwargs):
