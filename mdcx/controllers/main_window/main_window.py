@@ -94,6 +94,18 @@ if TYPE_CHECKING:
     from PyQt5.QtGui import QMouseEvent
 
 
+LINK_DIR_INVALID_CHARS_RE = re.compile(r'[<>:"/\\|?*\x00-\x1f]+')
+WINDOWS_RESERVED_DIR_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{i}" for i in range(1, 10)),
+    *(f"LPT{i}" for i in range(1, 10)),
+}
+DEFAULT_LINK_DIR_NAME = "unnamed"
+
+
 class MyMAinWindow(QMainWindow):
     # region 信号量
     main_logs_show = pyqtSignal(str)  # 显示刮削日志信号
@@ -1310,13 +1322,89 @@ class MyMAinWindow(QMainWindow):
         output_dir: Path,
         display_path: Path | None = None,
         group_in_named_dir: bool = False,
-    ) -> Path:
+    ) -> tuple[Path, list[str]]:
         file_name = display_path.name if display_path is not None else source_path.name
         if not group_in_named_dir:
-            return output_dir / file_name
+            return output_dir / file_name, []
 
-        dir_name = Path(file_name).stem or file_name
-        return output_dir / dir_name / file_name
+        raw_dir_name = file_name.rsplit(".", 1)[0] if "." in file_name else file_name
+        raw_dir_name = raw_dir_name or file_name
+        dir_name, dir_notes = self._sanitize_link_dir_name(raw_dir_name)
+        target_dir, collision_note = self._get_available_link_target_dir(output_dir, dir_name, file_name)
+        if collision_note:
+            dir_notes.append(f"链接目录名已自动避让冲突: {dir_name} -> {target_dir.name}")
+        return target_dir / file_name, dir_notes
+
+    def _get_link_dir_name_max(self) -> int:
+        folder_name_max = int(manager.config.folder_name_max)
+        if folder_name_max <= 0 or folder_name_max > 255:
+            return 60
+        return folder_name_max
+
+    def _fit_link_dir_name_length(self, dir_name: str, suffix: str = "") -> str:
+        max_length = self._get_link_dir_name_max()
+        if len(dir_name) + len(suffix) <= max_length:
+            return dir_name + suffix
+
+        base_length = max(max_length - len(suffix), 1)
+        trimmed = dir_name[:base_length].rstrip(". ").rstrip()
+        if not trimmed:
+            trimmed = DEFAULT_LINK_DIR_NAME[:base_length].rstrip(". ").rstrip() or DEFAULT_LINK_DIR_NAME[:1]
+        return trimmed + suffix
+
+    def _is_windows_reserved_dir_name(self, dir_name: str) -> bool:
+        return dir_name.rstrip(". ").upper() in WINDOWS_RESERVED_DIR_NAMES
+
+    def _sanitize_link_dir_name(self, raw_name: str) -> tuple[str, list[str]]:
+        sanitized = LINK_DIR_INVALID_CHARS_RE.sub("_", raw_name)
+        sanitized = re.sub(r"\s+", " ", sanitized)
+        sanitized = re.sub(r"_+", "_", sanitized)
+        sanitized = sanitized.strip().strip(". ").rstrip(". ").strip()
+        notes: list[str] = []
+
+        if not sanitized or not sanitized.strip("._- "):
+            sanitized = DEFAULT_LINK_DIR_NAME
+            notes.append(f"链接目录名清洗后为空，已回退为默认目录名: {raw_name} -> {sanitized}")
+        elif sanitized != raw_name:
+            notes.append(f"链接目录名已清洗: {raw_name} -> {sanitized}")
+
+        if self._is_windows_reserved_dir_name(sanitized):
+            original_name = sanitized
+            sanitized = f"{sanitized}_"
+            notes.append(f"链接目录名命中 Windows 保留名，已自动调整: {original_name} -> {sanitized}")
+
+        fitted_name = self._fit_link_dir_name_length(sanitized)
+        if fitted_name != sanitized:
+            notes.append(f"链接目录名过长，已按最大长度截断: {sanitized} -> {fitted_name}")
+        return fitted_name, notes
+
+    def _can_reuse_link_target_dir(self, target_dir: Path, file_name: str) -> bool:
+        if not target_dir.exists():
+            return True
+        if not target_dir.is_dir():
+            return False
+
+        target_file = target_dir / file_name
+        if target_file.exists() or target_file.is_symlink():
+            return True
+
+        try:
+            return not any(target_dir.iterdir())
+        except Exception:
+            return False
+
+    def _get_available_link_target_dir(self, output_dir: Path, dir_name: str, file_name: str) -> tuple[Path, str]:
+        candidate_dir = output_dir / dir_name
+        if self._can_reuse_link_target_dir(candidate_dir, file_name):
+            return candidate_dir, ""
+
+        suffix_index = 2
+        while True:
+            candidate_name = self._fit_link_dir_name_length(dir_name, f"_{suffix_index}")
+            candidate_dir = output_dir / candidate_name
+            if self._can_reuse_link_target_dir(candidate_dir, file_name):
+                return candidate_dir, candidate_name
+            suffix_index += 1
 
     def _prepare_link_target_dir(self, target_path: Path, group_in_named_dir: bool) -> tuple[bool, str, bool]:
         if not group_in_named_dir:
@@ -1391,7 +1479,11 @@ class MyMAinWindow(QMainWindow):
                 )
                 continue
 
-            target_path = self._build_link_target_path(source_path, output_dir, file_path, group_in_named_dir)
+            target_path, target_notes = self._build_link_target_path(
+                source_path, output_dir, file_path, group_in_named_dir
+            )
+            for note in target_notes:
+                signal_qt.show_log_text(f" ℹ {note}")
             ok, dir_error, created_dir = self._prepare_link_target_dir(target_path, group_in_named_dir)
             if not ok:
                 failure_details.append((target_path, dir_error))
