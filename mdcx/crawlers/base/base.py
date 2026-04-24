@@ -1,13 +1,9 @@
 import time
 import traceback
 from abc import ABC, abstractmethod
-from asyncio import Lock
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, Never
+from typing import TYPE_CHECKING, Any, Never
 
 from parsel import Selector
-from patchright._impl._api_structures import SetCookieParam
-from patchright.async_api import Browser, BrowserContext
 
 from mdcx.config.models import Website
 from mdcx.models.types import CrawlerInput, CrawlerResponse, CrawlerResult
@@ -30,26 +26,21 @@ class GenericBaseCrawler[T: Context = Context](ABC):
     由于爬取逻辑因网站而异, 在最极端情况下可以重写 `_run` 方法以完全自定义爬取流程.
     """
 
-    def __init__(self, client: "AsyncWebClient", base_url: str = "", browser: Browser | None = None):
+    def __init__(self, client: "AsyncWebClient", base_url: str = "", browser=None):
         """
         初始化爬虫实例.
 
         Args:
             client (AsyncWebClient): 异步 HTTP 客户端, 用于发送请求.
             base_url (str, optional): 基础 URL, 用于支持自定义 URL. 不提供则使用默认值.
-            browser (_type_, optional): 浏览器实例, 如果提供则某些请求可以改用浏览器进行处理.
+            browser (_type_, optional): 保留的兼容参数, 当前主流程不再使用浏览器请求.
         """
         self.async_client = client
         self.base_url: str = base_url or self.base_url_()
-        self.lock = Lock()
-        self.browser = browser
-        """此实例会被多个 Crawler 复用, 其生命周期由调用方负责管理. 但创建的 Context 由每个 Crawler 独立管理."""
-        self._browser_context: BrowserContext | None = None
 
     async def close(self):
-        """释放资源, 如关闭浏览器上下文等."""
-        if self._browser_context is not None:
-            await self._browser_context.close()
+        """释放资源."""
+        return None
 
     @classmethod
     @abstractmethod
@@ -197,53 +188,11 @@ class GenericBaseCrawler[T: Context = Context](ABC):
         return await self._fetch(ctx, url, use_browser)
 
     async def _fetch(self, ctx: T, url: str, use_browser: bool | None) -> tuple[str | None, str]:
-        if use_browser is not False:
-            content, error = await self._browser_fetch(ctx, url)
-            if content is not None:
-                return content, error
-            if use_browser is True:
-                return None, f"强制使用浏览器请求但失败: {error=}"
+        if use_browser is True:
+            return None, "当前版本已移除浏览器请求模式"
         return await self.async_client.get_text(url, headers=self._get_headers(ctx), cookies=self._get_cookies(ctx))
 
-    async def _browser_fetch(
-        self,
-        ctx: T,
-        url: str,
-        wait_until: Literal["commit", "domcontentloaded", "load", "networkidle"] | None = "load",
-    ) -> tuple[str | None, str]:
-        if not await self._init_browser_context(ctx, self._get_cookies_browser(ctx)):
-            return None, "浏览器初始化失败"
-        assert self._browser_context is not None
-        try:
-            async with await self._browser_context.new_page() as page:
-                await page.goto(url, wait_until=wait_until)
-                content = await page.content()
-                return content, ""
-        except Exception as e:
-            return None, f"浏览器请求失败: {e}"
-
-    async def _init_browser_context(self, ctx: T, cookies: Sequence[SetCookieParam] | None = None) -> bool:
-        if self.browser is None:
-            return False
-        if self._browser_context is not None:
-            return True
-        async with self.lock:
-            if self._browser_context is not None:
-                return True
-            try:
-                context = await self.browser.new_context(ignore_https_errors=True)
-                if cookies:
-                    await context.add_cookies(cookies)
-                self._browser_context = context
-            except Exception as e:
-                ctx.debug(f"创建浏览器上下文失败: {e}")
-                return False
-        return True
-
     def _get_cookies(self, ctx: T) -> dict[str, str] | None:
-        return None
-
-    def _get_cookies_browser(self, ctx: T) -> Sequence[SetCookieParam] | None:
         return None
 
     def _get_headers(self, ctx: T) -> dict[str, str] | None:

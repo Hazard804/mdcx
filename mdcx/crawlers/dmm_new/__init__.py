@@ -10,8 +10,6 @@ from typing import override
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 from parsel import Selector
-from patchright._impl._api_structures import SetCookieParam
-from patchright.async_api import Browser
 
 from mdcx.base.web import check_url, get_url_content_length, normalize_media_url
 from mdcx.config.enums import DownloadableFile
@@ -381,7 +379,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         _, category, variant, data = ranked_candidates[0]
         return category, variant, data
 
-    def __init__(self, client: AsyncWebClient, base_url: str = "", browser: Browser | None = None):
+    def __init__(self, client: AsyncWebClient, base_url: str = "", browser=None):
         super().__init__(client, base_url, browser)
 
     @staticmethod
@@ -464,13 +462,6 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
     @override
     def _get_cookies(self, ctx) -> dict[str, str] | None:
         return {"age_check_done": "1"}
-
-    @override
-    def _get_cookies_browser(self, ctx: DMMContext) -> Sequence[SetCookieParam] | None:
-        return [
-            SetCookieParam(name="age_check_done", value="1", domain=".dmm.co.jp", path="/"),
-            SetCookieParam(name="age_check_done", value="1", domain=".dmm.com", path="/"),
-        ]
 
     @override
     async def _generate_search_url(self, ctx) -> list[str] | None:

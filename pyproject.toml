@@ -18,7 +18,6 @@ dependencies = [
     "openai==1.91.0",
     "oshash==0.1.1",
     "parsel>=1.10.0",
-    "patchright>=1.52.5",
     "pillow==11.3.0",
     "ping3==4.0.4",
     "pydantic-settings>=2.10.1",

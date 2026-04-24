@@ -18,6 +18,24 @@ logger = logging.getLogger("build")
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
+EXCLUDED_MODULES = [
+    "IPython",
+    "ipykernel",
+    "jupyter_client",
+    "jupyter_core",
+    "debugpy",
+    "traitlets",
+    "prompt_toolkit",
+    "pygments",
+    "tornado",
+    "zmq",
+    "pytest",
+    "_pytest",
+    "matplotlib_inline",
+    "rich",
+    "typer",
+]
+
 
 class BuildError(Exception): ...
 
@@ -135,8 +153,7 @@ class BuildManager:
             "_cffi_backend",
             "--collect-all",
             "curl_cffi",
-            "--collect-all",
-            "patchright",
+            *[item for module in EXCLUDED_MODULES for item in ("--exclude-module", module)],
         ]
         self._run_command(cmd, "✅ 生成 .spec 文件", "spec 文件生成失败")
 
