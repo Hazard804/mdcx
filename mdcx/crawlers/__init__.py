@@ -46,6 +46,7 @@ from .base import get_crawler, register_crawler
 from .base.compat import get_v1_crawler, register_v1_crawler
 from .dmm_new import DmmCrawler
 from .javdb_new import JavdbCrawler
+from .javstash import StashGraphQLCrawler
 
 CRAWLER_FUNCS: list[tuple[Website, Callable]] = [
     (Website.MMTV, mmtv.main),
@@ -91,6 +92,7 @@ register_crawler(DmmCrawler)
 register_crawler(JavdbCrawler)
 register_crawler(AvbaseCrawler)
 register_crawler(missav.MissavCrawler)
+register_crawler(StashGraphQLCrawler)
 for site, func in CRAWLER_FUNCS:
     register_v1_crawler(site, func)
 

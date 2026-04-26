@@ -279,6 +279,8 @@ class ConfigV1:
     timeout: int = 10
     retry: int = 3
     theporndb_api_token: str = r""
+    javstash_api_key: str = r""
+    javstash_url: str = r"https://javstash.org"
 
     # Cookies
     javdb: str = r""
