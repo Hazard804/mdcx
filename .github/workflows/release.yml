@@ -93,11 +93,11 @@ jobs:
         id: get-changelog
         shell: bash
         run: |
-          tag="${{ github.ref_name }}"
-          if [ -n "${{ github.event.inputs.tag }}" ]; then
-            tag="${{ github.event.inputs.tag }}"
+          if [ ! -s changelog.md ]; then
+            echo "changelog.md 不存在或为空，无法生成 Release 说明。"
+            exit 1
           fi
-          uv run changelog --tag "$tag" --pattern "220*" --output changelog.md
+
           delimiter="__MDCX_CHANGELOG_EOF__"
           {
             echo "CHANGELOG<<$delimiter"
