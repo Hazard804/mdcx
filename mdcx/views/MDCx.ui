@@ -6624,7 +6624,7 @@
                       <x>0</x>
                       <y>0</y>
                       <width>760</width>
-                      <height>2200</height>
+                      <height>2470</height>
                     </rect>
                   </property>
                   <widget class="QGroupBox" name="groupBox_80">
@@ -6633,7 +6633,7 @@
                         <x>30</x>
                         <y>290</y>
                         <width>701</width>
-                        <height>591</height>
+                        <height>970</height>
                       </rect>
                     </property>
                     <property name="minimumSize">
@@ -6657,7 +6657,7 @@
                           <x>20</x>
                           <y>30</y>
                           <width>661</width>
-                          <height>687</height>
+                          <height>930</height>
                         </rect>
                       </property>
                       <layout class="QGridLayout" name="gridLayout_36">
@@ -6952,6 +6952,12 @@
                                 <verstretch>0</verstretch>
                               </sizepolicy>
                             </property>
+                            <property name="minimumSize">
+                              <size>
+                                <width>0</width>
+                                <height>84</height>
+                              </size>
+                            </property>
                             <property name="styleSheet">
                               <string notr="true">color: rgb(8, 128, 128);</string>
                             </property>
@@ -6970,6 +6976,12 @@
                                 <horstretch>0</horstretch>
                                 <verstretch>0</verstretch>
                               </sizepolicy>
+                            </property>
+                            <property name="minimumSize">
+                              <size>
+                                <width>0</width>
+                                <height>84</height>
+                              </size>
                             </property>
                             <property name="styleSheet">
                               <string notr="true">color: rgb(8, 128, 128);</string>
@@ -7151,7 +7163,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="11" column="1">
+                        <item row="14" column="1">
                           <widget class="QComboBox" name="comboBox_fixed_scraping_type">
                             <property name="sizePolicy">
                               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -7164,6 +7176,9 @@
                                 <width>0</width>
                                 <height>30</height>
                               </size>
+                            </property>
+                            <property name="toolTip">
+                              <string>选择后跳过自动类型识别，所有番号直接使用指定类型的网站列表刮削。选择「自动判断」恢复默认行为。</string>
                             </property>
                             <property name="focusPolicy">
                               <enum>Qt::NoFocus</enum>
@@ -7205,7 +7220,7 @@
                             </item>
                           </widget>
                         </item>
-                        <item row="11" column="0">
+                        <item row="14" column="0">
                           <widget class="QLabel" name="label_fixed_scraping_type">
                             <property name="sizePolicy">
                               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -7230,7 +7245,7 @@
                             </property>
                           </widget>
                         </item>
-                        <item row="12" column="1">
+                        <item row="15" column="1">
                           <widget class="QLabel" name="label_fixed_scraping_type_desc">
                             <property name="sizePolicy">
                               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -7259,7 +7274,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>970</y>
+                        <y>1340</y>
                         <width>701</width>
                         <height>1000</height>
                       </rect>
@@ -8745,7 +8760,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>910</y>
+                        <y>1289</y>
                         <width>701</width>
                         <height>41</height>
                       </rect>

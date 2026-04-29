@@ -186,3 +186,4 @@ highdpi_passthrough
 
 scripts/local/
 AGENTS.md
+uv.toml
