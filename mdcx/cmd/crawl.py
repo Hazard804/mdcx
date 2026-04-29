@@ -14,9 +14,7 @@ from ..browser import BrowserProvider
 from ..config.manager import manager
 from ..config.models import Language, Website
 from ..crawler import Never
-from ..crawlers import get_crawler_compat
 from ..crawlers.base import GenericBaseCrawler, get_crawler
-from ..crawlers.base.compat import LegacyCrawler
 from ..manual import ManualConfig
 from ..models.types import CrawlerInput
 from ..utils import executor
@@ -89,7 +87,13 @@ def main(
 
 
 def _crawl(sites: list[Website], input: CrawlerInput, output: str | None, proxy: str | None, timeout: int, retry: int):
-    classes = [get_crawler_compat(site) for site in sites]
+    classes = []
+    for site in sites:
+        c = get_crawler(site)
+        if c is None:
+            console.print(f"[red]错误: 未找到 {site.value} 的刮削器[/red]")
+            raise typer.Exit(1)
+        classes.append(c)
 
     client = AsyncWebClient(
         loop=executor._loop,
@@ -101,7 +105,7 @@ def _crawl(sites: list[Website], input: CrawlerInput, output: str | None, proxy:
         log_fn=lambda msg: print(f"[dim][AsyncWebClient] {msg}[/dim]"),
     )
 
-    async def task(c: type[GenericBaseCrawler[Never]] | LegacyCrawler):
+    async def task(c: type[GenericBaseCrawler[Never]]):
         crawler = c(
             client=client,
             base_url=manager.config.get_site_url(c.site()),

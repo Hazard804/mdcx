@@ -28,7 +28,6 @@ from .avbase_new import AvbaseCrawler
 from .avsex import AvsexCrawler
 from .avsox import AvsoxCrawler
 from .base import get_crawler, get_registered_crawler_sites, register_crawler
-from .base.compat import get_v1_crawler
 from .cableav import CableavCrawler
 from .cnmdb import CnmdbCrawler
 from .dahlia import DahliaCrawler
@@ -104,13 +103,6 @@ register_crawler(MywifeCrawler)
 register_crawler(JavlibraryCrawler)
 register_crawler(OfficialCrawler)
 register_crawler(TheporndbCrawler)
-
-
-def get_crawler_compat(site: Website):
-    c = get_crawler(site)
-    if c is not None:
-        return c
-    return get_v1_crawler(site)
 
 
 def get_registered_crawler_site_values(*, include_hidden: bool = False) -> list[str]:

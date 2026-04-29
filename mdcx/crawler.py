@@ -2,23 +2,21 @@ import asyncio
 from typing import TYPE_CHECKING, Never, Protocol
 
 from .config.enums import Website
-from .crawlers import get_crawler_compat
+from .crawlers.base import GenericBaseCrawler, get_crawler
 
 if TYPE_CHECKING:
     from .config.models import Config
-    from .crawlers.base import GenericBaseCrawler
-    from .crawlers.base.compat import LegacyCrawler
     from .web_async import AsyncWebClient
 
 
 class CrawlerProviderProtocol(Protocol):
-    async def get(self, site: Website) -> "GenericBaseCrawler[Never] | LegacyCrawler": ...
+    async def get(self, site: Website) -> "GenericBaseCrawler[Never]": ...
     async def close(self) -> None: ...
 
 
 class CrawlerProvider:
     def __init__(self, config: "Config", client: "AsyncWebClient"):
-        self.instances: dict[Website, GenericBaseCrawler[Never] | LegacyCrawler] = {}
+        self.instances: dict[Website, GenericBaseCrawler[Never]] = {}
         self.config = config
         self.client = client
         self.lock = asyncio.Lock()
@@ -28,7 +26,9 @@ class CrawlerProvider:
             return r
         async with self.lock:
             if site not in self.instances:
-                crawler_cls = get_crawler_compat(site)
+                crawler_cls = get_crawler(site)
+                if crawler_cls is None:
+                    raise ValueError(f"未找到 {site} 的刮削器")
                 self.instances[site] = crawler_cls(
                     client=self.client,
                     base_url=self.config.get_site_url(site),
