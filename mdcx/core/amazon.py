@@ -1306,7 +1306,7 @@ async def get_big_pic_by_amazon(
         if has_valid_actor:
             if expected_actor_count == 1:
                 if detail_actor_count > 1:
-                    return title_confidence >= 0.92
+                    return title_confidence >= 0.92 and actor_match_count >= 1
                 return (actor_match_count >= 1 and title_confidence >= 0.78) or title_confidence >= 0.93
             return title_confidence >= 0.76 and actor_match_count >= required_actor_match_count
         return title_confidence >= 0.88

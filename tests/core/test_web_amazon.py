@@ -1596,3 +1596,65 @@ async def test_get_big_pic_by_amazon_retries_actor_fragment_when_full_title_only
 
     assert pic_url == "https://m.media-amazon.com/images/I/81fragment.jpg"
     assert fragment in queries
+
+
+@pytest.mark.asyncio
+async def test_get_big_pic_by_amazon_rejects_multi_actor_compilation_without_number_or_actor(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    title = "配信限定 マドンナ専属女優の『リアル』解禁。 MADOOOON!!!! 新妻ゆうか ハメ撮り"
+    series = "マドンナ専属女優の『リアル』解禁。 MADOOOON!!!!"
+    compilation_title = (
+        "マドンナ専属女優の『リアル』解禁。 MADOOOON!!!! ハメ撮り BEST 4時間 ~絶対に外せない6名を激選~ マドンナ [DVD]"
+    )
+    html_search = f"""
+    <html>
+      <body>
+        <div data-component-type="s-search-result" data-asin="B0GS173R1Q">
+          <a class="a-text-bold">DVD</a>
+          <h2><a href="/dp/B0GS173R1Q"><span>{compilation_title}</span></a></h2>
+          <a class="a-link-normal s-no-outline" href="/dp/B0GS173R1Q"></a>
+          <img class="s-image" src="https://m.media-amazon.com/images/I/911tZl4KtIL._AC_UL320_.jpg" />
+        </div>
+      </body>
+    </html>
+    """
+    html_detail = f"""
+    <html>
+      <body>
+        <span id="productTitle">{compilation_title}</span>
+        <div id="bylineInfo_feature_div">
+          <a>女優A</a>
+          <a>女優B</a>
+          <a>女優C</a>
+          <a>女優D</a>
+          <a>女優E</a>
+          <a>女優F</a>
+        </div>
+      </body>
+    </html>
+    """
+
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+        return []
+
+    async def fake_get_amazon_data(req_url: str):
+        if "/dp/B0GS173R1Q" in req_url:
+            return True, html_detail
+        return True, html_search
+
+    async def fake_get_imgsize(url: str):
+        pytest.fail(f"未通过校验的合集候选不应继续探测图片尺寸: {url}")
+
+    monkeypatch.setattr(
+        "mdcx.core.amazon.try_get_amazon_barcodes_from_covers", fake_try_get_amazon_barcodes_from_covers
+    )
+    monkeypatch.setattr("mdcx.core.amazon.get_amazon_data", fake_get_amazon_data)
+    monkeypatch.setattr("mdcx.core.amazon.get_imgsize", fake_get_imgsize)
+
+    result = CrawlersResult.empty()
+    result.number = "MDON-079"
+
+    pic_url = await get_big_pic_by_amazon(result, title, ["新妻ゆうか"], series, title, series)
+
+    assert pic_url == ""
