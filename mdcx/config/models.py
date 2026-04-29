@@ -17,6 +17,7 @@ from .enums import (
     DownloadableFile,
     EmbyAction,
     FieldRule,
+    FixedScrapingType,
     HDPicSource,
     KeepableFile,
     Language,
@@ -372,6 +373,11 @@ class Config(BaseModel):
     website_guochan: set[Website] = Field(
         default_factory=lambda: {Website.MADOUQU, Website.MDTV, Website.HDOUBAN, Website.CNMDB, Website.JAVDAY},
         title="国产网站源",
+    )
+    fixed_scraping_type: FixedScrapingType = Field(
+        default=FixedScrapingType.AUTO,
+        title="锁定刮削类型",
+        description="选择后将跳过自动类型判断，直接使用指定类型的网站列表进行刮削",
     )
 
     title_sehua: bool = Field(default=True, title="使用色花标题")

@@ -14,6 +14,7 @@ from mdcx.config.enums import (
     DownloadableFile,
     EmbyAction,
     FieldRule,
+    FixedScrapingType,
     HDPicSource,
     KeepableFile,
     Language,
@@ -144,6 +145,9 @@ def save_config(self: "MyMAinWindow"):
     manager.config.website_fc2 = get_sites(self.Ui.lineEdit_website_fc2.text())
     manager.config.website_oumei = get_sites(self.Ui.lineEdit_website_oumei.text())
     manager.config.website_guochan = get_sites(self.Ui.lineEdit_website_guochan.text())
+    _type_values = ["auto", "youma", "wuma", "suren", "fc2", "oumei", "guochan"]
+    _fixed_idx = self.Ui.comboBox_fixed_scraping_type.currentIndex()
+    manager.config.fixed_scraping_type = FixedScrapingType(_type_values[_fixed_idx])
 
     manager.config.scrape_like = get_radio_buttons(
         (self.Ui.radioButton_scrape_speed, "speed"), (self.Ui.radioButton_scrape_info, "info"), default="single"

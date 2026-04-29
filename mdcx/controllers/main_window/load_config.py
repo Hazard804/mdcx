@@ -192,6 +192,12 @@ def load_config(self: "MyMAinWindow"):
         self.Ui.lineEdit_website_oumei.setText(",".join([site.value for site in manager.config.website_oumei]))
         # 国产番号刮削网站
         self.Ui.lineEdit_website_guochan.setText(",".join([site.value for site in manager.config.website_guochan]))
+        # 锁定刮削类型
+        _type_labels = ["自动判断", "有码", "无码", "素人", "FC2", "欧美", "国产"]
+        _type_values = ["auto", "youma", "wuma", "suren", "fc2", "oumei", "guochan"]
+        _fixed_value = manager.config.fixed_scraping_type.value
+        _idx = _type_values.index(_fixed_value) if _fixed_value in _type_values else 0
+        self.Ui.comboBox_fixed_scraping_type.setCurrentIndex(_idx)
 
         # 刮削偏好
         scrape_like = manager.config.scrape_like

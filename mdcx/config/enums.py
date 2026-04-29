@@ -545,6 +545,20 @@ class Website(Enum):
         return json_schema
 
 
+class FixedScrapingType(Enum):
+    AUTO = "auto"
+    YOUMA = "youma"
+    WUMA = "wuma"
+    SUREN = "suren"
+    FC2 = "fc2"
+    OUMEI = "oumei"
+    GUOCHAN = "guochan"
+
+    @classmethod
+    def names(cls):
+        return ["自动判断", "有码", "无码", "素人", "FC2", "欧美", "国产"]
+
+
 class Language(Enum):
     UNDEFINED = "undefined"
     UNKNOWN = "unknown"
