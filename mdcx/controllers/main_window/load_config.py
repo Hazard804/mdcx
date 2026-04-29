@@ -1106,7 +1106,7 @@ def load_config(self: "MyMAinWindow"):
             self.options = QFileDialog.Option.DontUseNativeDialog
         else:
             self.Ui.checkBox_dialog_qt.setChecked(False)
-            self.options = QFileDialog.Option()
+            self.options = QFileDialog.Option(0)
         if IS_WINDOWS:
             self.Ui.checkBox_hide_dock_icon.setEnabled(False)
             self.Ui.checkBox_hide_menu_icon.setEnabled(False)
