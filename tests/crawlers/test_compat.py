@@ -1,5 +1,6 @@
-from mdcx.config.models import Language
 from mdcx.crawlers.base.compat import _select_language_payload
+
+from mdcx.config.models import Language
 
 
 def test_select_language_payload_prefers_requested_language():
