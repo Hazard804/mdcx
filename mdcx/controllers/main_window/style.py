@@ -367,9 +367,15 @@ def set_style(self: "MyMAinWindow"):
         QRadioButton::indicator{
             border-radius: 7px;
         }
-        QCheckBox::indicator:checked, QRadioButton::indicator:checked{
+        QCheckBox::indicator:checked{
             background: #4C6EFF;
             border: 1px solid #4C6EFF;
+            image: url(resources/Img/check_indicator.svg);
+        }
+        QRadioButton::indicator:checked{
+            background: #4C6EFF;
+            border: 1px solid #4C6EFF;
+            image: url(resources/Img/radio_indicator.svg);
         }
         QCheckBox::indicator:hover, QRadioButton::indicator:hover{
             border: 1px solid #4C6EFF;
@@ -843,9 +849,15 @@ def set_dark_style(self: "MyMAinWindow"):
         QRadioButton::indicator{
             border-radius: 7px;
         }
-        QCheckBox::indicator:checked, QRadioButton::indicator:checked{
+        QCheckBox::indicator:checked{
             background: #6684FF;
             border: 1px solid #6684FF;
+            image: url(resources/Img/check_indicator.svg);
+        }
+        QRadioButton::indicator:checked{
+            background: #6684FF;
+            border: 1px solid #6684FF;
+            image: url(resources/Img/radio_indicator.svg);
         }
         QCheckBox::indicator:hover, QRadioButton::indicator:hover{
             border: 1px solid #8EA3FF;
