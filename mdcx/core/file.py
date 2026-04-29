@@ -532,15 +532,18 @@ async def get_file_info_v2(file_path: Path, copy_sub: bool = True) -> FileInfo:
                 cd_part = "-" + str(cd_part)
 
         # 判断是否是马赛克破坏版
+        file_path_lower = file_path_str.lower()
         umr_style = str(manager.config.umr_style)
+        umr_style_lower = umr_style.lower()
         if (
-            "-uncensored." in file_path_str.lower()
-            or "umr." in file_path_str.lower()
+            "-uncensored." in file_path_lower
+            or "umr." in file_path_lower
+            or ".restored" in file_path_lower
             or "破解" in file_path_str
             or "克破" in file_path_str
-            or (umr_style and umr_style in file_path_str)
-            or "-u." in file_path_str.lower()
-            or "-uc." in file_path_str.lower()
+            or (umr_style_lower and umr_style_lower in file_path_lower)
+            or "-u." in file_path_lower
+            or "-uc." in file_path_lower
         ):
             destroyed = umr_style
             mosaic = "无码破解"

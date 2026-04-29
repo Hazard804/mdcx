@@ -121,6 +121,20 @@ async def test_get_file_info_marks_uncensored_digit_numbers(file_path: Path, exp
 
 
 @pytest.mark.asyncio
+async def test_get_file_info_marks_restored_as_umr_case_insensitive():
+    old_file_mode = Flags.file_mode
+    Flags.file_mode = FileMode.Default
+    try:
+        file_info = await get_file_info_v2(Path("D:/test/ABF-131.RESTORED.mp4"), copy_sub=False)
+    finally:
+        Flags.file_mode = old_file_mode
+
+    assert file_info.number == "ABF-131"
+    assert file_info.destroyed == manager.config.umr_style
+    assert file_info.mosaic == "无码破解"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("file_path", "expected_number", "expected_short_number"),
     [

@@ -11155,7 +11155,7 @@ class Ui_MDCx:
             _translate(
                 "MDCx",
                 "<p\n"
-                "                          style='line-height:20px'>指马赛克有损去除版本，当视频文件路径中含有「-uncensored.」、「破解」、「克破」、「UMR.」等字样时，该文件识别为无码破解版本。<br>\n"
+                "                          style='line-height:20px'>指马赛克有损去除版本，当视频文件路径中含有「-uncensored.」、「.restored」、「破解」、「克破」、「UMR.」等字样时，该文件识别为无码破解版本。<br>\n"
                 "                          在重命名文件名及目录名时，在番号后显示该字符表示为无码破解版本</p>",
             )
         )
