@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 from urllib.parse import quote_plus
 
-from PyQt6.QtCore import QEvent, QItemSelectionModel, QPoint, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QEvent, QItemSelectionModel, QPoint, QPointF, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QCursor, QGuiApplication, QHoverEvent, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
@@ -1682,7 +1682,7 @@ class MyMAinWindow(QMainWindow):
         """
         # 发送hover事件，清除hover状态（因为弹窗后，失去焦点，状态不会变化）
         self.Ui.pushButton_play.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, False)
-        event = QHoverEvent(QEvent.Type.HoverLeave, QPoint(40, 40), QPoint(0, 0))
+        event = QHoverEvent(QEvent.Type.HoverLeave, QPointF(40, 40), QPointF(0, 0))
         QApplication.sendEvent(self.Ui.pushButton_play, event)
         if self._check_main_file_path():
             # mac需要改为无焦点状态，不然弹窗失去焦点后，再切换回来会有找不到焦点的问题（windows无此问题）
@@ -1698,7 +1698,7 @@ class MyMAinWindow(QMainWindow):
         主界面点打开文件夹
         """
         self.Ui.pushButton_open_folder.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, False)
-        event = QHoverEvent(QEvent.Type.HoverLeave, QPoint(40, 40), QPoint(0, 0))
+        event = QHoverEvent(QEvent.Type.HoverLeave, QPointF(40, 40), QPointF(0, 0))
         QApplication.sendEvent(self.Ui.pushButton_open_folder, event)
         if self._check_main_file_path():
             # mac需要改为无焦点状态，不然弹窗失去焦点后，再切换回来会有找不到焦点的问题（windows无此问题）
@@ -1714,7 +1714,7 @@ class MyMAinWindow(QMainWindow):
         主界面点打开nfo
         """
         self.Ui.pushButton_open_nfo.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, False)
-        event = QHoverEvent(QEvent.Type.HoverLeave, QPoint(40, 40), QPoint(0, 0))
+        event = QHoverEvent(QEvent.Type.HoverLeave, QPointF(40, 40), QPointF(0, 0))
         QApplication.sendEvent(self.Ui.pushButton_open_nfo, event)
         if self._check_main_file_path():
             self.Ui.widget_nfo.show()
@@ -1726,7 +1726,7 @@ class MyMAinWindow(QMainWindow):
         """
         # 发送hover事件，清除hover状态（因为弹窗后，失去焦点，状态不会变化）
         self.Ui.pushButton_right_menu.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, False)
-        event = QHoverEvent(QEvent.Type.HoverLeave, QPoint(40, 40), QPoint(0, 0))
+        event = QHoverEvent(QEvent.Type.HoverLeave, QPointF(40, 40), QPointF(0, 0))
         QApplication.sendEvent(self.Ui.pushButton_right_menu, event)
         self._menu()
 

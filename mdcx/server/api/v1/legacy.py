@@ -2,13 +2,14 @@ from asyncio import create_task
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, TypeAdapter, ValidationError
 
 from mdcx.base.file import newtdisk_creat_symlink
 from mdcx.config.extend import deal_url
 from mdcx.config.manager import manager
 from mdcx.config.models import SiteConfig, Website
 from mdcx.core.scraper import start_new_scrape
+from mdcx.crawlers import get_registered_crawler_sites
 from mdcx.models.enums import FileMode
 from mdcx.models.flags import Flags
 from mdcx.server.config import SAFE_DIRS
@@ -111,24 +112,38 @@ async def check_cookies():
 
 
 class SetSiteUrlBody(BaseModel):
-    site: Website
-    url: HttpUrl
+    site: str
+    url: str = ""
 
 
 @router.post("/sites", summary="设置网站自定义网址", operation_id="setSiteUrl")
 async def set_site_url(body: SetSiteUrlBody):
     """指定网站自定义网址设置"""
     try:
-        manager.config.site_configs.setdefault(body.site, SiteConfig()).custom_url = body.url
+        site = Website(body.site)
+        if site not in get_registered_crawler_sites():
+            raise ValueError
+        url = body.url.strip()
+        site_config = manager.config.site_configs.setdefault(site, SiteConfig())
+        site_config.custom_url = TypeAdapter(HttpUrl).validate_python(url) if url else None
         manager.save()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Unsupported site: {body.site}") from e
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid site url: {body.url}") from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/sites", summary="获取网站自定义网址", operation_id="getSiteUrls")
-async def get_site_urls() -> dict[Website, HttpUrl]:
+async def get_site_urls() -> dict[str, str]:
     """获取网站自定义网址设置."""
     try:
-        return {s: c.custom_url for s, c in manager.config.site_configs.items() if c.custom_url is not None}
+        registered_sites = set(get_registered_crawler_sites())
+        return {
+            s.value: str(c.custom_url).rstrip("/")
+            for s, c in manager.config.site_configs.items()
+            if s in registered_sites and c.custom_url
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

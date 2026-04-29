@@ -15,18 +15,17 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { WebsiteSchema } from "@/client/schemas.gen";
 import {
   addSubtitlesMutation,
   checkCookiesMutation,
   completeActorsMutation,
   createSymlinkMutation,
+  getCrawlerSitesOptions,
   getSiteUrlsOptions,
   scrapeSingleFileMutation,
   setSiteUrlMutation,
   startScrapeMutation,
 } from "../client/@tanstack/react-query.gen";
-import type { Website } from "../client/types.gen";
 import { useToast } from "../contexts/ToastProvider";
 
 export const Route = createFileRoute("/tool")({
@@ -61,12 +60,19 @@ function ToolComponent() {
   const checkCookies = useMutation(checkCookiesMutation());
 
   // 设置网站网址
-  const [site, setSite] = useState<Website>("javdb");
+  const [site, setSite] = useState("");
   const [siteUrl, setSiteUrl] = useState("");
   const setSiteUrlMut = useMutation(setSiteUrlMutation());
+  const crawlerSitesQ = useQuery(getCrawlerSitesOptions());
+  const crawlerSites = crawlerSitesQ.data ?? [];
   const currentSiteUrl = useQuery(getSiteUrlsOptions());
   const currentUrls = currentSiteUrl.isSuccess ? currentSiteUrl.data : null;
   useEffect(() => setSiteUrl(currentUrls?.[site] ?? ""), [currentUrls, site]); // 切换网站时使用当前网址
+  useEffect(() => {
+    if (!site && crawlerSites.length > 0) {
+      setSite(crawlerSites.find((item) => item.value === "javdb")?.value ?? crawlerSites[0].value);
+    }
+  }, [crawlerSites, site]);
 
   const handleStartScrape = async () => {
     showInfo("正在启动刮削任务...");
@@ -153,6 +159,10 @@ function ToolComponent() {
   };
 
   const handleSetSiteUrl = async () => {
+    if (!site) {
+      showError("请选择网站");
+      return;
+    }
     try {
       await setSiteUrlMut.mutateAsync({ body: { site, url: siteUrl } });
       await currentSiteUrl.refetch(); // 重新获取服务器设置
@@ -316,10 +326,15 @@ function ToolComponent() {
               >
                 <FormControl size="small" sx={{ minWidth: 120 }}>
                   <InputLabel>网站</InputLabel>
-                  <Select value={site} label="网站" onChange={(e) => setSite(e.target.value)}>
-                    {WebsiteSchema.enum.map((w) => (
-                      <MenuItem key={w} value={w}>
-                        {w}
+                  <Select
+                    value={site}
+                    label="网站"
+                    onChange={(e) => setSite(e.target.value)}
+                    disabled={crawlerSitesQ.isLoading}
+                  >
+                    {crawlerSites.map((item) => (
+                      <MenuItem key={item.value} value={item.value}>
+                        {item.label}
                       </MenuItem>
                     ))}
                   </Select>

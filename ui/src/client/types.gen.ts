@@ -960,6 +960,32 @@ export type OutlineShow = 'show_from' | 'show_zh_jp' | 'show_jp_zh';
 export type ReadMode = 'has_nfo_update' | 'no_nfo_scrape' | 'read_download_again' | 'read_update_nfo';
 
 /**
+ * CrawlerSiteInfo
+ */
+export type CrawlerSiteInfo = {
+    /**
+     * 网站枚举值
+     */
+    value: string;
+    /**
+     * 前端展示名称
+     */
+    label: string;
+    /**
+     * 默认网站地址
+     */
+    base_url: string;
+    /**
+     * 是否已注册刮削器
+     */
+    registered: boolean;
+    /**
+     * 是否支持自定义网址
+     */
+    supports_custom_url: boolean;
+};
+
+/**
  * ScrapeFileBody
  */
 export type ScrapeFileBody = {
@@ -977,11 +1003,11 @@ export type ScrapeFileBody = {
  * SetSiteUrlBody
  */
 export type SetSiteUrlBody = {
-    site: Website;
+    site: string;
     /**
      * Url
      */
-    url: string;
+    url?: string;
 };
 
 /**
@@ -1030,7 +1056,7 @@ export type ValidationError = {
 /**
  * Website
  */
-export type Website = 'airav' | 'airav_cc' | 'avsex' | 'avsox' | 'cableav' | 'cnmdb' | 'dmm' | 'faleno' | 'fantastica' | 'fc2' | 'fc2club' | 'fc2hub' | 'fc2ppvdb' | 'freejavbt' | 'getchu' | 'giga' | 'hdouban' | 'hscangku' | 'iqqtv' | 'jav321' | 'javbus' | 'javday' | 'javdb' | 'javlibrary' | 'kin8' | 'love6' | 'lulubar' | 'madouqu' | 'mdtv' | 'missav' | 'mgstage' | '7mmtv' | 'mywife' | 'prestige' | 'theporndb' | 'xcity';
+export type Website = 'dmm' | 'javdb' | 'javdbapi' | 'avbase' | 'missav' | 'faleno' | 'jav321' | 'cableav' | 'madouqu' | '7mmtv' | 'dahlia' | 'fantastica' | 'avsox' | 'cnmdb' | 'hscangku' | 'kin8' | 'love6' | 'lulubar' | 'xcity' | 'giga' | 'avsex' | 'mdtv' | 'mgstage' | 'javday' | 'fc2ppvdb' | 'prestige' | 'fc2club' | 'fc2' | 'fc2hub' | 'javbus' | 'freejavbt' | 'hdouban' | 'iqqtv' | 'airav_cc' | 'getchu' | 'getchu_dmm' | 'mywife' | 'javlibrary' | 'official' | 'theporndb';
 
 /**
  * WebsiteSet
@@ -1238,6 +1264,22 @@ export type GetDefaultConfigResponses = {
 
 export type GetDefaultConfigResponse = GetDefaultConfigResponses[keyof GetDefaultConfigResponses];
 
+export type GetCrawlerSitesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/crawlers/sites';
+};
+
+export type GetCrawlerSitesResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<CrawlerSiteInfo>;
+};
+
+export type GetCrawlerSitesResponse = GetCrawlerSitesResponses[keyof GetCrawlerSitesResponses];
+
 export type GetWebSocketConnectionsData = {
     body?: never;
     path?: never;
@@ -1411,9 +1453,7 @@ export type GetSiteUrlsResponses = {
      * Response Getsiteurls
      * Successful Response
      */
-    200: {
-        [key in Website]?: string;
-    };
+    200: Record<string, string>;
 };
 
 export type GetSiteUrlsResponse = GetSiteUrlsResponses[keyof GetSiteUrlsResponses];

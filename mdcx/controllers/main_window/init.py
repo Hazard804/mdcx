@@ -7,11 +7,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QAbstractItemView, QComboBox, QListView, QMenu, QSystemTrayIcon, QTreeWidgetItem
 
-from mdcx.config.enums import Website
 from mdcx.config.extend import get_movie_path_setting
 from mdcx.config.resources import resources
 from mdcx.consts import GITHUB_RELEASES_URL, IS_WINDOWS
-from mdcx.manual import ManualConfig
+from mdcx.crawlers import get_registered_crawler_site_values
 from mdcx.models.flags import Flags
 from mdcx.signals import signal_qt
 
@@ -114,9 +113,9 @@ def Init_Ui(self: "MyMAinWindow"):
     self.Ui.textBrowser_log_main_3.hide()  # 失败列表隐藏
     self.Ui.pushButton_scraper_failed_list.hide()
     self.Ui.pushButton_save_failed_list.hide()
-    supported_websites = list(ManualConfig.SUPPORTED_WEBSITES)
-    if Website.AVBASE.value not in supported_websites:
-        supported_websites.append(Website.AVBASE.value)
+    supported_websites = get_registered_crawler_site_values()
+    self.Ui.comboBox_website_all.clear()
+    self.Ui.comboBox_website_all.addItems(supported_websites)
     self.Ui.comboBox_custom_website.addItems(supported_websites)
     _setup_combo_boxes(self)
     self.Ui.textBrowser_log_main.document().setMaximumBlockCount(6000)

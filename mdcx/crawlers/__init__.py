@@ -27,7 +27,7 @@ from .airav_cc import AiravCcCrawler
 from .avbase_new import AvbaseCrawler
 from .avsex import AvsexCrawler
 from .avsox import AvsoxCrawler
-from .base import get_crawler, register_crawler
+from .base import get_crawler, get_registered_crawler_sites, register_crawler
 from .base.compat import get_v1_crawler
 from .cableav import CableavCrawler
 from .cnmdb import CnmdbCrawler
@@ -111,3 +111,8 @@ def get_crawler_compat(site: Website):
     if c is not None:
         return c
     return get_v1_crawler(site)
+
+
+def get_registered_crawler_site_values(*, include_hidden: bool = False) -> list[str]:
+    """返回已注册刮削器的网站值, 用于 UI 动态填充."""
+    return [site.value for site in get_registered_crawler_sites(include_hidden=include_hidden)]

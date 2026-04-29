@@ -1045,7 +1045,17 @@ class Config(BaseModel):
     @classmethod
     @lru_cache
     def json_schema(cls) -> dict[str, Any]:
-        return cls.model_json_schema()
+        schema = cls.model_json_schema()
+        try:
+            from mdcx.crawlers import get_registered_crawler_site_values
+
+            registered_sites = get_registered_crawler_site_values()
+        except Exception:
+            registered_sites = []
+        if registered_sites and (website_schema := schema.get("$defs", {}).get("Website")):
+            website_schema["enum"] = registered_sites
+            website_schema["showNames"] = registered_sites
+        return schema
 
 
 @dataclass

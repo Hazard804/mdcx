@@ -530,6 +530,20 @@ class Website(Enum):
     GETCHU_DMM = "getchu_dmm"
     OFFICIAL = "official"
 
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
+        try:
+            from mdcx.crawlers import get_registered_crawler_site_values
+
+            registered_sites = get_registered_crawler_site_values()
+        except Exception:
+            registered_sites = []
+        if registered_sites:
+            json_schema["enum"] = registered_sites
+            json_schema["showNames"] = registered_sites
+        return json_schema
+
 
 class Language(Enum):
     UNDEFINED = "undefined"

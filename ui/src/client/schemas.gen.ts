@@ -1429,10 +1429,44 @@ export const ScrapeFileBodySchema = {
     title: 'ScrapeFileBody'
 } as const;
 
+export const CrawlerSiteInfoSchema = {
+    properties: {
+        value: {
+            type: 'string',
+            title: 'Value',
+            description: '网站枚举值'
+        },
+        label: {
+            type: 'string',
+            title: 'Label',
+            description: '前端展示名称'
+        },
+        base_url: {
+            type: 'string',
+            title: 'Base Url',
+            description: '默认网站地址'
+        },
+        registered: {
+            type: 'boolean',
+            title: 'Registered',
+            description: '是否已注册刮削器'
+        },
+        supports_custom_url: {
+            type: 'boolean',
+            title: 'Supports Custom Url',
+            description: '是否支持自定义网址'
+        }
+    },
+    type: 'object',
+    required: ['value', 'label', 'base_url', 'registered', 'supports_custom_url'],
+    title: 'CrawlerSiteInfo'
+} as const;
+
 export const SetSiteUrlBodySchema = {
     properties: {
         site: {
-            '$ref': '#/components/schemas/Website'
+            type: 'string',
+            title: 'Site'
         },
         url: {
             type: 'string',
@@ -1440,7 +1474,7 @@ export const SetSiteUrlBodySchema = {
         }
     },
     type: 'object',
-    required: ['site', 'url'],
+    required: ['site'],
     title: 'SetSiteUrlBody'
 } as const;
 
@@ -1511,9 +1545,9 @@ export const ValidationErrorSchema = {
 
 export const WebsiteSchema = {
     type: 'string',
-    enum: ['airav', 'airav_cc', 'avsex', 'avsox', 'cableav', 'cnmdb', 'dmm', 'faleno', 'fantastica', 'fc2', 'fc2club', 'fc2hub', 'fc2ppvdb', 'freejavbt', 'getchu', 'giga', 'hdouban', 'hscangku', 'iqqtv', 'jav321', 'javbus', 'javday', 'javdb', 'javlibrary', 'kin8', 'love6', 'lulubar', 'madouqu', 'mdtv', 'missav', 'mgstage', '7mmtv', 'mywife', 'prestige', 'theporndb', 'xcity'],
+    enum: ['dmm', 'javdb', 'javdbapi', 'avbase', 'missav', 'faleno', 'jav321', 'cableav', 'madouqu', '7mmtv', 'dahlia', 'fantastica', 'avsox', 'cnmdb', 'hscangku', 'kin8', 'love6', 'lulubar', 'xcity', 'giga', 'avsex', 'mdtv', 'mgstage', 'javday', 'fc2ppvdb', 'prestige', 'fc2club', 'fc2', 'fc2hub', 'javbus', 'freejavbt', 'hdouban', 'iqqtv', 'airav_cc', 'getchu', 'getchu_dmm', 'mywife', 'javlibrary', 'official', 'theporndb'],
     title: 'Website',
-    showNames: ['AIRAV', 'AIRAV_CC', 'AVSEX', 'AVSOX', 'CABLEAV', 'CNMDB', 'DMM', 'FALENO', 'FANTASTICA', 'FC2', 'FC2CLUB', 'FC2HUB', 'FC2PPVDB', 'FREEJAVBT', 'GETCHU', 'GIGA', 'HDOUBAN', 'HSCANGKU', 'IQQTV', 'JAV321', 'JAVBUS', 'JAVDAY', 'JAVDB', 'JAVLIBRARY', 'KIN8', 'LOVE6', 'LULUBAR', 'MADOUQU', 'MDTV', 'MISSAV', 'MGSTAGE', 'MMTV', 'MYWIFE', 'PRESTIGE', 'THEPORNDB', 'XCITY']
+    showNames: ['dmm', 'javdb', 'javdbapi', 'avbase', 'missav', 'faleno', 'jav321', 'cableav', 'madouqu', '7mmtv', 'dahlia', 'fantastica', 'avsox', 'cnmdb', 'hscangku', 'kin8', 'love6', 'lulubar', 'xcity', 'giga', 'avsex', 'mdtv', 'mgstage', 'javday', 'fc2ppvdb', 'prestige', 'fc2club', 'fc2', 'fc2hub', 'javbus', 'freejavbt', 'hdouban', 'iqqtv', 'airav_cc', 'getchu', 'getchu_dmm', 'mywife', 'javlibrary', 'official', 'theporndb']
 } as const;
 
 export const WebsiteSetSchema = {

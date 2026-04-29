@@ -55,6 +55,21 @@ class GenericBaseCrawler[T: Context = Context](ABC):
         """默认 URL, 结尾无斜杠. 可以通过 self.base_url 访问实际值."""
         raise NotImplementedError
 
+    @classmethod
+    def display_name(cls) -> str:
+        """前端展示名称, 默认使用网站枚举值."""
+        return cls.site().value
+
+    @classmethod
+    def hidden_in_ui(cls) -> bool:
+        """是否在前端站点枚举中隐藏."""
+        return False
+
+    @classmethod
+    def supports_custom_url(cls) -> bool:
+        """是否支持在前端配置自定义网址."""
+        return True
+
     @abstractmethod
     def new_context(self, input: CrawlerInput) -> T:
         raise NotImplementedError
@@ -223,3 +238,12 @@ def get_crawler(site: Website) -> type[GenericBaseCrawler[Never]] | None:
     在测试等情况下, 如果需要调用具有 `ctx` 参数的方法, 必须使用返回类的 `new_context` 类方法创建具体使用的泛型类并传入.
     """
     return crawler_registry.get(site)
+
+
+def get_registered_crawler_sites(*, include_hidden: bool = False) -> list[Website]:
+    """返回已注册刮削器的网站列表, 供前端和配置 schema 枚举使用."""
+    sites: list[Website] = []
+    for site, crawler_cls in crawler_registry.items():
+        if include_hidden or not crawler_cls.hidden_in_ui():
+            sites.append(site)
+    return sites
