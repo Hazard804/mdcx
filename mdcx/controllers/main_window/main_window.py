@@ -147,7 +147,7 @@ class MyMAinWindow(QMainWindow):
         self.show_data: ShowData | None = None  # 当前树状图选中文件的数据
         self.img_path = None  # 当前树状图选中文件的图片地址
         self.m_drag = False  # 允许鼠标拖动的标识
-        self.m_DragPosition: QPoint  # 鼠标拖动位置
+        self.m_DragPosition: QPoint | None = None  # 鼠标拖动位置
         self.logs_counts = 0  # 日志次数（每1w次清屏）
         self.req_logs_counts = 0  # 日志次数（每1w次清屏）
         self.main_log_queue: deque[str] = deque()
@@ -662,13 +662,18 @@ class MyMAinWindow(QMainWindow):
     def mouseReleaseEvent(self, a0):
         if a0 and a0.button() == Qt.MouseButton.LeftButton:
             self.m_drag = False
+            self.m_DragPosition = None
             self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))  # 释放左键改变鼠标指针样式为箭头
 
     # 拖动鼠标
     def mouseMoveEvent(self, a0):
-        if a0 and self.m_drag:
+        if a0 and self.m_drag and self.m_DragPosition is not None and a0.buttons() & Qt.MouseButton.LeftButton:
             self.move(a0.globalPosition().toPoint() - self.m_DragPosition)
             a0.accept()
+        else:
+            self.m_drag = False
+            self.m_DragPosition = None
+            self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
 
     # endregion
 

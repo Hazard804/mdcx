@@ -33,16 +33,26 @@ class DraggableButton(QPushButton):
         super().__init__(title, parent)
         self.iniDragCor = [0, 0]
         self.cutwindow = cutwindow
+        self._dragging = False
 
     def mousePressEvent(self, e):
         if e is None:
             return
+        if e.button() != Qt.MouseButton.LeftButton:
+            return
         pos = e.position().toPoint()
         self.iniDragCor[0] = pos.x()
         self.iniDragCor[1] = pos.y()
+        self._dragging = True
+        self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
+        e.accept()
 
     def mouseMoveEvent(self, e):
         if e is None:
+            return
+        if not self._dragging or not e.buttons() & Qt.MouseButton.LeftButton:
+            self._dragging = False
+            self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
             return
         pos = e.position().toPoint()
         x = pos.x() - self.iniDragCor[0]
@@ -57,10 +67,13 @@ class DraggableButton(QPushButton):
 
         # 更新实际裁剪位置
         self.cutwindow.getRealPos()
+        e.accept()
 
     def mouseReleaseEvent(self, e):
         if e and e.button() == Qt.MouseButton.LeftButton:
-            self.m_drag = False
+            self._dragging = False
+            self.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
+            e.accept()
 
 
 class CutWindow(QDialog):
@@ -69,7 +82,7 @@ class CutWindow(QDialog):
         self.Ui = Ui_Dialog_cut_poster()  # 实例化 Ui
         self.Ui.setupUi(self)  # 初始化Ui
         self.main_window = parent
-        self.m_drag = True  # 允许拖动
+        self.m_drag = False  # 允许拖动
         self.m_DragPosition = None  # 拖动位置
         self.show_w = self.Ui.label_backgroud_pic.width()  # 图片显示区域的宽高
         self.show_h = self.Ui.label_backgroud_pic.height()  # 图片显示区域的宽高
@@ -503,12 +516,17 @@ class CutWindow(QDialog):
             return
         if a0.button() == Qt.MouseButton.LeftButton:
             self.m_drag = False
+            self.m_DragPosition = None
             self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))  # 释放左键改变鼠标指针样式为箭头
 
     def mouseMoveEvent(self, a0):
         if a0 is None:
             return
-        if Qt.MouseButton.LeftButton and self.m_drag and self.m_DragPosition is not None:
+        if self.m_drag and self.m_DragPosition is not None and a0.buttons() & Qt.MouseButton.LeftButton:
             self.move(a0.globalPosition().toPoint() - self.m_DragPosition)
             a0.accept()
+        else:
+            self.m_drag = False
+            self.m_DragPosition = None
+            self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
         # self.show_traceback_log('main',e.x(),e.y())
