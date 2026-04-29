@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 import re
-import time
+from typing import override
 
 from lxml import etree
+from parsel import Selector
 
-from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from .base import BaseCrawler, CralwerException, CrawlerData
 
 
 def get_title(html):
@@ -19,15 +20,6 @@ def get_actor(html):
         '//div[@class="box_works01_list clearfix"]//span[text()="出演女優"]/following-sibling::p[1]/text()'
     )
     return ",".join(actor_result)
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_outline(html):
@@ -92,125 +84,67 @@ def get_trailer(html):  # 获取预览片
     return result[0] if result else ""
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    # https://faleno.jp/top/works/fsdss564/
-    # https://dahlia-av.jp/works/dldss177/
-    start_time = time.time()
-    website_name = "dahlia"
-    LogBuffer.req().write(f"-> {website_name}")
-    real_url = appoint_url
-    title = ""
-    cover_url = ""
-    poster_url = ""
-    image_download = True
-    image_cut = "right"
-    web_info = "\n       "
-    debug_info = ""
-    number_lo = number.lower()
-    real_url_list = []
-    real_url_list = [real_url] if real_url else [f"https://dahlia-av.jp/works/{number_lo.replace('-', '')}/"]
+class DahliaCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.DAHLIA
 
-    LogBuffer.info().write("\n    🌐 dahlia")
-    mosaic = "有码"
-    try:  # 捕获主动抛出的异常
-        for real_url in real_url_list:
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://dahlia-av.jp"
 
-            html_info, error = await manager.computed.async_client.get_text(real_url)
-            if html_info is None:
-                debug_info = f"请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                continue
+    @override
+    async def _generate_search_url(self, ctx) -> list[str] | str | None:
+        number = ctx.input.number.lower().replace("-", "")
+        return f"{self.base_url}/works/{number}/"
 
-            html_detail = etree.fromstring(html_info, etree.HTMLParser())
+    @override
+    async def _parse_search_page(self, ctx, html: Selector, search_url: str) -> list[str] | str | None:
+        return [search_url]
 
-            # ========================================================================收集信息
-            title = get_title(html_detail)
-            if not title:
-                debug_info = "数据获取失败: 番号标题不存在！"
-                LogBuffer.info().write(web_info + debug_info)
-                continue
-            break
-        else:
-            raise Exception(debug_info)
+    @override
+    async def _parse_detail_page(self, ctx, html: Selector, detail_url: str) -> CrawlerData | None:
+        html_detail = etree.fromstring(html.get(), etree.HTMLParser())
+        title = get_title(html_detail)
+        if not title:
+            raise CralwerException("数据获取失败: 番号标题不存在")
 
-        actor = get_actor(html_detail)  # 获取actor
-        actor_photo = get_actor_photo(actor)
-        for each in actor_photo:
+        actor = get_actor(html_detail)
+        actors = [item.strip() for item in actor.split(",") if item.strip()]
+        for each in actors:
             title = title.replace(" " + each, "")
-        cover_url = get_cover(html_detail)  # 获取cover
+
+        cover_url = get_cover(html_detail)
         poster_url = (
             cover_url.replace("_web_h4", "_h1").replace("_1200.jpg", "_2125.jpg").replace("_tsp.jpg", "_actor.jpg")
         )
-        outline = get_outline(html_detail)
-        tag = ""
         release = get_release(html_detail)
-        year = get_year(release)
-        runtime = get_runtime(html_detail)
-        score = ""
-        series = get_series(html_detail)
-        director = get_director(html_detail)
+        directors = [item.strip() for item in get_director(html_detail).split(",") if item.strip()]
         studio = get_publisher(html_detail)
-        publisher = studio
-        extrafanart = get_extrafanart(html_detail)
-        trailer = get_trailer(html_detail)
-        website = real_url
-        try:
-            dic = {
-                "number": number,
-                "title": title,
-                "originaltitle": title,
-                "actor": actor,
-                "outline": outline,
-                "originalplot": outline,
-                "tag": tag,
-                "release": release,
-                "year": year,
-                "runtime": runtime,
-                "score": score,
-                "series": series,
-                "director": director,
-                "studio": studio,
-                "publisher": publisher,
-                "source": "dahlia",
-                "actor_photo": actor_photo,
-                "thumb": cover_url,
-                "poster": poster_url,
-                "extrafanart": extrafanart,
-                "trailer": trailer,
-                "image_download": image_download,
-                "image_cut": image_cut,
-                "mosaic": mosaic,
-                "website": website,
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
-
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
-
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
-
-
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('dhla-009'))
-    print(main('dldss-177'))
+        return CrawlerData(
+            number=ctx.input.number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            outline=get_outline(html_detail),
+            originalplot=get_outline(html_detail),
+            tags=[],
+            release=release,
+            year=get_year(release),
+            runtime=get_runtime(html_detail),
+            series=get_series(html_detail),
+            directors=directors,
+            studio=studio,
+            publisher=studio,
+            thumb=cover_url,
+            poster=poster_url,
+            extrafanart=get_extrafanart(html_detail),
+            trailer=get_trailer(html_detail),
+            image_download=True,
+            image_cut="right",
+            mosaic="有码",
+            external_id=detail_url,
+        )

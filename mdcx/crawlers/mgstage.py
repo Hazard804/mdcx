@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import re
-import time
+from typing import override
 
 from lxml import etree
+from parsel import Selector
 
-from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def getTitle(html):
@@ -35,15 +36,6 @@ def getActor(html):
             .replace(" ", "")
         )
     return result
-
-
-def getActorPhoto(actor):
-    d = {}
-    for i in actor:
-        if "," not in i or ")" in i:
-            p = {i: ""}
-            d.update(p)
-    return d
 
 
 def getStudio(html):
@@ -111,12 +103,12 @@ def getExtraFanart(html):
     return extrafanart_list
 
 
-async def get_trailer(html):
+async def get_trailer(client, html):
     trailer = ""
     play_url = html.xpath("//a[@class='review-btn']/@href")
     if play_url:
         play_url = play_url[0].replace("/mypage/review.php", "/sampleplayer/sampleRespons.php")
-        htmlcode, error = await manager.computed.async_client.get_json(play_url, cookies={"adc": "1"})
+        htmlcode, error = await client.get_json(play_url, cookies={"adc": "1"})
         if htmlcode is not None:
             url_str = htmlcode.get("url")
             if url_str:
@@ -163,137 +155,76 @@ def build_candidate_numbers(number: str, short_number: str) -> list[str]:
     return candidates
 
 
-async def main(
-    number,
-    appoint_url="",
-    short_number="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "mgstage"
-    LogBuffer.req().write(f"-> {website_name}")
-    real_url = appoint_url
-    title = ""
-    cover_url = ""
-    poster_url = ""
-    image_download = True
-    image_cut = "right"
-    dic = {}
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 mgstage")
-    debug_info = ""
-    raw_number = number
+class MgstageCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.MGSTAGE
 
-    try:
-        if not real_url:
-            number = number.upper()
-            short_number = short_number.upper()
-            candidate_numbers = build_candidate_numbers(number, short_number)
-            real_url_list = [f"https://www.mgstage.com/product/product_detail/{each}/" for each in candidate_numbers]
-            if len(candidate_numbers) > 1:
-                LogBuffer.info().write(web_info + f"候选番号: {', '.join(candidate_numbers)}")
-        else:
-            real_url_list = [real_url]
-        for real_url in real_url_list:
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
-            htmlcode, error = await manager.computed.async_client.get_text(real_url, cookies={"adc": "1"})
-            if htmlcode is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            if not htmlcode.strip():
-                debug_info = "返回为空，请更换代理"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            htmlcode = etree.fromstring(htmlcode, etree.HTMLParser())
-            web_number = getNum(htmlcode).strip(",")
-            actor = getActor(htmlcode).replace(" ", "").strip(",")
-            title = getTitle(htmlcode).replace("\\n", "").replace("        ", "").strip(",").strip()  # 获取标题
-            if title and web_number:
-                number = web_number
-                break
-            else:
-                debug_info = "数据获取失败: 未获取到title或番号！"
-                LogBuffer.info().write(web_info + debug_info)
-        else:
-            raise Exception(debug_info)
-        cover_url = getCover(htmlcode)  # 获取cover
-        poster_url = getCoverSmall(cover_url)  # 获取cover
-        outline = getOutline(htmlcode).replace("\n", "").strip(",")
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://www.mgstage.com"
+
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        candidate_numbers = build_candidate_numbers(ctx.input.number.upper(), ctx.input.short_number.upper())
+        if len(candidate_numbers) > 1:
+            ctx.debug(f"候选番号: {', '.join(candidate_numbers)}")
+        return [f"{self.base_url}/product/product_detail/{each}/" for each in candidate_numbers]
+
+    @override
+    async def _parse_search_page(self, ctx: Context, html: Selector, search_url: str) -> list[str] | str | None:
+        htmlcode = etree.fromstring(html.get(), etree.HTMLParser())
+        web_number = getNum(htmlcode).strip(",")
+        title = getTitle(htmlcode).replace("\\n", "").replace("        ", "").strip(",").strip()
+        if title and web_number:
+            return [search_url]
+        ctx.debug("MGStage 候选详情页未获取到 title 或番号")
+        return None
+
+    @override
+    async def _parse_detail_page(self, ctx: Context, html: Selector, detail_url: str) -> CrawlerData | None:
+        htmlcode = etree.fromstring(html.get(), etree.HTMLParser())
+        number = getNum(htmlcode).strip(",") or ctx.input.number
+        actor = getActor(htmlcode).replace(" ", "").strip(",")
+        actors = [item.strip() for item in actor.split(",") if item.strip()]
+        title = getTitle(htmlcode).replace("\\n", "").replace("        ", "").strip(",").strip()
+        if not title or not number:
+            raise CralwerException("数据获取失败: 未获取到title或番号！")
+        cover_url = getCover(htmlcode)
         release = getRelease(htmlcode).strip(",").replace("/", "-")
         tag = getTag(htmlcode).strip(",")
-        year = getYear(release).strip(",")
-        runtime = getRuntime(htmlcode).strip(",")
-        score = getScore(htmlcode).strip(",")
-        series = getSeries(htmlcode).strip(",")
-        studio = getStudio(htmlcode).strip(",")
-        publisher = getPublisher(htmlcode).strip(",")
-        actor_photo = getActorPhoto(actor.split(","))
-        extrafanart = getExtraFanart(htmlcode)
-        trailer = await get_trailer(htmlcode)
-        try:
-            dic = {
-                "number": number or raw_number,
-                "title": title,
-                "originaltitle": title,
-                "actor": actor,
-                "outline": outline,
-                "originalplot": outline,
-                "tag": tag,
-                "release": release,
-                "year": year,
-                "runtime": runtime,
-                "score": score,
-                "series": series,
-                "director": "",
-                "studio": studio,
-                "publisher": publisher,
-                "source": "mgstage",
-                "website": real_url,
-                "actor_photo": actor_photo,
-                "thumb": cover_url,
-                "poster": poster_url,
-                "extrafanart": extrafanart,
-                "trailer": trailer,
-                "image_download": image_download,
-                "image_cut": image_cut,
-                "mosaic": "有码",
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
+        return CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            outline=getOutline(htmlcode).replace("\n", "").strip(","),
+            originalplot=getOutline(htmlcode).replace("\n", "").strip(","),
+            tags=[item.strip() for item in tag.split(",") if item.strip()],
+            release=release,
+            year=getYear(release).strip(","),
+            runtime=getRuntime(htmlcode).strip(","),
+            score=getScore(htmlcode).strip(","),
+            series=getSeries(htmlcode).strip(","),
+            studio=getStudio(htmlcode).strip(","),
+            publisher=getPublisher(htmlcode).strip(","),
+            thumb=cover_url,
+            poster=getCoverSmall(cover_url),
+            extrafanart=getExtraFanart(htmlcode),
+            trailer=await get_trailer(self.async_client, htmlcode),
+            image_download=True,
+            image_cut="right",
+            mosaic="有码",
+            external_id=detail_url,
+        )
 
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+    @override
+    async def _fetch_search(self, ctx: Context, url: str, use_browser: bool | None = False) -> tuple[str | None, str]:
+        return await self.async_client.get_text(url, cookies={"adc": "1"})
 
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
-
-
-if __name__ == "__main__":
-    # print(main('300MIUM-696', ''))
-    # print(main('200GANA-2506'))
-    # print(main('406FSDSS-534'))
-    # print(main('428SUKE-144', short_number='SUKE-144'))
-    # print(main('abp-419', ''))
-    # print(main('300MIUM-382', ''))
-    # print(main('345SIMM-653'))
-    # print(main('SIRO-4605'))
-    # print(main('200GANA-2240'))
-    # print(main('200GANA-2240'))
-    # print(main('SIRO-4042'))
-    # print(main('300MIUM-382'))
-    # print(main('383reiw-043', ''))
-    print(main("300MIUM-382", "https://www.mgstage.com/product/product_detail/300MIUM-382/"))
+    @override
+    async def _fetch_detail(self, ctx: Context, url: str, use_browser: bool | None = False) -> tuple[str | None, str]:
+        return await self.async_client.get_text(url, cookies={"adc": "1"})

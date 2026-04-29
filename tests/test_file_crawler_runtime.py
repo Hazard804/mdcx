@@ -5,23 +5,30 @@ from mdcx.config.models import FieldConfig
 from mdcx.core.file_crawler import FileScraper, _deal_res, _is_suren_number
 from mdcx.gen.field_enums import CrawlerResultFields
 from mdcx.manual import ManualConfig
+from mdcx.models.log_buffer import LogBuffer
 from mdcx.models.types import CrawlerDebugInfo, CrawlerInput, CrawlerResponse, CrawlerResult, CrawlersResult
 
 
 class _FakeCrawler:
-    def __init__(self, data: CrawlerResult):
+    def __init__(self, data: CrawlerResult | None, error: Exception | None = None):
         self._data = data
+        self._error = error
 
     async def run(self, task_input: CrawlerInput) -> CrawlerResponse:
         return CrawlerResponse(
-            debug_info=CrawlerDebugInfo(execution_time=0.01),
+            debug_info=CrawlerDebugInfo(execution_time=0.01, error=self._error),
             data=self._data,
         )
 
 
 class _FakeCrawlerProvider:
-    def __init__(self, website_data: dict[Website, CrawlerResult]):
-        self._website_crawlers = {site: _FakeCrawler(data) for site, data in website_data.items()}
+    def __init__(self, website_data: dict[Website, CrawlerResult | tuple[CrawlerResult | None, Exception | None]]):
+        self._website_crawlers = {}
+        for site, data in website_data.items():
+            if isinstance(data, tuple):
+                self._website_crawlers[site] = _FakeCrawler(data[0], data[1])
+            else:
+                self._website_crawlers[site] = _FakeCrawler(data)
 
     async def get(self, site: Website):
         return self._website_crawlers[site]
@@ -198,3 +205,18 @@ async def test_call_crawler_restore_number_when_exception():
 
     assert task_input.number == "200GANA-3327"
     assert records == [(Website.DMM.value, "GANA-3327")]
+
+
+@pytest.mark.asyncio
+async def test_call_specific_crawler_writes_debug_error_to_log_buffer():
+    LogBuffer.error().clear()
+    provider = _FakeCrawlerProvider({Website.THEPORNDB: (None, RuntimeError("请添加 API Token 后刮削！"))})
+    scraper = FileScraper(_FakeConfig(), provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "Nurumassage.26.02.23"
+
+    result = await scraper._call_specific_crawler(task_input, Website.THEPORNDB)
+
+    assert result is None
+    assert "请添加 API Token 后刮削！" in LogBuffer.error().get()
+    LogBuffer.error().clear()

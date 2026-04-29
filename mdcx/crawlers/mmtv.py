@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
 import re
-import time
+from typing import override
 
 from lxml import etree
+from parsel import Selector
 
-from ..config.enums import Website
-from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
 from ..number import is_uncensored
+from .base import BaseCrawler, CralwerException, CrawlerData
 from .guochan import get_extra_info
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_title(html, web_number):
@@ -172,143 +163,70 @@ def get_number(html, number):
     return number.replace("FC2-PPV ", "FC2-"), release, runtime, number
 
 
-async def main(
-    number,
-    appoint_url="",
-    file_path="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "7mmtv"
-    LogBuffer.req().write(f"-> {website_name}")
-    title = ""
-    cover_url = ""
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 7mmtv")
-    debug_info = ""
-    mmtv_url = manager.config.get_site_url(Website.MMTV, "https://www.7mmtv.sx")
-    real_url = appoint_url
-    # search_url = "https://bb9711.com/zh/searchform_search/all/index.html"
-    # search_url = "https://7mmtv.sx/zh/searchform_search/all/index.html"
-    search_url = f"{mmtv_url}/zh/searchform_search/all/index.html"
-    mosaic = ""
+class MmtvCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.MMTV
 
-    try:
-        if not real_url:
-            search_keyword = number
-            if number.upper().startswith("FC2"):
-                search_keyword = re.findall(r"\d{3,}", number)[0]
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://www.7mmtv.sx"
 
-            search_url = f"{search_url}?search_keyword={search_keyword}&search_type=searchall&op=search"
-            debug_info = f"搜索地址: {search_url} "
-            LogBuffer.info().write(web_info + debug_info)
-            response, error = await manager.computed.async_client.get_text(search_url)
+    @override
+    async def _generate_search_url(self, ctx) -> list[str] | str | None:
+        search_keyword = ctx.input.number
+        if ctx.input.number.upper().startswith("FC2"):
+            search_keyword = re.findall(r"\d{3,}", ctx.input.number)[0]
+        return f"{self.base_url}/zh/searchform_search/all/index.html?search_keyword={search_keyword}&search_type=searchall&op=search"
 
-            if response is None:
-                debug_info = f"网络请求错误: {error}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+    @override
+    async def _parse_search_page(self, ctx, html: Selector, search_url: str) -> list[str] | str | None:
+        search_page = etree.fromstring(html.get(), etree.HTMLParser())
+        detail_url = get_real_url(search_page, ctx.input.number)
+        if not detail_url:
+            raise CralwerException("搜索结果: 未匹配到番号")
+        return [detail_url]
 
-            detail_page = etree.fromstring(response, etree.HTMLParser())
-            real_url = get_real_url(detail_page, number)
-            if real_url:
-                debug_info = f"番号地址: {real_url} "
-                LogBuffer.info().write(web_info + debug_info)
-            else:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+    @override
+    async def _parse_detail_page(self, ctx, html: Selector, detail_url: str) -> CrawlerData | None:
+        html_content = html.get()
+        html_info = etree.fromstring(html_content, etree.HTMLParser())
+        number, release, runtime, web_number = get_number(html_info, ctx.input.number)
+        title = get_title(html_info, web_number)
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到title")
 
-        if real_url:
-            html_content, error = await manager.computed.async_client.get_text(real_url)
-            if html_content is None:
-                debug_info = f"网络请求错误: {error}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-            html_info = etree.fromstring(html_content, etree.HTMLParser())
-            number, release, runtime, web_number = get_number(html_info, number)
-            title = get_title(html_info, web_number)
-            if not title:
-                debug_info = "数据获取失败: 未获取到title！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            actor = get_actor(html_info, title, file_path)
-            actor_photo = get_actor_photo(actor)
-            cover_url = get_cover(html_content)
-            outline, originalplot = get_outline(html_info)
-            year = get_year(release)
-            director = get_director(html_info)
-            studio = get_studio(html_info)
-            publisher = get_publisher(html_info)
-            tag = get_tag(html_info)
-            extrafanart = get_extrafanart(html_info)
-            mosaic = get_mosaic(html_info, number)
-            try:
-                dic = {
-                    "number": number,
-                    "title": title,
-                    "originaltitle": title,
-                    "actor": actor,
-                    "outline": outline,
-                    "originalplot": originalplot,
-                    "tag": tag,
-                    "release": release,
-                    "year": year,
-                    "runtime": runtime,
-                    "score": "",
-                    "series": "",
-                    "country": "CN",
-                    "director": director,
-                    "studio": studio,
-                    "publisher": publisher,
-                    "source": "7mmtv",
-                    "website": real_url,
-                    "actor_photo": actor_photo,
-                    "thumb": cover_url,
-                    "poster": "",
-                    "extrafanart": extrafanart,
-                    "trailer": "",
-                    "image_download": False,
-                    "image_cut": "",
-                    "mosaic": mosaic,
-                    "wanted": "",
-                }
-                if dic["number"].startswith("fc2-ppv"):
-                    num = dic["number"].split()[-1]
-                    dic["number"] = "FC2-" + num
-                    dic["country"] = "JP"
-                debug_info = "数据获取成功！"
-                LogBuffer.info().write(web_info + debug_info)
-
-            except Exception as e:
-                debug_info = f"数据生成出错: {str(e)}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
-
-
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('Fc2-1344765'))  # 26分
-    # print(main('FC2-424646'))
-    # print(main('极品淫娃学妹Cos凌波丽'))  # 不支持标题中间命中
-    # print(main('JUC-694'))
-    # print(main('DIY-061'))  # 多人
-    # print(main('H4610-ki230225'))
-    # print(main('c0930-ki221218'))
-    # print(main('c0930-hitozuma1407'))
-    # print(main('h0930-ori1665'))
-    print(main('h0930-ori1665',
-               appoint_url='https://7mm002.com/zh/amateur_content/107108/content.html'))  # print(main('RBD-293'))  # print(main('LUXU-728')) # 无结果  # print(main('fc2-1050737'))  # 标题中有/  # print(main('fc2-2724807'))  # print(main('luxu-1257'))  # print(main('heyzo-1031'))  # print(main('ABP-905'))  # print(main('heyzo-1031', ''))
+        actor = get_actor(html_info, title, str(ctx.input.file_path or ""))
+        outline, originalplot = get_outline(html_info)
+        extrafanart = get_extrafanart(html_info)
+        if not isinstance(extrafanart, list):
+            extrafanart = []
+        actors = [item.strip() for item in actor.split(",") if item.strip()]
+        directors = [item.strip() for item in get_director(html_info).split(",") if item.strip()]
+        tags = [item.strip() for item in get_tag(html_info).split(",") if item.strip()]
+        return CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            outline=outline,
+            originalplot=originalplot,
+            tags=tags,
+            release=release,
+            year=get_year(release),
+            runtime=runtime,
+            directors=directors,
+            studio=get_studio(html_info),
+            publisher=get_publisher(html_info),
+            thumb=get_cover(html_content),
+            poster="",
+            extrafanart=extrafanart,
+            trailer="",
+            image_download=False,
+            image_cut="",
+            mosaic=get_mosaic(html_info, number),
+            external_id=detail_url,
+        )

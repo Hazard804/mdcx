@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
 import re
-import time
+from dataclasses import dataclass, field
+from typing import override
 
 from lxml import etree
+from parsel import Selector
 
-from ..config.enums import Website
 from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from ..models.types import CrawlerInput
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 from .guochan import get_extra_info, get_number_list
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_detail_info(
@@ -53,138 +47,82 @@ def get_real_url(html, number_list, hscangku_url):
     return False, "", "", ""
 
 
-async def get_redirected_url(url):
-    response, err = await manager.computed.async_client.get_text(url)
-    if response is None:
-        return
-    if (redirected_url := re.search(r'"(https?://.*?)"', response)) is None:
-        return
-    redirected_url = redirected_url.group(1)
-    response, err = await manager.computed.async_client.request(
-        "GET", f"{redirected_url}{url}&p=", allow_redirects=False
-    )
-    if response and response.redirect_url:
-        return response.redirect_url
+@dataclass
+class HscangkuContext(Context):
+    number_candidates: list[str] = field(default_factory=list)
+    matched_number: str = ""
 
 
-async def main(
-    number,
-    appoint_url="",
-    file_path="",
-    appoint_number="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "hscangku"
-    LogBuffer.req().write(f"-> {website_name}")
-    title = ""
-    cover_url = ""
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 hscangku")
-    debug_info = ""
-    real_url = appoint_url
-    hscangku_url = manager.config.get_site_url(Website.HSCANGKU, "http://hsck.net")
+class HscangkuCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.HSCANGKU
 
-    try:
-        if not real_url:
-            # 处理番号
-            number_list, filename_list = get_number_list(number, appoint_number, file_path)
-            n_list = number_list[:1] + filename_list
-            # 处理重定向
-            hscangku_url = await get_redirected_url(hscangku_url)
-            if not hscangku_url:
-                debug_info = "没有正确的 hscangku_url，无法刮削"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            for each in n_list:
-                real_url = f"{hscangku_url}/vodsearch/-------------.html?wd={each}&submit="
-                # real_url = 'http://hsck860.cc/vodsearch/-------------.html?wd=%E6%9F%9A%E5%AD%90%E7%8C%AB&submit='
-                debug_info = f"请求地址: {real_url} "
-                LogBuffer.info().write(web_info + debug_info)
-                response, error = await manager.computed.async_client.get_text(real_url)
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return manager.config.get_site_url(Website.HSCANGKU, "http://hsck.net")
 
-                if response is None:
-                    debug_info = f"网络请求错误: {error}"
-                    LogBuffer.info().write(web_info + debug_info)
-                    raise Exception(debug_info)
-                search_page = etree.fromstring(response, etree.HTMLParser())
-                result, number, title, real_url = get_real_url(search_page, n_list, hscangku_url)
-                # real_url = 'http://hsck860.cc/vodsearch/-------------.html?wd=%E6%9F%9A%E5%AD%90%E7%8C%AB&submit='
-                if result:
-                    break
-            else:
-                debug_info = "没有匹配的搜索结果"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+    @override
+    def new_context(self, input: CrawlerInput) -> HscangkuContext:
+        return HscangkuContext(input=input)
 
-        debug_info = f"番号地址: {real_url} "
-        LogBuffer.info().write(web_info + debug_info)
-        response, error = await manager.computed.async_client.get_text(real_url)
-
+    async def _get_redirected_url(self, url: str) -> str | None:
+        response, error = await self.async_client.get_text(url)
         if response is None:
-            debug_info = f"没有找到数据 {error} "
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            return None
+        if (redirected_url := re.search(r'"(https?://.*?)"', response)) is None:
+            return None
+        redirected_url = redirected_url.group(1)
+        response, error = await self.async_client.request("GET", f"{redirected_url}{url}&p=", allow_redirects=False)
+        if response and response.redirect_url:
+            return response.redirect_url
+        return None
 
-        detail_page = etree.fromstring(response, etree.HTMLParser())
-        number, title, actor, cover_url, tag = get_detail_info(detail_page, real_url, number, file_path)
-        actor_photo = get_actor_photo(actor)
+    @override
+    async def _generate_search_url(self, ctx: HscangkuContext) -> list[str] | str | None:
+        file_path = str(ctx.input.file_path or "")
+        number_list, filename_list = get_number_list(ctx.input.number, ctx.input.appoint_number, file_path)
+        ctx.number_candidates = number_list[:1] + filename_list
+        base_url = await self._get_redirected_url(self.base_url)
+        if not base_url:
+            raise CralwerException("没有正确的 hscangku_url，无法刮削")
+        return [f"{base_url}/vodsearch/-------------.html?wd={each}&submit=" for each in ctx.number_candidates]
 
-        try:
-            dic = {
-                "number": number,
-                "title": title,
-                "originaltitle": title,
-                "actor": actor,
-                "outline": "",
-                "originalplot": "",
-                "tag": tag,
-                "release": "",
-                "year": "",
-                "runtime": "",
-                "score": "",
-                "series": "",
-                "country": "CN",
-                "director": "",
-                "studio": "",
-                "publisher": "",
-                "source": "hscangku",
-                "website": real_url,
-                "actor_photo": actor_photo,
-                "thumb": cover_url,
-                "poster": "",
-                "extrafanart": [],
-                "trailer": "",
-                "image_download": False,
-                "image_cut": "no",
-                "mosaic": "国产",
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
+    @override
+    async def _parse_search_page(self, ctx: HscangkuContext, html: Selector, search_url: str) -> list[str] | str | None:
+        search_page = etree.fromstring(html.get(), etree.HTMLParser())
+        base_url = search_url.split("/vodsearch/", 1)[0]
+        result, number, _title, detail_url = get_real_url(search_page, ctx.number_candidates, base_url)
+        if not result:
+            ctx.debug("hscangku 搜索页没有匹配结果")
+            return None
+        ctx.matched_number = number
+        return [detail_url]
 
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
-
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
-
-
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('大像传媒之淫蕩刺青女學徒', file_path='大像传媒之淫蕩刺青女學徒'))
-    # print(main('冠希传媒GX-017强上弟弟的巨乳姐姐', file_path='冠希传媒GX-017强上弟弟的巨乳姐姐'))
-    # print(main('[SWAG]XHX-0014宅男的公仔幻化成人', file_path='[SWAG]XHX-0014宅男的公仔幻化成人'))
-    # print(main('IDG5401'))
-    print(main('大像传媒之長腿癡女代表情慾作-米歐', file_path='大像传媒之長腿癡女代表情慾作-米歐'))
+    @override
+    async def _parse_detail_page(self, ctx: HscangkuContext, html: Selector, detail_url: str) -> CrawlerData | None:
+        detail_page = etree.fromstring(html.get(), etree.HTMLParser())
+        file_path = str(ctx.input.file_path or "")
+        number = ctx.matched_number or ctx.input.number
+        number, title, actor, cover_url, tag = get_detail_info(detail_page, detail_url, number, file_path)
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到标题")
+        actors = [item.strip() for item in actor.split(",") if item.strip()]
+        tags = [item.strip() for item in tag.split(",") if item.strip()]
+        return CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            tags=tags,
+            thumb=cover_url,
+            poster="",
+            extrafanart=[],
+            image_download=False,
+            image_cut="no",
+            mosaic="国产",
+            external_id=detail_url,
+        )

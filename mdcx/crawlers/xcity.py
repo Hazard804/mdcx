@@ -1,11 +1,12 @@
 #!/usr/bin/python
 import re
-import time
+from typing import override
 
 from lxml import etree
+from parsel import Selector
 
-from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def getTitle(html):
@@ -25,16 +26,6 @@ def getActor(html):
     except Exception:
         result = ""
     return result
-
-
-def getActorPhoto(actor):
-    actor = actor.split(",")
-    d = {}
-    for i in actor:
-        if "," not in i:
-            p = {i: ""}
-            d.update(p)
-    return d
 
 
 def getCover(html):
@@ -126,132 +117,71 @@ def getSeries(html):
     return result
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "xcity"
-    LogBuffer.req().write(f"-> {website_name}")
+class XcityCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.XCITY
 
-    real_url = appoint_url
-    cover_url = ""
-    poster_url = ""
-    image_download = False
-    image_cut = "right"
-    dic = {}
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 xcity")
-    debug_info = ""
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://xcity.jp"
 
-    try:
-        if not real_url:
-            url_search = "https://xcity.jp/result_published/?q=" + number.replace("-", "")
-            debug_info = f"搜索地址: {url_search} "
-            LogBuffer.info().write(web_info + debug_info)
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        return f"{self.base_url}/result_published/?q={ctx.input.number.replace('-', '')}"
 
-            html_search, error = await manager.computed.async_client.get_text(url_search)
-            if html_search is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            if "該当する作品はみつかりませんでした" in html_search:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            html = etree.fromstring(html_search, etree.HTMLParser())
-            real_url = html.xpath("//table[@class='resultList']/tr/td/a/@href")
-            if not real_url:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            else:
-                real_url = "https://xcity.jp" + real_url[0]
+    @override
+    async def _parse_search_page(self, ctx: Context, html: Selector, search_url: str) -> list[str] | str | None:
+        html_search = html.get()
+        if "該当する作品はみつかりませんでした" in html_search:
+            ctx.debug("xcity 搜索页没有匹配结果")
+            return None
+        search_page = etree.fromstring(html_search, etree.HTMLParser())
+        detail_urls = search_page.xpath("//table[@class='resultList']/tr/td/a/@href")
+        if not detail_urls:
+            ctx.debug("xcity 搜索页没有匹配结果")
+            return None
+        return [self.base_url + detail_urls[0]]
 
-        if real_url:
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
-            html_content, error = await manager.computed.async_client.get_text(real_url)
-            if html_content is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            html_info = etree.fromstring(html_content, etree.HTMLParser())
-
-            title = getTitle(html_info)  # 获取标题
-            if not title:
-                debug_info = "数据获取失败: 未获取到title！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            web_number = getWebNumber(html_info, number)  # 获取番号，用来替换标题里的番号
-            title = title.replace(f" {web_number}", "").strip()
-            actor = getActor(html_info)  # 获取actor
-            actor_photo = getActorPhoto(actor)
-            cover_url = getCover(html_info)  # 获取cover
-            outline = getOutline(html_info)
-            release = getRelease(html_info)
-            year = getYear(release)
-            tag = getTag(html_info)
-            studio = getStudio(html_info)
-            publisher = getPublisher(html_info)
-            runtime = getRuntime(html_info)
-            director = getDirector(html_info)
-            extrafanart = getExtrafanart(html_info)
-            poster_url = getCoverSmall(html_info)
-            score = ""
-            series = getSeries(html_info)
-            try:
-                dic = {
-                    "number": number,
-                    "title": title,
-                    "originaltitle": title,
-                    "actor": actor,
-                    "outline": outline,
-                    "originalplot": outline,
-                    "tag": tag,
-                    "release": release,
-                    "year": year,
-                    "runtime": runtime,
-                    "score": score,
-                    "series": series,
-                    "director": director,
-                    "studio": studio,
-                    "publisher": publisher,
-                    "source": "xcity",
-                    "website": real_url,
-                    "actor_photo": actor_photo,
-                    "thumb": cover_url,
-                    "poster": poster_url,
-                    "extrafanart": extrafanart,
-                    "trailer": "",
-                    "image_download": image_download,
-                    "image_cut": image_cut,
-                    "mosaic": "有码",
-                    "wanted": "",
-                }
-
-                debug_info = "数据获取成功！"
-                LogBuffer.info().write(web_info + debug_info)
-
-            except Exception as e:
-                debug_info = f"数据生成出错: {str(e)}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-    except Exception as e:
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
-
-
-if __name__ == "__main__":
-    print(
-        main("STVF010")
-    )  # print(main('MXGS563'))  # print(main('xc-1280'))  # print(main('xv-163'))  # print(main('sea-081'))  # print(main('IA-28'))  # print(main('xc-1298'))  # print(main('DMOW185'))  # print(main('EMOT007'))  # print(main('EMOT007', "https://xcity.jp/avod/detail/?id=147036"))
+    @override
+    async def _parse_detail_page(self, ctx: Context, html: Selector, detail_url: str) -> CrawlerData | None:
+        detail_page = etree.fromstring(html.get(), etree.HTMLParser())
+        title = getTitle(detail_page)
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到title！")
+        web_number = getWebNumber(detail_page, ctx.input.number)
+        title = title.replace(f" {web_number}", "").strip()
+        actor = getActor(detail_page)
+        actors = [item.strip() for item in actor.split(",") if item.strip()]
+        tag = getTag(detail_page)
+        director = getDirector(detail_page)
+        directors = [item.strip() for item in director.split(",") if item.strip()]
+        release = getRelease(detail_page)
+        extrafanart = getExtrafanart(detail_page)
+        return CrawlerData(
+            number=ctx.input.number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            directors=directors,
+            outline=getOutline(detail_page),
+            originalplot=getOutline(detail_page),
+            tags=[item.strip() for item in tag.split(",") if item.strip()],
+            release=release,
+            year=getYear(release),
+            runtime=getRuntime(detail_page),
+            series=getSeries(detail_page),
+            studio=getStudio(detail_page),
+            publisher=getPublisher(detail_page),
+            thumb=getCover(detail_page),
+            poster=getCoverSmall(detail_page),
+            extrafanart=extrafanart if isinstance(extrafanart, list) else [],
+            trailer="",
+            image_download=False,
+            image_cut="right",
+            mosaic="有码",
+            external_id=detail_url,
+        )

@@ -1,49 +1,56 @@
 #!/usr/bin/env python3
 import os.path
 import re
-import time
-import traceback
 from difflib import SequenceMatcher
+from typing import Literal, override
 
 import oshash
 
 from ..base.number import remove_escape_string
-from ..config.enums import Switch
+from ..config.enums import Switch, Website
 from ..config.manager import manager
-from ..crawlers import theporndb_movies
-from ..models.log_buffer import LogBuffer
 from ..number import long_name
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
+
+TheporndbKind = Literal["scenes", "movies"]
 
 
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 
-def read_data(data):
-    title = data.get("title")
-    if not title:
-        title = ""
+def get_year(release):
+    try:
+        return re.findall(r"\d{4}", release)[0]
+    except Exception:
+        return ""
+
+
+def get_number(series, release, title):
+    try:
+        if series and release:
+            return series.replace(" ", "") + "." + re.findall(r"\d{2}-\d{2}-\d{2}", release)[0].replace("-", ".")
+    except Exception:
+        pass
+    return title
+
+
+def read_data(data, kind: TheporndbKind):
+    title = data.get("title") or ""
     outline = data.get("description")
     outline = "" if not outline else outline.replace("＜p＞", "").replace("＜/p＞", "")
-    release = data.get("date")
-    if not release:
-        release = ""
-    year = get_year(release)
-    trailer = data.get("trailer")
-    if not trailer:
-        trailer = ""
+    release = data.get("date") or ""
+    trailer = data.get("trailer") or ""
     try:
         cover = data["background"]["large"]
     except Exception:
         cover = data.get("image")
-    if not cover:
-        cover = ""
+    cover = cover or ""
     try:
         poster = data["posters"]["large"]
     except Exception:
         poster = data.get("poster")
-    if not poster:
-        poster = ""
+    poster = poster or ""
     try:
         runtime = str(int(int(data.get("duration")) / 60))
     except Exception:
@@ -67,9 +74,8 @@ def read_data(data):
             tag_list.append(each["name"])
     except Exception:
         pass
-    tag = ",".join(tag_list)
-    slug = data["slug"]
-    real_url = f"https://api.theporndb.net/scenes/{slug}" if slug else ""
+    slug = data.get("slug") or ""
+    real_url = f"https://api.theporndb.net/{kind}/{slug}" if slug else ""
     all_actor_list = []
     actor_list = []
     try:
@@ -79,37 +85,37 @@ def read_data(data):
                 actor_list.append(each["name"])
     except Exception:
         pass
-    all_actor = ",".join(all_actor_list)
-    actor = ",".join(actor_list)
     number = get_number(series, release, title)
-
-    return (
-        number,
-        title,
-        outline,
-        actor,
-        all_actor,
-        cover,
-        poster,
-        trailer,
-        release,
-        year,
-        runtime,
-        tag,
-        director,
-        series,
-        studio,
-        publisher,
-        real_url,
+    return CrawlerData(
+        number=number,
+        title=title,
+        originaltitle=title,
+        actors=actor_list,
+        all_actors=all_actor_list,
+        outline=outline,
+        originalplot=outline,
+        tags=tag_list,
+        release=release,
+        year=get_year(release),
+        runtime=runtime,
+        score="",
+        series=series,
+        directors=[director] if director else [],
+        studio=studio,
+        publisher=publisher,
+        thumb=cover,
+        poster=poster,
+        extrafanart=[],
+        trailer=trailer,
+        image_download=False,
+        image_cut="",
+        mosaic="无码",
+        external_id=real_url,
+        wanted="",
     )
 
 
-def get_real_url(
-    res_search,
-    file_path,
-    series_ex,
-    date,
-):
+def get_real_url(res_search, file_path, series_ex, date, kind: TheporndbKind):
     search_data = res_search.get("data")
     file_name = os.path.split(file_path)[1].lower()
     new_file_name = re.findall(r"[\.-_]\d{2}\.\d{2}\.\d{2}(.+)", file_name)
@@ -123,7 +129,7 @@ def get_real_url(
             res_title_list = []
             res_actor_list = []
             for each in search_data:
-                res_id_url = f"https://api.theporndb.net/scenes/{each['slug']}"
+                res_id_url = f"https://api.theporndb.net/{kind}/{each['slug']}"
                 try:
                     res_series = each["site"]["short_name"]
                 except Exception:
@@ -143,9 +149,7 @@ def get_real_url(
                     actor_list_nospace.append(ac.replace(" ", ""))
                 res_actor_title_space = (" ".join(actor_list_space) + " " + res_title_space).replace("  ", " ")
 
-                # 有系列时
                 if series_ex:
-                    # 系列相同时，先判断日期，再判断标题，再判断演员（系列有时会缩写，比如 BellesaFilms.19.10.11；日期有时会错误，比如 Throated.17.01.17）
                     if series_ex == res_series or series_ex in res_url:
                         if date and res_date == date:
                             res_date_list.append([res_id_url, res_actor_title_space])
@@ -157,52 +161,18 @@ def get_real_url(
                                     break
                             else:
                                 res_actor_list.append([res_id_url, res_actor_title_space])
-                    else:
-                        # 系列不同时，当日期和标题同时命中，则视为系列错误（比如 AdultTime.20.02.14.Angela.White.And.Courtney.Trouble.Love.Lust.Respect）
-                        if date and res_date == date and res_title_nospace in temp_file_path_nospace:
-                            res_title_list.append([res_id_url, res_actor_title_space])
-
-                # 没有系列时，只判断标题
-                else:
+                    elif date and res_date == date and res_title_nospace in temp_file_path_nospace:
+                        res_title_list.append([res_id_url, res_actor_title_space])
+                elif kind == "scenes" or res_title_nospace in temp_file_path_nospace:
                     res_title_list.append([res_id_url, res_actor_title_space])
 
-            # 系列+日期命中时，一个结果，直接命中；多个结果，返回相似度高的
-            if len(res_date_list):
-                if len(res_date_list) == 1:
-                    return res_date_list[0][0]
-                m = 0
-                for each in res_date_list:
-                    n = similarity(each[1], temp_file_path_space)
-                    if n > m:
-                        m = n
-                        real_url = each[0]
-                return real_url
-
-            # 标题命中时，一个结果，直接命中；多个结果，返回相似度高的
-            if len(res_title_list):
-                if len(res_title_list) == 1:
-                    return res_title_list[0][0]
-                m = 0
-                for each in res_title_list:
-                    n = similarity(each[1], temp_file_path_space)
-                    if n > m:
-                        m = n
-                        real_url = each[0]
-                return real_url
-
-            # 演员命中时，一个结果，直接命中；多个结果，返回相似度高的
-            if len(res_actor_list):
-                if len(res_actor_list) == 1:
-                    return res_actor_list[0][0]
-                m = 0
-                for each in res_actor_list:
-                    n = similarity(each[1], temp_file_path_space)
-                    if n > m:
-                        m = n
-                        real_url = each[0]
-                return real_url
+            for candidate_list in (res_date_list, res_title_list, res_actor_list):
+                if len(candidate_list) == 1:
+                    return candidate_list[0][0]
+                if len(candidate_list):
+                    return max(candidate_list, key=lambda each: similarity(each[1], temp_file_path_space))[0]
     except Exception:
-        print(traceback.format_exc())
+        return False
     return False
 
 
@@ -219,263 +189,122 @@ def get_search_keyword(file_path):
         full_number, series_ex, date = temp_number[0]
         series_ex = long_name(series_ex.lower().replace("-", "").replace(".", ""))
         date = "20" + date.replace(".", "-")
-        keyword_list.append(series_ex + " " + date)  # 系列 + 发行时间
+        keyword_list.append(series_ex + " " + date)
         temp_title = re.sub(r"[-_&\.]", " ", file_name.replace(full_number, "")).strip()
         temp_title_list = []
         [temp_title_list.append(i) for i in temp_title.split(" ") if i and i != series_ex]
-        keyword_list.append(series_ex + " " + " ".join(temp_title_list[:2]))  # 系列 + 标题（去掉日期）
+        keyword_list.append(series_ex + " " + " ".join(temp_title_list[:2]))
     else:
         keyword_list.append(" ".join(file_name.split(".")[:2]).replace("-", " "))
     return keyword_list, series_ex, date
 
 
-def get_number(series, release, title):
-    try:
-        if series and release:
-            return series.replace(" ", "") + "." + re.findall(r"\d{2}-\d{2}-\d{2}", release)[0].replace("-", ".")
-    except Exception:
-        pass
-    return title
+class TheporndbCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.THEPORNDB
 
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://api.theporndb.net"
 
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
-
-
-def get_year(release):
-    try:
-        return re.findall(r"\d{4}", release)[0]
-    except Exception:
-        return ""
-
-
-async def main(
-    number,
-    appoint_url="",
-    file_path="",
-    **kwargs,
-):
-    if not file_path:
-        file_path = number + ".mp4"
-    start_time = time.time()
-    website_name = "theporndb"
-    LogBuffer.req().write(f"-> {website_name}")
-
-    api_token = manager.config.theporndb_api_token
-    theporndb_no_hash = Switch.THEPORNDB_NO_HASH in manager.config.switch_on
-    real_url = appoint_url.replace("//theporndb", "//api.theporndb")
-    title = number
-    cover_url = ""
-    poster_url = ""
-    image_download = False
-    image_cut = ""
-    LogBuffer.info().write("\n    🌐 theporndb")
-    web_info = "\n       "
-    debug_info = ""
-    mosaic = "无码"
-    headers = {
-        "Authorization": f"Bearer {api_token}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.202 Safari/537.36",
-    }
-    hash_data = ""
-
-    try:  # 捕获主动抛出的异常
+    def _headers(self):
+        api_token = manager.config.theporndb_api_token
         if not api_token:
-            debug_info = "请添加 API Token 后刮削！（「设置」-「网络」-「API Token」）"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            raise CralwerException("请添加 API Token 后刮削！（「设置」-「网络」-「API Token」）")
+        return {
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.202 Safari/537.36",
+        }
+
+    @override
+    async def _run(self, ctx: Context):
+        errors = []
+        for kind in ("scenes", "movies"):
+            try:
+                data = await self._scrape_kind(ctx, kind)
+                result = data.to_result()
+                result.source = self.site().value
+                ctx.debug("数据获取成功！")
+                return result
+            except Exception as e:
+                errors.append(f"{kind}: {e}")
+                ctx.debug(f"{kind} 获取失败，尝试下一类型: {e}")
+        raise CralwerException("；".join(errors))
+
+    async def _scrape_kind(self, ctx: Context, kind: TheporndbKind) -> CrawlerData:
+        headers = self._headers()
+        file_path = str(ctx.input.file_path or f"{ctx.input.number}.mp4")
+        real_url = ctx.input.appoint_url.replace("//theporndb", "//api.theporndb")
+        real_url = real_url.replace("/scenes/", f"/{kind}/").replace("/movies/", f"/{kind}/") if real_url else ""
+        hash_data = None
 
         if not real_url:
-            # 通过hash搜索
-            try:
-                if not theporndb_no_hash:
-                    hash = oshash.oshash(file_path)
-                    # hash = '8679fcbdd29fa735'
-                    url_hash = f"https://api.theporndb.net/scenes/hash/{hash}"
-                    debug_info = f"请求地址: {url_hash} "
-                    LogBuffer.info().write(web_info + debug_info)
-                    hash_search, error = await manager.computed.async_client.get_json(url_hash, headers=headers)
-
+            use_hash = kind == "movies" or Switch.THEPORNDB_NO_HASH not in manager.config.switch_on
+            if use_hash:
+                try:
+                    file_hash = oshash.oshash(file_path)
+                    hash_url = f"{self.base_url}/{kind}/hash/{file_hash}"
+                    ctx.debug(f"请求地址: {hash_url}")
+                    ctx.debug_info.search_urls = [*(ctx.debug_info.search_urls or []), hash_url]
+                    hash_search, error = await self.async_client.get_json(hash_url, headers=headers)
                     if hash_search is None:
-                        # 判断返回内容是否有问题
-                        debug_info = f"请求错误: {error}"
-                        LogBuffer.info().write(web_info + debug_info)
-                        if "HTTP 401" in error:
-                            debug_info = f"请检查 API Token 是否正确: {api_token} "
-                            LogBuffer.info().write(web_info + debug_info)
-                        raise Exception(debug_info)
+                        if "HTTP 401" in str(error):
+                            raise CralwerException(f"请检查 API Token 是否正确: {manager.config.theporndb_api_token}")
+                        ctx.debug(f"Hash 请求失败，继续文件名搜索: {error}")
+                        hash_search = {}
                     hash_data = hash_search.get("data")
                     if hash_data:
-                        (
-                            number,
-                            title,
-                            outline,
-                            actor,
-                            all_actor,
-                            cover_url,
-                            poster_url,
-                            trailer,
-                            release,
-                            year,
-                            runtime,
-                            tag,
-                            director,
-                            series,
-                            studio,
-                            publisher,
-                            real_url,
-                        ) = read_data(hash_data)
-            except Exception:
-                pass
+                        return read_data(hash_data, kind)
+                except CralwerException:
+                    raise
+                except Exception:
+                    pass
 
-            # 通过文件名搜索
-            if title and not hash_data:
-                search_keyword_list, series_ex, date = get_search_keyword(file_path)
-                for search_keyword in search_keyword_list:
-                    url_search = f"https://api.theporndb.net/scenes?parse={search_keyword}&per_page=100"
-                    debug_info = f"请求地址: {url_search} "
-                    LogBuffer.info().write(web_info + debug_info)
-                    res_search, error = await manager.computed.async_client.get_json(url_search, headers=headers)
+            search_keyword_list, series_ex, date = get_search_keyword(file_path)
+            last_search_url = ""
+            for search_keyword in search_keyword_list:
+                query = "parse" if kind == "scenes" else "q"
+                last_search_url = f"{self.base_url}/{kind}?{query}={search_keyword}&per_page=100"
+                ctx.debug(f"请求地址: {last_search_url}")
+                ctx.debug_info.search_urls = [*(ctx.debug_info.search_urls or []), last_search_url]
+                res_search, error = await self.async_client.get_json(last_search_url, headers=headers)
+                if res_search is None:
+                    if "HTTP 401" in str(error):
+                        raise CralwerException(f"请检查 API Token 是否正确: {manager.config.theporndb_api_token}")
+                    raise CralwerException(f"请求错误: {error}")
 
-                    if res_search is None:
-                        # 判断返回内容是否有问题
-                        debug_info = f"请求错误: {url_search}"
-                        LogBuffer.info().write(web_info + debug_info)
-                        if "HTTP 401" in error:
-                            debug_info = f"请检查 API Token 是否正确: {api_token} "
-                            LogBuffer.info().write(web_info + debug_info)
-                        raise Exception(debug_info)
-
-                    real_url = get_real_url(res_search, file_path, series_ex, date)
-                    if real_url:
-                        break
-                else:
-                    debug_info = f"未找到匹配的内容: {url_search}"
-                    LogBuffer.info().write(web_info + debug_info)
-                    raise Exception(debug_info)
-
-        if not hash_data:
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
-            res_real, error = await manager.computed.async_client.get_json(real_url, headers=headers)
-            if res_real is None:
-                # 判断返回内容是否有问题
-                debug_info = f"请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                if "HTTP 401" in str(error):
-                    debug_info = f"请检查 API Token 是否正确: {api_token} "
-                    LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-            real_data = res_real.get("data")
-            if real_data:
-                (
-                    number,
-                    title,
-                    outline,
-                    actor,
-                    all_actor,
-                    cover_url,
-                    poster_url,
-                    trailer,
-                    release,
-                    year,
-                    runtime,
-                    tag,
-                    director,
-                    series,
-                    studio,
-                    publisher,
-                    real_url,
-                ) = read_data(real_data)
+                real_url = get_real_url(res_search, file_path, series_ex, date, kind)
+                if real_url:
+                    break
             else:
-                debug_info = f"未获取正确数据: {real_url}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+                raise CralwerException(f"未找到匹配的内容: {last_search_url}")
 
-        actor_photo = get_actor_photo(actor)
-        all_actor_photo = get_actor_photo(all_actor)
+        ctx.debug(f"番号地址: {real_url}")
+        ctx.debug_info.detail_urls = [*(ctx.debug_info.detail_urls or []), real_url]
+        res_real, error = await self.async_client.get_json(real_url, headers=headers)
+        if res_real is None:
+            if "HTTP 401" in str(error):
+                raise CralwerException(f"请检查 API Token 是否正确: {manager.config.theporndb_api_token}")
+            raise CralwerException(f"请求错误: {error}")
 
-        try:
-            dic = {
-                "number": number,
-                "title": title,
-                "originaltitle": title,
-                "actor": actor,
-                "all_actor": all_actor,
-                "outline": outline,
-                "originalplot": outline,
-                "tag": tag,
-                "release": release,
-                "year": year,
-                "runtime": runtime,
-                "score": "",
-                "series": series,
-                "director": director,
-                "studio": studio,
-                "publisher": publisher,
-                "source": "theporndb",
-                "actor_photo": actor_photo,
-                "all_actor_photo": all_actor_photo,
-                "thumb": cover_url,
-                "poster": poster_url,
-                "extrafanart": [],
-                "trailer": trailer,
-                "image_download": image_download,
-                "image_cut": image_cut,
-                "mosaic": mosaic,
-                "website": real_url,
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
+        real_data = res_real.get("data")
+        if not real_data:
+            raise CralwerException(f"未获取正确数据: {real_url}")
+        return read_data(real_data, kind)
 
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        return None
 
-    except Exception:
-        # print(traceback.format_exc())
-        return await theporndb_movies.main(
-            number,
-            appoint_url=appoint_url,
-            file_path=file_path,
-        )
+    @override
+    async def _parse_search_page(self, ctx: Context, html, search_url: str) -> list[str] | str | None:
+        return None
 
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
-
-
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('blacked.21.07.03'))
-    # print(main('sexart.20.05.31'))
-    # print(main('vixen.18.07.18', ''))
-    # print(main('vixen.16.08.02', ''))
-    # print(main('bangbros18.19.09.17'))
-    # print(main('x-art.19.11.03'))
-    # print(main('teenslovehugecocks.22.09.14'))
-    # print(main('x-art.19.11.03'))
-    # print(main('x-art.13.03.29'))
-    # print(main('Strawberries and Wine Hdv'))
-    # print(main('', file_path='BellesaFilms.19.10.11.Angela.White.Open.House.XXX.1080p.MP4-KTR.mp4'))    # 系列 日期命中（系列有缩写，命中url）
-    # print(main('', file_path='Bang.Confessions.18.02.16.Angela.White.XXX.1080p.MP4-KTR.mp4')) # 系列 日期命中（系列中有.）
-    # print(main('', file_path='AngelaWhite.17.12.20.Angela.White.And.Mandingo.129.XXX.1080p.MP4-KTR.mp4'))   # 仅命中一个演员，视为失败
-    # print(main('', file_path='Throated.17.01.17.Jillian.Janson.XXX.1080p.MP4-KTR.mp4'))   # 系列、标题命中
-    # print(main('', file_path='ZZSeries.19.03.12.Lela.Star.BrazziBots.Part.3.XXX.1080p.MP4-KTR[rarbg].mp4'))   # date（系列缩写zzs）
-    # print(main('', file_path='PurgatoryX.19.11.01.Angela.White.The.Dentist.Episode.3.XXX.1080p.MP4-KTR.mp4'))   # 系列 日期命中（系列错了，命中url）
-    # print(main('', file_path='AdultTime.20.02.14.Angela.White.And.Courtney.Trouble.Love.Lust.Respect.XXX.1080p.MP4-KTR.mp4'))   # 系列错了
-    # print(main('', file_path='AdultTime.20.02.17.Angela.White.Full.Body.Physical.Exam.XXX.1080p.MP4-KTR.mp4'))   # 无命中演员，视为失败
-    # print(main('', file_path='SexArt_12.04.13-Elle Alexandra & Lexi Bloom & Malena Morgan-Stepping-Out_SexArt-1080p.mp4'))   # 多个，按相似度命中
-    # print(main('', file_path='SexArt.12.04.13 Sex Art.mp4'))   # 多个，按相似度命中
-    print(main('nubilefilms-all-work-and-no-play',
-               file_path=''))  # print(main('', file_path='SexArt_12.04.13-Elle Alexandra & Malena Morgan-Under-The-Elle-Tree_SexArt-1080p.mp4'))   # 多个，按相似度命中  # print(main('', file_path='SexArt_12.04.13-Elle Alexandra & Rilee Marks-Whispers_SexArt-1080p.mp4'))   # 多个，按相似度命中  # print(main('', file_path='SexArt_12.04.13-Hayden Hawkens & Malena Morgan-Golden_SexArt-1080p.mp4'))   # 多个，按相似度命中  # print(main('', file_path='SexArt_12.04.13-Hayden Hawkens-Butterfly-Blue_SexArt-1080p.mp4'))   # 多个，按相似度命中  # print(main('', file_path='SexArt_12.04.13-Lexi Bloom & Logan Pierce-My-First_SexArt-1080p.mp4'))   # 多个，按相似度命中  # print(main('', file_path='LittleCaprice-Dreams.23.02.18.sky.pierce.and.little.caprice.nasstyx.4k.mp4'))   # 日期不对，缺失演员，标题名顺序不匹配，待调研方案  # print(main('', file_path='LittleCaprice-Dreams.23.02.18.nasstyx.little.caprice.sky.pierce.max.4k.mp4'))   # 缺失演员  # print(main('', file_path='ClubSeventeen.18.09.24.Alecia.Fox.Hardcore.XXX.2160p.MP4-KTR[rarbg].mp4'))   # 系列转换  # print(main('', file_path='ClubSeventeen.18.06.11.Alecia.Fox.And.Gia.Mulino.Lesbian.XXX.2160p.MP4-KTR[rarbg].mp4'))   # 系列转换  # print(main('', file_path='ClubSeventeen.18.07.23.Alecia.Fox.And.Angela.Allison.Lesbian.XXX.2160p.MP4-KTR[rarbg].mp4'))   # 系列转换  # print(main('', file_path='ClubSeventeen.18.10.09.Alecia.Fox.Solo.XXX.2160p.MP4-KTR[rarbg].mp4')) # 多个，按相似度命中  # print(main('', file_path='WhiteTeensBlackCocks.17.07.09.Alecia.Fox.XXX.2160p.MP4-KTR[rarbg].mp4'))   # 缺失资源  # print(main('', file_path='Z:\\分类\\A-日本系列-1080P\\working2\\问题\\blacked.23.02.04.agatha.vega.lika.star.and.jazlyn.ray.mp4'))   # 缺失资源  # print(main('', file_path='brazzersexxtra.23.02.09.aria.lee.and.lulu.chu.pervy.practices.part.1.mp4'))  # print(main('', file_path='brazzersexxtra.23.02.09.lulu.chu.pervy.practices.part.2..mp4'))  # print(main('blacked-2015-03-22-karla-kush', file_path='blacked-2015-03-22-karla-kush.ts'))  # print(main('', file_path='tft-2019-01-14-rachael-cavalli-my-teachers-secrets.ts'))  # print(main('', file_path='hussie-pass-bts-new-boobies-a-brand-new-girl.ts'))    # 演员没有性别  # print(main('SWhores.23.02.14', file_path='SWhores.23.02.14..Anal Girl with No Extras.1080P.ts'))    # 未获取到演员  # print(main('', file_path='/test/work/CzechStreets.2019-01-01.18 Y O Virtuoso with Ddd Tits.Nada.mp4'))    # 未获取到演员  # print(main('Evolvedfights.20.10.30',  #            file_path='AARM-018 - 2021-09-28 - 未知演员 - アロマ企画，アロマ企画/evolvedfights.20.10.30.kay.carter.vs.nathan.bronson.mp4'))
+    @override
+    async def _parse_detail_page(self, ctx: Context, html, detail_url: str) -> CrawlerData | None:
+        return None

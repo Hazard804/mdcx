@@ -1,23 +1,16 @@
 #!/usr/bin/env python3
 import re
-import time
+from dataclasses import dataclass, field
+from typing import override
 
 import zhconv
 from lxml import etree
+from parsel import Selector
 
-from ..config.enums import Website
-from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from ..models.types import CrawlerInput
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 from .guochan import get_extra_info, get_number_list
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_detail_info(html, number, file_path):
@@ -48,117 +41,66 @@ def get_real_url(html, number_list):
     return False, "", "", ""
 
 
-async def main(
-    number,
-    appoint_url="",
-    file_path="",
-    appoint_number="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "cableav"
-    LogBuffer.req().write(f"-> {website_name}")
-    title = ""
-    cover_url = ""
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 cableav")
-    debug_info = ""
-    real_url = appoint_url
-    cableav_url = manager.config.get_site_url(Website.CABLEAV, "https://cableav.tv")
+@dataclass
+class CableavContext(Context):
+    number_candidates: list[str] = field(default_factory=list)
+    matched_number: str = ""
 
-    try:
-        if not real_url:
-            # 处理番号
-            number_list, filename_list = get_number_list(number, appoint_number, file_path)
-            n_list = number_list[:1] + filename_list
-            for each in n_list:
-                real_url = f"{cableav_url}/?s={each}"
-                # real_url = 'https://cableav.tv/s?s=%E6%9F%9A%E5%AD%90%E7%8C%AB'
-                debug_info = f"请求地址: {real_url} "
-                LogBuffer.info().write(web_info + debug_info)
-                response, error = await manager.computed.async_client.get_text(real_url)
-                if response is None:
-                    debug_info = f"网络请求错误: {error}"
-                    LogBuffer.info().write(web_info + debug_info)
-                    raise Exception(debug_info)
-                search_page = etree.fromstring(response, etree.HTMLParser())
-                result, number, title, real_url = get_real_url(search_page, n_list)
-                # real_url = 'https://cableav.tv/hyfaqwfjhio'
-                if result:
-                    break
-            else:
-                debug_info = "没有匹配的搜索结果"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
 
-        debug_info = f"番号地址: {real_url} "
-        LogBuffer.info().write(web_info + debug_info)
-        response, error = await manager.computed.async_client.get_text(real_url)
+class CableavCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.CABLEAV
 
-        if response is None:
-            debug_info = f"没有找到数据 {error} "
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://cableav.tv"
 
-        detail_page = etree.fromstring(response, etree.HTMLParser())
+    @override
+    def new_context(self, input: CrawlerInput) -> CableavContext:
+        return CableavContext(input=input)
+
+    @override
+    async def _generate_search_url(self, ctx: CableavContext) -> list[str] | str | None:
+        file_path = str(ctx.input.file_path or "")
+        number_list, filename_list = get_number_list(ctx.input.number, ctx.input.appoint_number, file_path)
+        ctx.number_candidates = number_list[:1] + filename_list
+        return [f"{self.base_url}/?s={each}" for each in ctx.number_candidates]
+
+    @override
+    async def _parse_search_page(self, ctx: CableavContext, html: Selector, search_url: str) -> list[str] | str | None:
+        search_page = etree.fromstring(html.get(), etree.HTMLParser())
+        result, number, _title, detail_url = get_real_url(search_page, ctx.number_candidates)
+        if not result:
+            ctx.debug("CableAV 搜索页没有匹配结果")
+            return None
+        ctx.matched_number = number
+        return [detail_url]
+
+    @override
+    async def _parse_detail_page(self, ctx: CableavContext, html: Selector, detail_url: str) -> CrawlerData | None:
+        detail_page = etree.fromstring(html.get(), etree.HTMLParser())
+        number = ctx.matched_number or ctx.input.number
+        file_path = str(ctx.input.file_path or "")
         number, title, actor, cover_url, tag = get_detail_info(detail_page, number, file_path)
-        actor_photo = get_actor_photo(actor)
-
-        try:
-            dic = {
-                "number": number,
-                "title": title,
-                "originaltitle": title,
-                "actor": actor,
-                "outline": "",
-                "originalplot": "",
-                "tag": tag,
-                "release": "",
-                "year": "",
-                "runtime": "",
-                "score": "",
-                "series": "",
-                "country": "CN",
-                "director": "",
-                "studio": "",
-                "publisher": "",
-                "source": "cableav",
-                "website": real_url,
-                "actor_photo": actor_photo,
-                "thumb": cover_url,
-                "poster": "",
-                "extrafanart": [],
-                "trailer": "",
-                "image_download": False,
-                "image_cut": "no",
-                "mosaic": "国产",
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
-
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
-
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
-
-
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('SSN010'))
-    # print(main('國產AV 麻豆傳媒 MD0312 清純嫩穴賣身葬父 露露', file_path='國產AV 麻豆傳媒 MD0312 清純嫩穴賣身葬父 露露'))
-    # print(main('國產AV 大象傳媒 DA002 性感魅惑色兔兔 李娜娜', file_path='國產AV 大象傳媒 DA002 性感魅惑色兔兔 李娜娜'))
-    # print(main('韓國高端攝影頂 Yeha 私拍福利', file_path='韓國高端攝影頂 Yeha 私拍福利'))
-    print(main('EMTC-005', file_path='國產AV 愛神傳媒 EMTC005 怒操高冷社長秘書 米歐'))
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到标题")
+        actors = [item.strip() for item in actor.split(",") if item.strip()]
+        tags = [item.strip() for item in tag.split(",") if item.strip()]
+        return CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            tags=tags,
+            thumb=cover_url,
+            poster="",
+            extrafanart=[],
+            image_download=False,
+            image_cut="no",
+            mosaic="国产",
+            external_id=detail_url,
+        )

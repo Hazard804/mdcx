@@ -2,7 +2,8 @@
 import asyncio
 import random
 import re
-import time
+from collections.abc import Callable
+from typing import override
 from urllib.parse import urlsplit
 
 from lxml import etree
@@ -10,16 +11,11 @@ from lxml import etree
 from ..base.web import check_url, is_dmm_image_url, normalize_media_url
 from ..config.enums import DownloadableFile
 from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from ..models.types import CrawlerResult
+from .base import BaseCrawler, CralwerException, CrawlerData
 
-
-def getActorPhoto(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
+type ImageLogFn = Callable[[str], None] | None
 
 
 def getTitle(response):
@@ -177,7 +173,12 @@ def getOutline(detail_page):
     return detail_page.xpath("string(/html/body/div[2]/div[1]/div[1]/div[2]/div[3]/div/text())")
 
 
-async def _validate_dmm_image_if_needed(url: str, label: str) -> str:
+def _log_image(log_fn: ImageLogFn, message: str) -> None:
+    if log_fn is not None:
+        log_fn(message)
+
+
+async def _validate_dmm_image_if_needed(url: str, label: str, *, log_fn: ImageLogFn = None) -> str:
     normalized = normalize_media_url(str(url or "").strip())
     if not normalized:
         return ""
@@ -192,16 +193,16 @@ async def _validate_dmm_image_if_needed(url: str, label: str) -> str:
 
         validated_url = normalize_media_url(str(validated).strip())
         if index == 0 and candidate != normalized:
-            LogBuffer.info().write(f"\n       图片高清图命中: {label} {normalized} -> {validated_url}")
+            _log_image(log_fn, f"图片高清图命中: {label} {normalized} -> {validated_url}")
         elif validated_url != normalized:
-            LogBuffer.info().write(f"\n       图片校验重定向: {label} {normalized} -> {validated_url}")
+            _log_image(log_fn, f"图片校验重定向: {label} {normalized} -> {validated_url}")
         return validated_url
 
-    LogBuffer.info().write(f"\n       图片校验失败: {label} {normalized}")
+    _log_image(log_fn, f"图片校验失败: {label} {normalized}")
     return ""
 
 
-async def _validate_preferred_dmm_image_if_needed(url: str, label: str) -> str:
+async def _validate_preferred_dmm_image_if_needed(url: str, label: str, *, log_fn: ImageLogFn = None) -> str:
     normalized = normalize_media_url(str(url or "").strip())
     if not normalized:
         return ""
@@ -212,18 +213,18 @@ async def _validate_preferred_dmm_image_if_needed(url: str, label: str) -> str:
 
     validated = await check_url(preferred)
     if not validated:
-        LogBuffer.info().write(f"\n       图片抽检失败: {label} {preferred}")
+        _log_image(log_fn, f"图片抽检失败: {label} {preferred}")
         return ""
 
     validated_url = normalize_media_url(str(validated).strip())
     if preferred != normalized and validated_url == preferred:
-        LogBuffer.info().write(f"\n       图片高清图命中: {label} {normalized} -> {validated_url}")
+        _log_image(log_fn, f"图片高清图命中: {label} {normalized} -> {validated_url}")
     elif validated_url != preferred:
-        LogBuffer.info().write(f"\n       图片校验重定向: {label} {preferred} -> {validated_url}")
+        _log_image(log_fn, f"图片校验重定向: {label} {preferred} -> {validated_url}")
     return validated_url
 
 
-async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
+async def _filter_dmm_extrafanart(image_urls: list[str], *, log_fn: ImageLogFn = None) -> list[str]:
     candidates = _normalize_extrafanart_urls(image_urls)
     if not candidates:
         return []
@@ -235,7 +236,7 @@ async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
     sampled_candidates = [(index, candidates[index]) for index in sample_indexes]
     sampled_results = await asyncio.gather(
         *[
-            _validate_preferred_dmm_image_if_needed(image_url, f"extrafanart[{index + 1}]")
+            _validate_preferred_dmm_image_if_needed(image_url, f"extrafanart[{index + 1}]", log_fn=log_fn)
             for index, image_url in sampled_candidates
         ]
     )
@@ -244,9 +245,7 @@ async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
     }
 
     if all(sampled_results):
-        LogBuffer.info().write(
-            f"\n       剧照抽检通过: 随机抽检 {len(sampled_candidates)}/{len(candidates)}，整批升级 AWS"
-        )
+        _log_image(log_fn, f"剧照抽检通过: 随机抽检 {len(sampled_candidates)}/{len(candidates)}，整批升级 AWS")
         valid_urls: list[str] = []
         for index, image_url in enumerate(candidates):
             resolved_url = validated_by_index.get(index) or _prefer_dmm_aws_url(image_url) or image_url
@@ -255,9 +254,7 @@ async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
         return valid_urls
 
     passed_count = sum(1 for image_url in sampled_results if image_url)
-    LogBuffer.info().write(
-        f"\n       剧照抽检失败: 随机抽检 {passed_count}/{len(sampled_candidates)} 通过，回退全量校验"
-    )
+    _log_image(log_fn, f"剧照抽检失败: 随机抽检 {passed_count}/{len(sampled_candidates)} 通过，回退全量校验")
 
     remaining_candidates = [
         (index, image_url) for index, image_url in enumerate(candidates) if not validated_by_index.get(index)
@@ -265,7 +262,7 @@ async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
     if remaining_candidates:
         remaining_results = await asyncio.gather(
             *[
-                _validate_dmm_image_if_needed(image_url, f"extrafanart[{index + 1}]")
+                _validate_dmm_image_if_needed(image_url, f"extrafanart[{index + 1}]", log_fn=log_fn)
                 for index, image_url in remaining_candidates
             ]
         )
@@ -280,10 +277,10 @@ async def _filter_dmm_extrafanart(image_urls: list[str]) -> list[str]:
     return valid_urls
 
 
-async def _resolve_dmm_poster_url(thumb_url: str, poster_url: str) -> str:
+async def _resolve_dmm_poster_url(thumb_url: str, poster_url: str, *, log_fn: ImageLogFn = None) -> str:
     candidates = _normalize_extrafanart_urls([poster_url, _to_poster_url(thumb_url)])
     for candidate in candidates:
-        validated_url = await _validate_dmm_image_if_needed(candidate, "poster")
+        validated_url = await _validate_dmm_image_if_needed(candidate, "poster", log_fn=log_fn)
         if validated_url:
             return validated_url
     return ""
@@ -298,180 +295,153 @@ def _normalize_extrafanart_urls(image_urls: list[str]) -> list[str]:
     return valid_urls
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "jav321"
-    LogBuffer.req().write(f"-> {website_name}")
-    title = ""
-    cover_url = ""
-    poster_url = ""
-    image_download = False
-    image_cut = "right"
-    mosaic = "有码"
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 jav321")
-    debug_info = ""
+def _split_legacy_names(value: str) -> list[str]:
+    return [item.strip() for item in re.split(r"[,，、/／]", value) if item.strip()]
 
-    try:
-        result_url = "https://www.jav321.com/search"
-        if appoint_url != "":
-            result_url = appoint_url
-            debug_info = f"番号地址: {result_url}"
-            LogBuffer.info().write(web_info + debug_info)
+
+class Jav321Crawler(BaseCrawler):
+    UNCENSORED_STUDIOS = {
+        "一本道",
+        "HEYZO",
+        "サムライポルノ",
+        "キャットウォーク",
+        "サイクロン",
+        "ルチャリブレ",
+        "スーパーモデルメディア",
+        "スタジオテリヤキ",
+        "レッドホットコレクション",
+        "スカイハイエンターテインメント",
+        "小天狗",
+        "オリエンタルドリーム",
+        "Climax Zipang",
+        "CATCHEYE",
+        "ファイブスター",
+        "アジアンアイズ",
+        "ゴリラ",
+        "ラフォーレ ガール",
+        "MIKADO",
+        "ムゲンエンターテインメント",
+        "ツバキハウス",
+        "ザーメン二郎",
+        "トラトラトラ",
+        "メルシーボークー",
+        "神風",
+        "Queen 8",
+        "SASUKE",
+        "ファンタドリーム",
+        "マツエンターテインメント",
+        "ピンクパンチャー",
+        "ワンピース",
+        "ゴールデンドラゴン",
+        "Tokyo Hot",
+        "Caribbean",
+    }
+
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.JAV321
+
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://www.jav321.com"
+
+    @override
+    async def _run(self, ctx) -> CrawlerResult:
+        result_url = ctx.input.appoint_url or f"{self.base_url}/search"
+        if ctx.input.appoint_url:
+            ctx.debug(f"番号地址: {result_url}")
+            ctx.debug_info.detail_urls = [result_url]
         else:
-            debug_info = f'搜索地址: {result_url} {{"sn": {number}}}'
-            LogBuffer.info().write(web_info + debug_info)
-        response, error = await manager.computed.async_client.post_text(result_url, data={"sn": number})
+            ctx.debug(f'搜索地址: {result_url} {{"sn": {ctx.input.number}}}')
+            ctx.debug_info.search_urls = [result_url]
+
+        response, error = await self.async_client.post_text(result_url, data={"sn": ctx.input.number})
         if response is None:
-            debug_info = f"网络请求错误: {error}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            raise CralwerException(f"网络请求错误: {error}")
         if "AVが見つかりませんでした" in response:
-            debug_info = "搜索结果: 未匹配到番号！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            raise CralwerException("搜索结果: 未匹配到番号")
+
         detail_page = etree.fromstring(response, etree.HTMLParser())
-        website = getWebsite(detail_page)
-        if website:
-            debug_info = f"番号地址: {website} "
-            LogBuffer.info().write(web_info + debug_info)
+        detail_url = self._extract_website(detail_page, fallback=result_url)
+        if detail_url:
+            ctx.debug(f"番号地址: {detail_url}")
+            ctx.debug_info.detail_urls = [detail_url]
+
+        data = await self._parse_legacy_detail(ctx, response, detail_page, detail_url)
+        data.source = self.site().value
+        return await self.post_process(ctx, data.to_result())
+
+    @staticmethod
+    def _extract_website(detail_page, fallback: str) -> str:
+        try:
+            return getWebsite(detail_page)
+        except Exception:
+            return fallback
+
+    async def _parse_legacy_detail(self, ctx, response: str, detail_page, detail_url: str) -> CrawlerData:
         actor = getActor(response)
-        actor_photo = getActorPhoto(actor)
-        title = getTitle(response).strip()  # 获取标题
+        title = getTitle(response).strip()
         if not title:
-            debug_info = "数据获取失败: 未获取到标题！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
-        cover_url = getCover(detail_page)  # 获取cover
+            raise CralwerException("数据获取失败: 未获取到标题")
+
+        cover_url = getCover(detail_page)
         poster_url = getCoverSmall(detail_page)
         if not cover_url:
             cover_url = poster_url
+
         release = getRelease(response)
-        year = getYear(release)
-        runtime = getRuntime(response)
-        number = getNum(response, number)
-        outline = getOutline(detail_page)
-        tag = getTag(response)
-        score = getScore(response)
+        number = getNum(response, ctx.input.number)
         studio = getStudio(detail_page)
-        series = getSeries(detail_page)
         extrafanart = getExtraFanart(detail_page)
         cover_url, poster_url = _normalize_thumb_poster(cover_url, poster_url)
         extrafanart = _remove_cover_from_extrafanart(cover_url, extrafanart)
-        cover_url = await _validate_dmm_image_if_needed(cover_url, "thumb")
-        poster_url = await _resolve_dmm_poster_url(cover_url, poster_url)
+        cover_url = await _validate_dmm_image_if_needed(cover_url, "thumb", log_fn=ctx.debug)
+        poster_url = await _resolve_dmm_poster_url(cover_url, poster_url, log_fn=ctx.debug)
         if DownloadableFile.EXTRAFANART in manager.config.download_files:
-            extrafanart = await _filter_dmm_extrafanart(extrafanart)
+            extrafanart = await _filter_dmm_extrafanart(extrafanart, log_fn=ctx.debug)
         else:
             extrafanart = _normalize_extrafanart_urls(extrafanart)
-        # 判断无码
-        uncensorted_list = [
-            "一本道",
-            "HEYZO",
-            "サムライポルノ",
-            "キャットウォーク",
-            "サイクロン",
-            "ルチャリブレ",
-            "スーパーモデルメディア",
-            "スタジオテリヤキ",
-            "レッドホットコレクション",
-            "スカイハイエンターテインメント",
-            "小天狗",
-            "オリエンタルドリーム",
-            "Climax Zipang",
-            "CATCHEYE",
-            "ファイブスター",
-            "アジアンアイズ",
-            "ゴリラ",
-            "ラフォーレ ガール",
-            "MIKADO",
-            "ムゲンエンターテインメント",
-            "ツバキハウス",
-            "ザーメン二郎",
-            "トラトラトラ",
-            "メルシーボークー",
-            "神風",
-            "Queen 8",
-            "SASUKE",
-            "ファンタドリーム",
-            "マツエンターテインメント",
-            "ピンクパンチャー",
-            "ワンピース",
-            "ゴールデンドラゴン",
-            "Tokyo Hot",
-            "Caribbean",
-        ]
-        for each in uncensorted_list:
-            if each == studio:
-                mosaic = "无码"
-                break
-        try:
-            dic = {
-                "number": number,
-                "title": title,
-                "originaltitle": title,
-                "actor": actor,
-                "outline": outline,
-                "originalplot": outline,
-                "tag": tag,
-                "release": release,
-                "year": year,
-                "runtime": runtime,
-                "score": score,
-                "series": series,
-                "director": "",
-                "studio": studio,
-                "publisher": studio,
-                "source": "jav321",
-                "website": website,
-                "actor_photo": actor_photo,
-                "thumb": cover_url,
-                "poster": poster_url,
-                "extrafanart": extrafanart,
-                "trailer": "",
-                "image_download": image_download,
-                "image_cut": image_cut,
-                "mosaic": mosaic,
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
 
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+        mosaic = "无码" if studio in self.UNCENSORED_STUDIOS else "有码"
+        actors = _split_legacy_names(actor)
+        return CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            outline=getOutline(detail_page),
+            originalplot=getOutline(detail_page),
+            tags=getTag(response),
+            release=release,
+            year=getYear(release),
+            runtime=getRuntime(response),
+            score=getScore(response),
+            series=getSeries(detail_page),
+            directors=[],
+            studio=studio,
+            publisher=studio,
+            external_id=detail_url,
+            thumb=cover_url,
+            poster=poster_url,
+            extrafanart=extrafanart,
+            trailer="",
+            image_download=False,
+            image_cut="right",
+            mosaic=mosaic,
+            wanted="",
+        )
 
-    except Exception as e:
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+    @override
+    async def _generate_search_url(self, ctx) -> list[str] | str | None:
+        return f"{self.base_url}/search"
 
+    @override
+    async def _parse_search_page(self, ctx, html, search_url: str) -> list[str] | str | None:
+        return None
 
-if __name__ == "__main__":
-    # print(main('blk-495'))
-    # print(main('hkgl-004'))
-    # print(main('snis-333'))
-    # print(main('GERK-326'))
-    # print(main('msfh-010'))
-    # print(main('msfh-010'))
-    # print(main('kavr-065'))
-    # print(main('ssni-645'))
-    # print(main('sivr-038'))
-    # print(main('ara-415'))
-    # print(main('luxu-1257'))
-    # print(main('heyzo-1031'))
-    # print(main('ABP-905'))
-    # print(main('heyzo-1031', ''))
-    # print(main('ymdd-173', 'https://www.jav321.com/video/ymdd00173'))
-    print(main("MIST-409"))
+    @override
+    async def _parse_detail_page(self, ctx, html, detail_url: str) -> CrawlerData | None:
+        return None

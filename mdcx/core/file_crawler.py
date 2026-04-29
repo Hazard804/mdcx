@@ -8,6 +8,7 @@ from ..gen.field_enums import CrawlerResultFields
 from ..manual import ManualConfig
 from ..models.enums import FileMode
 from ..models.flags import Flags
+from ..models.log_buffer import LogBuffer
 from ..models.types import CrawlerInput, CrawlerResponse, CrawlerResult, CrawlersResult, CrawlTask
 from ..number import is_uncensored
 from ..utils.dataclass import update
@@ -19,7 +20,6 @@ if TYPE_CHECKING:
 
 MULTI_LANGUAGE_WEBSITES = [  # 支持多语言, language 参数有意义
     Website.AIRAV_CC,
-    Website.AIRAV,
     Website.IQQTV,
     Website.JAVLIBRARY,
 ]
@@ -326,7 +326,7 @@ class FileScraper:
         title_language = self.config.get_field_config(CrawlerResultFields.TITLE).language
         org_language = title_language
 
-        if website not in ["airav_cc", "iqqtv", "airav", "avsex", "javlibrary", "mdtv", "madouqu", "lulubar"]:
+        if website not in ["airav_cc", "iqqtv", "avsex", "javlibrary", "mdtv", "madouqu", "lulubar"]:
             title_language = Language.JP
 
         elif website == "mdtv":
@@ -337,6 +337,8 @@ class FileScraper:
         web_data = await self._call_crawler(task_input, website)
         web_data_json = web_data.data
         if web_data_json is None:
+            if e := web_data.debug_info.error:
+                LogBuffer.error().write(str(e))
             return None
 
         res = update(CrawlersResult.empty(), web_data_json)

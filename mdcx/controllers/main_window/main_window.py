@@ -217,7 +217,7 @@ class MyMAinWindow(QMainWindow):
             "mdtv、madouqu、7mmtv、faleno、dahlia、prestige、theporndb、cnmdb、fantastica、kin8、avbase\n "
             "非日本代理：javdb、airav-cc、avsex（日本代理会报错）\n "
             "日本代理：seesaawiki、mgstage\n "
-            "无需代理：avsex、hdouban、iqqtv、airav-wiki、love6、lulubar、fc2、fc2club、fc2hub\n\n"
+            "无需代理：avsex、hdouban、iqqtv、love6、lulubar、fc2、fc2club、fc2hub\n\n"
             "Cloudflare Bypass：在【设置】-【网络】-【CF Bypass】填写本地服务地址后生效，"
             "例如 http://127.0.0.1:8000。\n\n"
             "▶️ 点击右上角 【开始检测】按钮以测试网络连通性。"
@@ -1741,7 +1741,7 @@ class MyMAinWindow(QMainWindow):
             text, ok = QInputDialog.getText(
                 self,
                 "输入网址重新刮削",
-                f"文件名: {main_file_name}\n支持网站:airav_cc、airav、avsex、avsox、dmm、getchu、fc2"
+                f"文件名: {main_file_name}\n支持网站:airav_cc、avsex、avsox、dmm、getchu、fc2"
                 f"、fc2club、fc2hub、iqqtv、jav321、javbus、javdb、freejavbt、javlibrary、mdtv"
                 f"、madouqu、mgstage、7mmtv、xcity、mywife、giga、faleno、dahlia、fantastica、avbase"
                 f"、prestige、hdouban、lulubar、love6、cnmdb、theporndb、kin8\n请输入番号对应的网址（不是网站首页地址！！！是番号页面地址！！！）:",
@@ -2499,7 +2499,6 @@ class MyMAinWindow(QMainWindow):
 <head/>
 <body>
   <p><span style=" font-weight:700;">所有可用网站:</span></p>
-  <li>airav</li>
   <li>airav_cc</li>
   <li>avbase</li>
   <li>avsex</li>
@@ -2873,7 +2872,6 @@ class MyMAinWindow(QMainWindow):
                 "fc2": ["https://adult.contents.fc2.com", ""],
                 "fc2club": ["https://fc2club.top", ""],
                 "fc2hub": ["https://javten.com", ""],
-                "airav": ["https://www.airav.wiki", ""],
                 "av-wiki": ["https://av-wiki.net", ""],
                 "seesaawiki": ["https://seesaawiki.jp", ""],
                 "mywife": ["https://mywife.cc", ""],
@@ -2964,7 +2962,7 @@ class MyMAinWindow(QMainWindow):
                         each[1] = "❌ 连接失败 (被 Cloudflare 5 秒盾拦截！)"
                     else:
                         each[1] = f"✅ 连接正常{ping_host(host_address)}"
-                elif name in ["avsex", "freejavbt", "airav_cc", "airav", "madouqu", "7mmtv"]:
+                elif name in ["avsex", "freejavbt", "airav_cc", "madouqu", "7mmtv"]:
                     html_info, error = get_text_sync(each[0])
                     if html_info is None:
                         each[1] = "❌ 连接失败 请检查网络或代理设置！ " + error

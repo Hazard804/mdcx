@@ -2,6 +2,8 @@ import pytest
 
 import mdcx.crawlers.jav321 as jav321_module
 from mdcx.config.enums import DownloadableFile
+from mdcx.config.models import Language
+from mdcx.models.types import CrawlerInput
 
 
 @pytest.mark.asyncio
@@ -193,7 +195,7 @@ def test_remove_cover_from_extrafanart_handles_equivalent_dmm_hosts():
 
 
 @pytest.mark.asyncio
-async def test_main_skips_extrafanart_validation_when_download_disabled(monkeypatch: pytest.MonkeyPatch):
+async def test_crawler_skips_extrafanart_validation_when_download_disabled(monkeypatch: pytest.MonkeyPatch):
     html = """
     <html>
       <body>
@@ -225,23 +227,35 @@ async def test_main_skips_extrafanart_validation_when_download_disabled(monkeypa
     </html>
     """
 
-    async def fake_post_text(url: str, data=None):
-        return html, ""
+    class FakeClient:
+        async def post_text(self, url: str, data=None):
+            return html, ""
 
     called_labels: list[str] = []
 
-    async def fake_validate(url: str, label: str) -> str:
+    async def fake_validate(url: str, label: str, **kwargs) -> str:
         called_labels.append(label)
         return url
 
-    monkeypatch.setattr(jav321_module.manager.computed.async_client, "post_text", fake_post_text)
     monkeypatch.setattr(jav321_module, "_validate_dmm_image_if_needed", fake_validate)
     monkeypatch.setattr(
         jav321_module.manager.config, "download_files", [DownloadableFile.POSTER, DownloadableFile.THUMB]
     )
 
-    result = await jav321_module.main("TEST-001")
-    data = result["jav321"]["zh_cn"]
+    crawler = jav321_module.Jav321Crawler(client=FakeClient())
+    result = await crawler.run(
+        CrawlerInput(
+            appoint_number="",
+            appoint_url="",
+            file_path=None,
+            mosaic="",
+            number="TEST-001",
+            short_number="",
+            language=Language.UNDEFINED,
+            org_language=Language.UNDEFINED,
+        )
+    )
 
     assert called_labels == ["thumb", "poster"]
-    assert data["extrafanart"] == ["https://pics.dmm.co.jp/digital/video/knld00010/sample1.jpg"]
+    assert result.data is not None
+    assert result.data.extrafanart == ["https://pics.dmm.co.jp/digital/video/knld00010/sample1.jpg"]

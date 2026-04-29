@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 import re
-import time
+from dataclasses import dataclass
+from typing import override
 
 from lxml import etree
+from parsel import Selector
 
-from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from ..models.types import CrawlerInput
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def get_web_number(html, number):
@@ -32,15 +35,6 @@ def get_actor(html):
         if a.strip():
             actor_new_list.append(a.strip())
     return ",".join(actor_new_list) if actor_new_list else ""
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_studio(html):
@@ -117,129 +111,68 @@ def get_real_url(html, number):
     return "", ""
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "lulubar"
-    LogBuffer.req().write(f"-> {website_name}")
-    real_url = appoint_url
-    image_cut = "right"
-    image_download = False
-    url_search = ""
-    mosaic = ""
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 lulubar")
-    debug_info = ""
-    poster = ""
-
-    # real_url = 'https://lulubar.co/video/detail?id=340460'
-
-    try:  # 捕获主动抛出的异常
-        if not real_url:
-            # 通过搜索获取real_url
-            url_search = f"https://lulubar.co/video/bysearch?search={number}&page=1"
-            debug_info = f"搜索地址: {url_search} "
-            LogBuffer.info().write(web_info + debug_info)
-
-            # ========================================================================搜索番号
-            html_search, error = await manager.computed.async_client.get_text(url_search)
-            if html_search is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-            html = etree.fromstring(html_search, etree.HTMLParser())
-            real_url, poster = get_real_url(html, number)
-            if not real_url:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-        if real_url:
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
-            html_content, error = await manager.computed.async_client.get_text(real_url)
-            if html_content is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            html_info = etree.fromstring(html_content, etree.HTMLParser())
-
-            title, number = get_title(html_info)
-            if not title:
-                debug_info = "数据获取失败: 未获取到 title！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            outline = get_outline(html_info)
-            actor = get_actor(html_info)
-            actor_photo = get_actor_photo(actor)
-            cover_url = get_cover(html_info)
-            release = get_release(html_info)
-            year = get_year(release)
-            runtime = ""
-            score = ""
-            tag = get_tag(html_info)
-            series = ""
-            director = ""
-            studio = get_studio(html_info)
-            publisher = ""
-            extrafanart = get_extrafanart(html_info)
-            trailer = ""
-            mosaic = get_mosaic(html_info)
-            try:
-                dic = {
-                    "number": number,
-                    "title": title,
-                    "originaltitle": title,
-                    "actor": actor,
-                    "outline": outline,
-                    "originalplot": "",
-                    "tag": tag,
-                    "release": release,
-                    "year": year,
-                    "runtime": runtime,
-                    "score": score,
-                    "series": series,
-                    "director": director,
-                    "studio": studio,
-                    "publisher": publisher,
-                    "source": "lulubar",
-                    "actor_photo": actor_photo,
-                    "thumb": cover_url,
-                    "poster": poster,
-                    "extrafanart": extrafanart,
-                    "trailer": trailer,
-                    "image_download": image_download,
-                    "image_cut": image_cut,
-                    "mosaic": mosaic,
-                    "website": real_url,
-                    "wanted": "",
-                }
-                debug_info = "数据获取成功！"
-                LogBuffer.info().write(web_info + debug_info)
-
-            except Exception as e:
-                debug_info = f"数据生成出错: {str(e)}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+@dataclass
+class LulubarContext(Context):
+    search_poster: str = ""
 
 
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('TRE-82'))   # 没有背景图，封面图查找路径变了
-    # print(main('gsad-18'))   # 没有结果
-    print(main('SSIS-463'))  # print(main('ebod-900'))         # 双人  # print(main('MDHT-0009'))    # 国产  # print(main('GHOV-21'))  # print(main('GHOV-28'))  # print(main('MIAE-346'))  # print(main('STARS-1919'))    # poster图片  # print(main('abw-157'))  # print(main('abs-141'))
+class LulubarCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.LULUBAR
+
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://lulubar.co"
+
+    @override
+    def new_context(self, input: CrawlerInput) -> LulubarContext:
+        return LulubarContext(input=input)
+
+    @override
+    async def _generate_search_url(self, ctx: LulubarContext) -> list[str] | str | None:
+        return f"{self.base_url}/video/bysearch?search={ctx.input.number}&page=1"
+
+    @override
+    async def _parse_search_page(self, ctx: LulubarContext, html: Selector, search_url: str) -> list[str] | str | None:
+        search_page = etree.fromstring(html.get(), etree.HTMLParser())
+        detail_url, poster = get_real_url(search_page, ctx.input.number)
+        if not detail_url:
+            ctx.debug("lulubar 搜索页没有匹配结果")
+            return None
+        ctx.search_poster = poster
+        return [detail_url]
+
+    @override
+    async def _parse_detail_page(self, ctx: LulubarContext, html: Selector, detail_url: str) -> CrawlerData | None:
+        detail_page = etree.fromstring(html.get(), etree.HTMLParser())
+        title, number = get_title(detail_page)
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到 title！")
+        actor = get_actor(detail_page)
+        actors = [item.strip() for item in actor.split(",") if item.strip()]
+        tag = get_tag(detail_page)
+        release = get_release(detail_page)
+        return CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            outline=get_outline(detail_page),
+            originalplot="",
+            tags=[item.strip() for item in tag.split(",") if item.strip()],
+            release=release,
+            year=get_year(release),
+            studio=get_studio(detail_page),
+            thumb=get_cover(detail_page),
+            poster=ctx.search_poster,
+            extrafanart=get_extrafanart(detail_page),
+            trailer="",
+            image_download=False,
+            image_cut="right",
+            mosaic=get_mosaic(detail_page),
+            external_id=detail_url,
+        )

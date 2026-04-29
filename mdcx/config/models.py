@@ -335,7 +335,6 @@ class Config(BaseModel):
             Website.MMTV,
             Website.HDOUBAN,
             Website.JAVDB,
-            Website.AIRAV,
             Website.MISSAV,
         },
         title="无码网站源",
@@ -363,7 +362,6 @@ class Config(BaseModel):
             Website.HDOUBAN,
             Website.JAVDB,
             Website.AVSOX,
-            Website.AIRAV,
         },
         title="FC2网站源",
     )
@@ -856,6 +854,22 @@ class Config(BaseModel):
         """
         处理字段变更.
         """
+
+        def is_removed_airav_site(site: object) -> bool:
+            return site == Website.AIRAV or site == Website.AIRAV.value
+
+        if is_removed_airav_site(d.get("website_single")):
+            d["website_single"] = Website.AIRAV_CC.value
+        for key, value in list(d.items()):
+            if key.startswith("website_") and key != "website_single":
+                if isinstance(value, str):
+                    d[key] = ",".join(site for site in str_to_list(value, ",") if not is_removed_airav_site(site))
+                elif isinstance(value, list | set):
+                    d[key] = [site for site in value if not is_removed_airav_site(site)]
+        if isinstance(field_configs := d.get("field_configs"), dict):
+            for value in field_configs.values():
+                if isinstance(value, dict) and isinstance(sites := value.get("site_prority"), list):
+                    value["site_prority"] = [site for site in sites if not is_removed_airav_site(site)]
         if "proxy_type" in d:
             d["use_proxy"] = d["proxy_type"] != "no"
         if isinstance(r := d.get("proxy"), str):

@@ -132,9 +132,11 @@ def save_config(self: "MyMAinWindow"):
         manager.config.website_single = Website(website_single_text)
     except ValueError:
         manager.config.website_single = Website.AIRAV_CC  # 默认值
+    if manager.config.website_single == Website.AIRAV:
+        manager.config.website_single = Website.AIRAV_CC
 
     def get_sites(text: str) -> set[Website]:
-        return {Website(site) for site in str_to_list(text, ",")}
+        return {Website(site) for site in str_to_list(text, ",") if site != Website.AIRAV.value}
 
     manager.config.website_youma = get_sites(self.Ui.lineEdit_website_youma.text())
     manager.config.website_wuma = get_sites(self.Ui.lineEdit_website_wuma.text())
@@ -641,7 +643,7 @@ def save_config(self: "MyMAinWindow"):
     manager.config.retry = self.Ui.horizontalSlider_retry.value()  # 重试次数
 
     site = self.Ui.comboBox_custom_website.currentText()
-    if site in Website:
+    if site in Website and site != Website.AIRAV.value:
         site = Website(site)
         url = self.Ui.lineEdit_site_custom_url.text().strip("/ ")
         if url:

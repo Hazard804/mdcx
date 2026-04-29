@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import re
-import time
+from dataclasses import dataclass
 
 from lxml import etree
+from parsel import Selector
 
-from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from ..models.types import CrawlerInput
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def get_web_number(html, number):
@@ -17,14 +19,14 @@ def get_title(
     html,
     title,
     number,
-    actor_photo,
+    actors,
 ):
     if not title:
         result = html.xpath("//title/text()")
         if result:
             title = result[0].replace(number, "")
-            for key, value in actor_photo:
-                title = title.replace(key, "")
+            for actor in actors:
+                title = title.replace(actor, "")
             number_123 = re.findall(r"\d+", number)
             for each in number_123:
                 title = title.replace(each, "")
@@ -38,15 +40,6 @@ def get_actor(html):
         if a.strip():
             actor_new_list.append(a.strip())
     return ",".join(actor_new_list)
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_studio(html):
@@ -128,130 +121,65 @@ def get_webnumber(html, number):
     return number_list[0].replace("番號 : ", "").strip() if number_list else number
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "love6"
-    LogBuffer.req().write(f"-> {website_name}")
-    real_url = appoint_url
-    image_cut = ""
-    url_search = ""
-    mosaic = ""
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 love6")
-    debug_info = ""
-    title = ""
-    poster = ""
-
-    # real_url = 'https://love6.tv/albums/view/NDI2Mw=='
-
-    try:  # 捕获主动抛出的异常
-        if not real_url:
-            # 通过搜索获取real_url
-            url_search = f"https://love6.tv/search/all/?search_text={number}"
-            debug_info = f"搜索地址: {url_search} "
-            LogBuffer.info().write(web_info + debug_info)
-
-            # ========================================================================搜索番号
-            html_search, error = await manager.computed.async_client.get_text(url_search)
-            if html_search is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-            html = etree.fromstring(html_search, etree.HTMLParser())
-            title, real_url, poster = get_real_url(html)
-            if not real_url:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-        if real_url:
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
-            html_content, error = await manager.computed.async_client.get_text(real_url)
-            if html_content is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            html_info = etree.fromstring(html_content, etree.HTMLParser())
-            number = get_webnumber(html_info, number)
-            actor = get_actor(html_info)
-            actor_photo = get_actor_photo(actor)
-            title = get_title(html_info, title, number, actor_photo)
-            if not title:
-                debug_info = "数据获取失败: 未获取到标题"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            outline = get_outline(html_info)
-            cover_url = get_cover(html_content)
-            tag = get_tag(html_info)
-            release = get_release(html_info)
-            year = get_year(release)
-            runtime = ""
-            score = ""
-            series = ""
-            director = ""
-            studio = ""
-            publisher = ""
-            extrafanart = ""
-            trailer = ""
-            mosaic = ""
-            try:
-                dic = {
-                    "number": number,
-                    "title": title,
-                    "originaltitle": title,
-                    "actor": actor,
-                    "outline": outline,
-                    "originalplot": "",
-                    "tag": tag,
-                    "release": release,
-                    "year": year,
-                    "runtime": runtime,
-                    "score": score,
-                    "series": series,
-                    "director": director,
-                    "studio": studio,
-                    "publisher": publisher,
-                    "source": "love6",
-                    "actor_photo": actor_photo,
-                    "thumb": cover_url,
-                    "poster": poster,
-                    "extrafanart": extrafanart,
-                    "trailer": trailer,
-                    "image_download": False,
-                    "image_cut": image_cut,
-                    "mosaic": mosaic,
-                    "website": real_url,
-                    "wanted": "",
-                }
-                debug_info = "数据获取成功！"
-                LogBuffer.info().write(web_info + debug_info)
-
-            except Exception as e:
-                debug_info = f"数据生成出错: {str(e)}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+@dataclass
+class Love6Context(Context):
+    search_title: str = ""
+    search_poster: str = ""
 
 
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('ras-00'))
-    # print(main('ras-0236'))
-    # print(main('ras-10236'))
-    print(main('MisAV005-01'))
+class Love6Crawler(BaseCrawler):
+    @classmethod
+    def site(cls) -> Website:
+        return Website.LOVE6
+
+    @classmethod
+    def base_url_(cls) -> str:
+        return "https://love6.tv"
+
+    def new_context(self, input: CrawlerInput) -> Love6Context:
+        return Love6Context(input=input)
+
+    async def _generate_search_url(self, ctx: Love6Context) -> list[str] | str | None:
+        return f"{self.base_url}/search/all/?search_text={ctx.input.number}"
+
+    async def _parse_search_page(self, ctx: Love6Context, html: Selector, search_url: str) -> list[str] | str | None:
+        search_page = etree.fromstring(html.get(), etree.HTMLParser())
+        title, detail_url, poster = get_real_url(search_page)
+        if not detail_url:
+            ctx.debug("love6 搜索页没有匹配结果")
+            return None
+        ctx.search_title = title
+        ctx.search_poster = poster
+        return [detail_url]
+
+    async def _parse_detail_page(self, ctx: Love6Context, html: Selector, detail_url: str) -> CrawlerData | None:
+        html_content = html.get()
+        html_info = etree.fromstring(html_content, etree.HTMLParser())
+        number = get_webnumber(html_info, ctx.input.number)
+        actor = get_actor(html_info)
+        actors = [item.strip() for item in actor.split(",") if item.strip()]
+        title = get_title(html_info, ctx.search_title, number, actors)
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到标题")
+        tag = get_tag(html_info)
+        release = get_release(html_info)
+        return CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            all_actors=actors,
+            outline=get_outline(html_info),
+            originalplot="",
+            tags=[item.strip() for item in tag.split(",") if item.strip()],
+            release=release,
+            year=get_year(release),
+            thumb=get_cover(html_content),
+            poster=ctx.search_poster,
+            extrafanart=[],
+            trailer="",
+            image_download=False,
+            image_cut="",
+            mosaic="",
+            external_id=detail_url,
+        )

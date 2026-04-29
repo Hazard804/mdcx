@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import os
 import re
-import time
+from typing import override
 
 import zhconv
 
 from ..config.enums import Website
 from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def get_api_actor(actor_list):
@@ -15,14 +15,14 @@ def get_api_actor(actor_list):
     for each in actor_list:
         if "♀" in each["sex"]:
             actor.append(each["name"].replace("♀", ""))
-    return ",".join(actor)
+    return actor
 
 
 def get_api_tag(tag_list):
     tag = []
     for each in tag_list:
         tag.append(each["name"])
-    return ",".join(tag)
+    return tag
 
 
 def get_api_extrafanart(extrafanart_list):
@@ -30,15 +30,6 @@ def get_api_extrafanart(extrafanart_list):
     for each in extrafanart_list:
         extrafanart.append(each["big_img"])
     return extrafanart
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_year(release):
@@ -176,196 +167,134 @@ def get_number_list(file_name, number, appoint_number):  # 处理国产番号
     return number_list, filename_list
 
 
-async def main(
-    number,
-    appoint_url="",
-    file_path="",
-    appoint_number="",
-    mosaic="",
-    **kwargs,
-):
-    start_time = time.time()
-    number = number.strip()
-    website_name = "hdouban"
-    LogBuffer.req().write(f"-> {website_name}")
+def clean_na(value) -> str:
+    return str(value or "").replace("N/A", "")
 
-    real_url = appoint_url
-    cover_url = ""
-    image_cut = ""
-    image_download = False
-    url_search = ""
-    mosaic = ""
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 hdouban")
-    debug_info = ""
-    cover_url = ""
-    poster = ""
-    outline = ""
-    director = ""
-    studio = ""
-    title = ""
-    release = ""
-    runtime = ""
-    score = ""
-    series = ""
-    trailer = ""
-    hdouban_url = manager.config.get_site_url(Website.HDOUBAN, "https://ormtgu.com")
 
-    # real_url = 'https://byym21.com/moviedetail/153858'
-    # real_url = 'https://byym21.com/moviedetail/2202'
-    # real_url = 'https://byym21.com/moviedetail/435868'
+class HdoubanCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.HDOUBAN
 
-    try:  # 捕获主动抛出的异常
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return manager.config.get_site_url(Website.HDOUBAN, "https://ormtgu.com")
+
+    @override
+    async def _run(self, ctx: Context):
+        number = ctx.input.number.strip()
+        real_url = ctx.input.appoint_url
+        mosaic = ctx.input.mosaic
+
         if not real_url:
             number_org = [number]
+            file_path = str(ctx.input.file_path or "")
             file_name = os.path.splitext(os.path.split(file_path)[1])[0].upper() if file_path else ""
-            number_list, filename_list = get_number_list(file_name, number, appoint_number)
-            if mosaic == "国产" or mosaic == "國產":
+            number_list, filename_list = get_number_list(file_name, number, ctx.input.appoint_number)
+            if mosaic in {"国产", "國產"}:
                 total_number_list = number_list + filename_list
             else:
                 total_number_list = number_org + number_list + filename_list
             number_list_new = list(set(total_number_list))
             number_list_new.sort(key=total_number_list.index)
+            ctx.debug_info.search_urls = []
 
-            for number in number_list_new:
-                # https://api.6dccbca.com/api/search?search=JUL-401&ty=movie&page=1&pageSize=12
-                # https://api.6dccbca.com/api/search?ty=movie&search=heyzo-1032&page=1&pageSize=12
-                url_search = f"https://api.6dccbca.com/api/search?ty=movie&search={number}&page=1&pageSize=12"
-                debug_info = f"搜索地址: {url_search} "
-                LogBuffer.info().write(web_info + debug_info)
-
-                # ========================================================================搜索番号
-                html_search, error = await manager.computed.async_client.get_json(url_search)
+            for candidate in number_list_new:
+                search_url = f"https://api.6dccbca.com/api/search?ty=movie&search={candidate}&page=1&pageSize=12"
+                ctx.debug(f"搜索地址: {search_url}")
+                ctx.debug_info.search_urls.append(search_url)
+                html_search, error = await self.async_client.get_json(search_url)
                 if html_search is None:
-                    debug_info = f"网络请求错误: {error} "
-                    LogBuffer.info().write(web_info + debug_info)
-                    raise Exception(debug_info)
+                    raise CralwerException(f"网络请求错误: {error}")
                 try:
                     result = html_search["data"]["list"]
                 except Exception:
-                    debug_info = f"搜索结果解析错误: {str(html_search)} "
-                    LogBuffer.info().write(web_info + debug_info)
-                    raise Exception(debug_info)
+                    raise CralwerException(f"搜索结果解析错误: {html_search}")
 
-                temp_number = number.upper().replace("-", "").strip()
-                bingo = False
+                temp_number = candidate.upper().replace("-", "").strip()
                 for each in result:
                     each_number = each["number"].upper().replace("-", "").strip()
                     each_id = each["id"]
                     name = each["name"]
                     if temp_number == each_number or temp_number in name.upper().replace("-", "").strip():
-                        # https://byym21.com/moviedetail/2202
-                        real_url = f"{hdouban_url}/moviedetail/{each_id}"
-                        bingo = True
+                        real_url = f"{self.base_url}/moviedetail/{each_id}"
                         break
-                if bingo:
+                if real_url:
                     break
             else:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+                raise CralwerException("搜索结果: 未匹配到番号！")
 
-        if real_url:
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
+        ctx.debug(f"番号地址: {real_url}")
+        ctx.debug_info.detail_urls = [real_url]
+        detail_id = re.findall(r"moviedetail/(\d+)", real_url)
+        if not detail_id:
+            raise CralwerException(f"详情页链接中未获取到详情页 ID: {detail_id}")
 
-            # 请求api获取详细数据
-            detail_id = re.findall(r"moviedetail/(\d+)", real_url)
-            if not detail_id:
-                debug_info = f"详情页链接中未获取到详情页 ID: {detail_id}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+        detail_url = "https://api.6dccbca.com/api/movie/detail"
+        response, error = await self.async_client.post_json(detail_url, data={"id": str(detail_id[0])})
+        if response is None:
+            raise CralwerException(f"网络请求错误: {error}")
 
-            detail_url = "https://api.6dccbca.com/api/movie/detail"
-            data = {"id": str(detail_id[0])}
-            response, error = await manager.computed.async_client.post_json(detail_url, data=data)
-            if response is None:
-                debug_info = f"网络请求错误: {error}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            res = response["data"]
-            number = res["number"]
-            if not re.search(r"n\d{3,}", number):
-                number = number.upper()
-            title = res["name"].replace(number, "").strip()
-            if not title:
-                debug_info = "数据获取失败: 未获取到title！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            cover_url = res["big_cove"]
-            poster = res["small_cover"]
-            actor = get_api_actor(res["actors"])
-            tag = get_api_tag(res["labels"])
-            director = res["director"][0]["name"] if res["director"] else ""
-            studio = res["company"][0]["name"] if res["company"] else ""
-            series = res["series"][0]["name"] if res["series"] else ""
-            release = res["release_time"].replace(" 00:00:00", "")
-            runtime = res["time"]
-            runtime = str(int(int(runtime) / 3600)) if runtime else ""
-            score = res["score"]
-            trailer = res["trailer"]
-            extrafanart = get_api_extrafanart(res["map"])
-            year = get_year(release)
-            mosaic = get_mosaic(title, studio, tag, mosaic)
+        res = response["data"]
+        number = res["number"]
+        if not re.search(r"n\d{3,}", number):
+            number = number.upper()
+        title = res["name"].replace(number, "").strip()
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到title！")
 
-            # 清除标题中的演员
-            actor_photo = get_actor_photo(actor)
-            try:
-                dic = {
-                    "number": number,
-                    "title": title,
-                    "originaltitle": title,
-                    "actor": actor,
-                    "outline": outline,
-                    "originalplot": outline,
-                    "tag": tag,
-                    "release": release.replace("N/A", ""),
-                    "year": year,
-                    "runtime": str(runtime).replace("N/A", ""),
-                    "score": str(score).replace("N/A", ""),
-                    "series": series.replace("N/A", ""),
-                    "director": director.replace("N/A", ""),
-                    "studio": studio.replace("N/A", ""),
-                    "publisher": studio,
-                    "source": "hdouban",
-                    "actor_photo": actor_photo,
-                    "thumb": cover_url,
-                    "poster": poster,
-                    "extrafanart": extrafanart,
-                    "trailer": trailer,
-                    "image_download": image_download,
-                    "image_cut": image_cut,
-                    "mosaic": mosaic,
-                    "website": re.sub(r"http[s]?://[^/]+", hdouban_url, real_url),
-                    "wanted": "",
-                }
-                debug_info = "数据获取成功！"
-                LogBuffer.info().write(web_info + debug_info)
+        actors = get_api_actor(res["actors"])
+        tags = get_api_tag(res["labels"])
+        director = res["director"][0]["name"] if res["director"] else ""
+        studio = res["company"][0]["name"] if res["company"] else ""
+        series = res["series"][0]["name"] if res["series"] else ""
+        release = res["release_time"].replace(" 00:00:00", "")
+        runtime = res["time"]
+        runtime = str(int(int(runtime) / 3600)) if runtime else ""
+        tag_text = ",".join(tags)
+        mosaic = get_mosaic(title, studio, tag_text, mosaic)
 
-            except Exception as e:
-                debug_info = f"数据生成出错: {str(e)}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+        data = CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=actors,
+            outline="",
+            originalplot="",
+            tags=tags,
+            release=clean_na(release),
+            year=get_year(release),
+            runtime=clean_na(runtime),
+            score=clean_na(res["score"]),
+            series=clean_na(series),
+            directors=[clean_na(director)] if clean_na(director) else [],
+            studio=clean_na(studio),
+            publisher=studio,
+            thumb=res["big_cove"],
+            poster=res["small_cover"],
+            extrafanart=get_api_extrafanart(res["map"]),
+            trailer=res["trailer"],
+            image_download=False,
+            image_cut="",
+            mosaic=mosaic,
+            external_id=re.sub(r"http[s]?://[^/]+", self.base_url, real_url),
+            wanted="",
+        )
+        result = data.to_result()
+        result.source = self.site().value
+        ctx.debug("数据获取成功！")
+        return result
 
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        return None
 
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('MKY-JB-010 '))
-    # print(main('91CM-248 '))    # 无结果
-    # print(main('MDTZ-059'))
-    # print(main('SSIS-334'))
-    # print(main('snis-036')) # 双人
-    # print(main('SSNI-826'))
-    # print(main('大胸母女勾引家教被爆操'))
-    print(main('CEMD-248'))  # print(main('TMG-019'))  # print(main('FC2-2473284 '))  # print(main('SHYN-147 '))    # 有系列  # print(main('MIAE-346'))     # 无结果  # print(main('STARS-191'))    # poster图片  # print(main('abw-157'))  # print(main('abs-141'))  # print(main('HYSD-00083'))  # print(main('IESP-660'))  # print(main('n1403'))  # print(main('GANA-1910'))  # print(main('heyzo-1031'))  # print(main('x-art.19.11.03'))  # print(main('032020-001'))  # print(main('S2M-055'))  # print(main('LUXU-1217'))  # print(main('1101132', ''))  # print(main('OFJE-318'))  # print(main('110119-001'))  # print(main('abs-001'))  # print(main('SSIS-090', ''))  # print(main('SSIS-090', ''))  # print(main('SNIS-016', ''))  # print(main('HYSD-00083', ''))  # print(main('IESP-660', ''))  # print(main('n1403', ''))  # print(main('GANA-1910', ''))  # print(main('heyzo-1031', ''))  # print(main('x-art.19.11.03'))  # print(main('032020-001', ''))  # print(main('S2M-055', ''))  # print(main('LUXU-1217', ''))  # print(main('x-art.19.11.03', ''))
+    @override
+    async def _parse_search_page(self, ctx: Context, html, search_url: str) -> list[str] | str | None:
+        return None
+
+    @override
+    async def _parse_detail_page(self, ctx: Context, html, detail_url: str) -> CrawlerData | None:
+        return None

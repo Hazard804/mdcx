@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 import re
-import time
+from dataclasses import dataclass
+from typing import override
 
 from lxml import etree
+from parsel import Selector
 
-from ..config.enums import Website
 from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from ..models.types import CrawlerInput
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def get_web_number(html, number):
@@ -27,15 +30,6 @@ def get_actor(html):
     actor_list = html.xpath('//dd[@class="flex gap-2 flex-wrap"]/a[contains(@href, "actor")]/text()')
     new_list = [each.strip() for each in actor_list]
     return ",".join(new_list)
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_outline(html):
@@ -143,156 +137,103 @@ def get_real_url(html, number):
                 real_url = temp_url
                 poster_url = temp_poster[0] if temp_poster else ""
                 return real_url, poster_url
-    else:
-        return ""
+    return "", ""
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "avsex"
-    LogBuffer.req().write(f"-> {website_name}")
-
-    if not re.match(r"n\d{4}", number):
-        number = number.upper()
-    avsex_url = manager.config.get_site_url(Website.AVSEX, "https://gg5.co")
-    if appoint_url:
-        if "http" in appoint_url:
-            avsex_url = re.findall(r"(.*//[^/]*)\/", appoint_url)[0]
-        else:
-            avsex_url = "https://" + re.findall(r"([^/]*)\/", appoint_url)[0]
-    real_url = appoint_url
-    image_cut = "right"
-    mosaic = ""
-    url_search = ""
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 avsex")
-    debug_info = ""
-    poster_url = ""
-    # real_url = 'https://paycalling.com/#/home/video/332642'
-    # real_url = 'https://9sex.tv/web/video?id=317900'
-    # real_url = 'https://gg5.co/cn/video/detail/359635'
-
-    try:  # 捕获主动抛出的异常
-        if not real_url:
-            # https://avsex.cc/web/search?page=1&keyWord=ssis
-            # https://paycalling.com/tw/search?_type=films&query=CAWD-582
-            # https://gg5.co/cn/search?type=films&query=CAWD-582
-            # 获取结果后简繁之后会统一转换，这里优先繁体可能是更稳定些？
-            url_search = f"{avsex_url}/tw/search?query={number.lower()}"
-            debug_info = f"搜索地址: {url_search} "
-            LogBuffer.info().write(web_info + debug_info)
-
-            # ========================================================================搜索番号
-            html_search, error = await manager.computed.async_client.get_text(url_search)
-            if html_search is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            html = etree.fromstring(html_search, etree.HTMLParser())
-            real_url, poster_url = get_real_url(html, number)
-            if not real_url:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-        if real_url:
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
-
-            # https://9sex.tv/#/home/video/332642
-            # https://paycalling.com/web/video?id=340715
-            html_content, error = await manager.computed.async_client.get_text(real_url)
-            if html_content is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-            html_info = etree.fromstring(html_content, etree.HTMLParser())
-            title = get_title(html_info)
-            if not title:
-                debug_info = "数据获取失败: 未获取到title！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            number = get_web_number(html_info, number)
-            release = get_release(html_info)
-            cover_url = get_cover(html_info)
-            # poster_url = get_poster(html_info)
-            studio = get_studio(html_info)
-            publisher = ""
-            runtime = get_runtime(html_info)
-            score = ""
-            series = ""
-            director = ""
-            trailer = ""
-            outline = get_outline(html_info)
-            actor = get_actor(html_info)
-            actor_photo = get_actor_photo(actor)
-            tag = get_tag(html_info)
-            year = get_year(release)
-            extrafanart = get_extrafanart(html_info)
-            mosaic = get_mosaic(html_info, studio)
-
-            try:
-                dic = {
-                    "number": number,
-                    "title": title,
-                    "originaltitle": title,
-                    "actor": actor,
-                    "outline": outline,
-                    "originalplot": outline,
-                    "tag": tag,
-                    "release": release.replace("N/A", ""),
-                    "year": year,
-                    "runtime": str(runtime).replace("N/A", ""),
-                    "score": str(score).replace("N/A", ""),
-                    "series": series.replace("N/A", ""),
-                    "director": director.replace("N/A", ""),
-                    "studio": studio.replace("N/A", ""),
-                    "publisher": publisher.replace("N/A", ""),
-                    "source": "avsex",
-                    "actor_photo": actor_photo,
-                    "thumb": cover_url,
-                    "poster": poster_url,
-                    "extrafanart": extrafanart,
-                    "trailer": trailer,
-                    "image_download": False,
-                    "image_cut": image_cut,
-                    "mosaic": mosaic,
-                    "website": re.sub(r"http[s]?://[^/]+", avsex_url, real_url),
-                    "wanted": "",
-                }
-                debug_info = "数据获取成功！"
-                LogBuffer.info().write(web_info + debug_info)
-
-            except Exception as e:
-                debug_info = f"数据生成出错: {str(e)}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+@dataclass
+class AvsexContext(Context):
+    number: str = ""
+    site_url: str = ""
+    detail_url: str = ""
+    poster_url: str = ""
 
 
-if __name__ == "__main__":
-    # print(main('ssni-871'))
-    # print(main('stko-003'))
-    # print(main('abw-123'))
-    # print(main('', 'https://9sex.tv/#/home/video/332642'))
-    # print(main('EVA-088'))
-    # print(main('SNIS-216'))
-    print(
-        main("CAWD-582")
-    )  # print(main('ALDN-107'))  # print(main('ten-024'))  # print(main('459ten-024'))  # print(main('IPX-729'))  # print(main('STARS-199'))    # 无结果  # print(main('SIVR-160'))  # print(main('', 'https://avsex.club/web/video?id=333778'))  # print(main('', 'avsex.club/web/video?id=333778'))  # print(main('ssni-700'))  # print(main('ssis-200'))  # print(main('heyzo-2026'))  # print(main('110219-001'))  # print(main('abw-157'))  # print(main('010520-001'))  # print(main('hbad-599', 'https://avsex.club/web/video?id=333777'))  # print(main('hbad-599', 'https://avsex.club/web/video?id=oo'))  # print(main('abs-141'))  # print(main('HYSD-00083'))  # print(main('IESP-660'))  # print(main('n1403'))  # print(main('GANA-1910'))  # print(main('heyzo-1031'))  # print(main_us('x-art.19.11.03'))  # print(main('032020-001'))  # print(main('S2M-055'))  # print(main('LUXU-1217'))  # print(main('1101132', ''))  # print(main('OFJE-318'))  # print(main('110119-001'))  # print(main('abs-001'))  # print(main('SSIS-090', ''))  # print(main('SSIS-090', ''))  # print(main('SNIS-016', ''))  # print(main('HYSD-00083', ''))  # print(main('IESP-660', ''))  # print(main('n1403', ''))  # print(main('GANA-1910', ''))  # print(main('heyzo-1031', ''))  # print(main_us('x-art.19.11.03'))  # print(main('032020-001', ''))  # print(main('S2M-055', ''))  # print(main('LUXU-1217', ''))  # print(main_us('x-art.19.11.03', ''))
+class AvsexCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.AVSEX
+
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return manager.config.get_site_url(Website.AVSEX, "https://gg5.co")
+
+    @override
+    def new_context(self, input: CrawlerInput) -> AvsexContext:
+        number = input.number if re.match(r"n\d{4}", input.number) else input.number.upper()
+        site_url = self.base_url_()
+        detail_url = input.appoint_url
+        if detail_url:
+            if "http" in detail_url:
+                site_url = re.findall(r"(.*//[^/]*)/", detail_url)[0]
+            else:
+                site_url = "https://" + re.findall(r"([^/]*)/", detail_url)[0]
+                detail_url = "https://" + detail_url
+        return AvsexContext(input=input, number=number, site_url=site_url, detail_url=detail_url)
+
+    @override
+    async def _run(self, ctx: AvsexContext):
+        if ctx.detail_url:
+            ctx.debug_info.detail_urls = [ctx.detail_url]
+            data = await self._detail(ctx, [ctx.detail_url])
+            if not data:
+                raise CralwerException("获取详情页数据失败")
+            data.source = self.site().value
+            return await self.post_process(ctx, data.to_result())
+        return await super()._run(ctx)
+
+    @override
+    async def _generate_search_url(self, ctx: AvsexContext) -> list[str] | str | None:
+        return f"{ctx.site_url}/tw/search?query={ctx.number.lower()}"
+
+    @override
+    async def _parse_search_page(self, ctx: AvsexContext, html: Selector, search_url: str) -> list[str] | str | None:
+        search_page = etree.fromstring(html.get(), etree.HTMLParser())
+        detail_url, poster_url = get_real_url(search_page, ctx.number)
+        if not detail_url:
+            ctx.debug("avsex 搜索页没有匹配结果")
+            return None
+        ctx.poster_url = poster_url
+        return [detail_url]
+
+    @override
+    async def _parse_detail_page(self, ctx: AvsexContext, html: Selector, detail_url: str) -> CrawlerData | None:
+        detail_page = etree.fromstring(html.get(), etree.HTMLParser())
+        title = get_title(detail_page)
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到title！")
+        number = get_web_number(detail_page, ctx.number)
+        release = get_release(detail_page)
+        studio = get_studio(detail_page).replace("N/A", "")
+        runtime = str(get_runtime(detail_page)).replace("N/A", "")
+        outline = get_outline(detail_page)
+        actor = get_actor(detail_page)
+        tag = get_tag(detail_page)
+        external_id = re.sub(r"http[s]?://[^/]+", ctx.site_url, detail_url)
+        return CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=[item.strip() for item in actor.split(",") if item.strip()],
+            all_actors=[item.strip() for item in actor.split(",") if item.strip()],
+            outline=outline,
+            originalplot=outline,
+            tags=[item.strip() for item in tag.split(",") if item.strip()],
+            release=release.replace("N/A", ""),
+            year=get_year(release),
+            runtime=runtime,
+            score="",
+            series="",
+            directors=[],
+            studio=studio,
+            publisher="",
+            thumb=get_cover(detail_page),
+            poster=ctx.poster_url,
+            extrafanart=get_extrafanart(detail_page),
+            trailer="",
+            image_download=False,
+            image_cut="right",
+            mosaic=get_mosaic(detail_page, studio),
+            external_id=external_id,
+        )

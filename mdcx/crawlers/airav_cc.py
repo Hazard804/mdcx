@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import json
 import re
-import time
 import urllib.parse
+from typing import override
 
 from lxml import etree
 
 from ..config.enums import Website
 from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
 from ..signals import signal
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def get_web_number(html):
@@ -39,15 +39,6 @@ def get_actor(html):
     except Exception:
         result = ""
     return result
-
-
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
 
 
 def get_studio(html):
@@ -102,24 +93,21 @@ def get_series(html):
     return result
 
 
-async def retry_request(real_url, web_info):
-    html_content, error = await manager.computed.async_client.get_text(real_url)
+async def retry_request(client, real_url):
+    html_content, error = await client.get_text(real_url)
     if html_content is None:
-        debug_info = f"网络请求错误: {error} "
-        LogBuffer.info().write(web_info + debug_info)
-        raise Exception(debug_info)
+        raise CralwerException(f"网络请求错误: {error}")
     html_info = etree.fromstring(html_content, etree.HTMLParser())
-    title = get_title(html_info)  # 获取标题
+    title = get_title(html_info)
     if not title:
-        debug_info = "数据获取失败: 未获取到title！"
-        LogBuffer.info().write(web_info + debug_info)
-        raise Exception(debug_info)
-    web_number = get_web_number(html_info)  # 获取番号，用来替换标题里的番号
-    web_number1 = f"[{web_number}]"
-    title = title.replace(web_number1, "").strip()
+        raise CralwerException("数据获取失败: 未获取到title！")
+    web_number = get_web_number(html_info)
+    for prefix in (f"[{web_number}]", web_number):
+        if prefix:
+            title = title.replace(prefix, "", 1).strip()
     outline = get_outline(html_info)
-    actor = get_actor(html_info)  # 获取actor
-    cover_url = get_cover(html_info)  # 获取cover
+    actor = get_actor(html_info)
+    cover_url = get_cover(html_info)
     tag = get_tag(html_info)
     studio = get_studio(html_info)
     return html_info, title, outline, actor, cover_url, tag, studio
@@ -137,179 +125,119 @@ def get_real_url(html, number):
     return ""
 
 
-async def main(
-    number,
-    appoint_url="",
-    language="zh_cn",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "airav_cc"
-    LogBuffer.req().write(f"-> {website_name}[{language}]")
-    number = number.upper()
-    if re.match(r"N\d{4}", number):  # n1403
-        number = number.lower()
-    real_url = appoint_url
-    image_cut = "right"
-    image_download = False
-    mosaic = "有码"
-    airav_url = manager.config.get_site_url(Website.AIRAV_CC, "https://airav.io")
-    if language == "zh_cn":
-        airav_url += "/cn"
-    web_info = "\n       "
-    LogBuffer.info().write(f" \n    🌐 airav[{language.replace('zh_', '')}]")
+def split_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
 
-    # real_url = 'https://airav5.fun/jp/playon.aspx?hid=44733'
 
-    try:  # 捕获主动抛出的异常
+def normalize_language(language: str) -> str:
+    return language if language in {"zh_cn", "zh_tw", "jp"} else "zh_cn"
+
+
+class AiravCcCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.AIRAV_CC
+
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return manager.config.get_site_url(Website.AIRAV_CC, "https://airav.io")
+
+    def _language_base_url(self, language: str) -> str:
+        base_url = self.base_url
+        return base_url + "/cn" if language == "zh_cn" else base_url
+
+    @override
+    async def _run(self, ctx: Context):
+        language = normalize_language(getattr(ctx.input.language, "value", str(ctx.input.language)))
+        number = ctx.input.number.upper()
+        if re.match(r"N\d{4}", number):
+            number = number.lower()
+        real_url = ctx.input.appoint_url
+        airav_url = self._language_base_url(language)
+        image_cut = "right"
+        image_download = False
+        mosaic = "有码"
+
         if not real_url:
-            # 通过搜索获取real_url https://airav.io/search_result?kw=ssis-200
-            url_search = airav_url + f"/search_result?kw={number}"
-            debug_info = f"搜索地址: {url_search} "
-            LogBuffer.info().write(web_info + debug_info)
-
-            # ========================================================================搜索番号
-            html_search, error = await manager.computed.async_client.get_text(url_search)
+            search_url = airav_url + f"/search_result?kw={number}"
+            ctx.debug(f"搜索地址: {search_url}")
+            ctx.debug_info.search_urls = [search_url]
+            html_search, error = await self.async_client.get_text(search_url)
             if html_search is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+                raise CralwerException(f"网络请求错误: {error}")
             html = etree.fromstring(html_search, etree.HTMLParser())
-            real_url = html.xpath('//div[@class="col oneVideo"]//a[@href]/@href')
-            # if real_url:
-            #     real_url = airav_url + '/' + real_url[0]
-            # else:
-            # 没有搜索结果
+            real_urls = html.xpath('//div[@class="col oneVideo"]//a[@href]/@href')
+            if not real_urls:
+                raise CralwerException("搜索结果: 未匹配到番号！")
+            real_url = real_urls[0] if len(real_urls) == 1 else get_real_url(html, number)
             if not real_url:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+                raise CralwerException("搜索结果: 未匹配到番号！")
 
-        if real_url:
-            # 只有一个搜索结果时直接取值 多个则进入判断
-            real_url = real_url[0] if len(real_url) == 1 else get_real_url(html, number)
-            # 搜索结果页面有条目，但无法匹配到番号
-            if not real_url:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            else:
-                real_url = urllib.parse.urljoin(airav_url, real_url) if real_url.startswith("/") else real_url
+        real_url = urllib.parse.urljoin(airav_url, real_url) if real_url.startswith("/") else real_url
+        ctx.debug(f"番号地址: {real_url}")
+        ctx.debug_info.detail_urls = [real_url]
+        html_info, title, outline, actor, cover_url, tag, studio = await retry_request(self.async_client, real_url)
 
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
+        if cover_url.startswith("/"):
+            cover_url = urllib.parse.urljoin(airav_url, cover_url)
 
-            html_info, title, outline, actor, cover_url, tag, studio = await retry_request(real_url, web_info)
+        temp_str = title + outline + actor + tag + studio
+        if "�" in temp_str:
+            debug_info = f"{number} 请求 airav_cc 返回内容存在乱码 �"
+            signal.add_log(debug_info)
+            ctx.debug(debug_info)
+            raise CralwerException(debug_info)
 
-            if cover_url.startswith("/"):  # coverurl 可能是相对路径
-                cover_url = urllib.parse.urljoin(airav_url, cover_url)
+        number = get_number(html_info, number)
+        release = get_release(html_info)
+        series = get_series(html_info)
+        if "无码" in tag or "無修正" in tag or "無码" in tag or "uncensored" in tag.lower():
+            mosaic = "无码"
+        title_rep = ["第一集", "第二集", " - 上", " - 下", " 上集", " 下集", " -上", " -下"]
+        for each in title_rep:
+            title = title.replace(each, "").strip()
 
-            temp_str = title + outline + actor + tag + studio
-            if "�" in temp_str:
-                debug_info = f"{number} 请求 airav_cc 返回内容存在乱码 �"
-                signal.add_log(debug_info)
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            actor_photo = get_actor_photo(actor)
-            number = get_number(html_info, number)
-            release = get_release(html_info)
-            year = get_year(release)
-            runtime = ""
-            score = ""
-            series = get_series(html_info)
-            director = ""
-            publisher = ""
-            extrafanart = ""
-            if "无码" in tag or "無修正" in tag or "無码" in tag or "uncensored" in tag.lower():
-                mosaic = "无码"
-            title_rep = ["第一集", "第二集", " - 上", " - 下", " 上集", " 下集", " -上", " -下"]
-            for each in title_rep:
-                title = title.replace(each, "").strip()
-            try:
-                dic = {
-                    "number": number,
-                    "title": title,
-                    "originaltitle": title,
-                    "actor": actor,
-                    "outline": outline,
-                    "originalplot": outline,
-                    "tag": tag,
-                    "release": release,
-                    "year": year,
-                    "runtime": runtime,
-                    "score": score,
-                    "series": series,
-                    "director": director,
-                    "studio": studio,
-                    "publisher": publisher,
-                    "source": "airav_cc",
-                    "actor_photo": actor_photo,
-                    "thumb": cover_url,
-                    "poster": cover_url.replace("big_pic", "small_pic"),
-                    "extrafanart": extrafanart,
-                    "trailer": "",
-                    "image_download": image_download,
-                    "image_cut": image_cut,
-                    "mosaic": mosaic,
-                    "website": real_url,
-                    "wanted": "",
-                }
-                debug_info = "数据获取成功！"
-                LogBuffer.info().write(web_info + debug_info)
-            except Exception as e:
-                debug_info = f"数据生成出错: {str(e)}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {language: dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+        data = CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=split_csv(actor),
+            outline=outline,
+            originalplot=outline,
+            tags=split_csv(tag),
+            release=release,
+            year=get_year(release),
+            runtime="",
+            score="",
+            series=series,
+            directors=[],
+            studio=studio,
+            publisher="",
+            thumb=cover_url,
+            poster=cover_url.replace("big_pic", "small_pic"),
+            extrafanart=[],
+            trailer="",
+            image_download=image_download,
+            image_cut=image_cut,
+            mosaic=mosaic,
+            external_id=real_url,
+            wanted="",
+        )
+        result = data.to_result()
+        result.source = self.site().value
+        ctx.debug("数据获取成功！")
+        return result
 
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        return None
 
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('', 'https://airav.io/playon.aspx?hid=99-21-46640'))
-    # print(main('PRED-300'))    # 马赛克破坏版
-    # print(main('snis-036', language='jp'))
-    # print(main('snis-036'))
-    # print(main('MIAE-346'))
-    # print(main('STARS-1919'))    # poster图片
-    # print(main('abw-157'))
-    # print(main('abs-141'))
-    # print(main('HYSD-00083'))
-    # print(main('IESP-660'))
-    # print(main('n1403'))
-    # print(main('GANA-1910'))
-    # print(main('heyzo-1031'))
-    # print(main('x-art.19.11.03'))
-    # print(main('032020-001'))
-    # print(main('S2M-055'))
-    # print(main('LUXU-1217'))
-    # print(main('1101132', ''))
-    # print(main('OFJE-318'))
-    # print(main('110119-001'))
-    # print(main('abs-001'))
-    # print(main('SSIS-090', ''))
-    # print(main('SSIS-090', ''))
-    # print(main('SNIS-016', ''))
-    # print(main('HYSD-00083', ''))
-    # print(main('IESP-660', ''))
-    # print(main('n1403', ''))
-    # print(main('GANA-1910', ''))
-    # print(main('heyzo-1031', ''))
-    # print(main('x-art.19.11.03'))
-    # print(main('032020-001', ''))
-    # print(main('S2M-055', ''))
-    # print(main('LUXU-1217', ''))
-    # print(main('x-art.19.11.03', ''))
-    # print(main('ssis-200', ''))     # 多个搜索结果
-    # print(main('JUY-331', ''))      # 存在系列字段
-    # print(main('SONE-248', ''))      # 简介存在无效信息  "*根据分发方式,内容可能会有所不同"
-    print('CAWD-688', '')  # 无码破解
+    @override
+    async def _parse_search_page(self, ctx: Context, html, search_url: str) -> list[str] | str | None:
+        return None
+
+    @override
+    async def _parse_detail_page(self, ctx: Context, html, detail_url: str) -> CrawlerData | None:
+        return None

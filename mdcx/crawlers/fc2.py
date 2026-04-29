@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 import json
 import re
-import time
+from typing import override
 
 from lxml import etree
 
-from ..config.enums import FieldRule
+from ..config.enums import FieldRule, Website
 from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
 from ..signals import signal
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def getTitle(html):  # 获取标题
     result = html.xpath('//div[@data-section="userInfo"]//h3/span/../text()')
-    result = " ".join(result) if result else ""
+    result = " ".join(result).strip() if result else ""
     return result
 
 
@@ -150,11 +150,11 @@ def getScore(html):  # 获取评分
     return ""
 
 
-async def getTrailer(number):  # 获取预告片
+async def getTrailer(client, number):  # 获取预告片
     # FC2 sample 接口返回的是带 mid 参数的临时直链，适合立即下载，不适合长期固化。
     # 注意 path 上的 mid 参数不能丢，否则直链会返回 403。
     req_url = f"https://adult.contents.fc2.com/api/v2/videos/{number}/sample"
-    response, error = await manager.computed.async_client.get_text(req_url)
+    response, error = await client.get_text(req_url)
     if response is None:
         return ""
     try:
@@ -173,131 +173,99 @@ def getMosaic(tag, title):  # 获取马赛克
     return result
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    start_time = time.time()
-    website_name = "fc2"
-    LogBuffer.req().write(f"-> {website_name}")
-    real_url = appoint_url
-    title = ""
-    cover_url = ""
-    poster_url = ""
-    image_download = False
-    image_cut = "center"
-    number = number.upper().replace("FC2PPV", "").replace("FC2-PPV-", "").replace("FC2-", "").replace("-", "").strip()
-    dic = {}
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 fc2")
-    debug_info = ""
+def normalize_fc2_number(number: str) -> str:
+    return number.upper().replace("FC2PPV", "").replace("FC2-PPV-", "").replace("FC2-", "").replace("-", "").strip()
 
-    try:  # 捕获主动抛出的异常
-        if not real_url:
-            real_url = f"https://adult.contents.fc2.com/article/{number}/"
 
-        debug_info = f"番号地址: {real_url}"
-        LogBuffer.info().write(web_info + debug_info)
+def split_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
 
-        # ========================================================================番号详情页
-        html_content, error = await manager.computed.async_client.get_text(real_url)
+
+class Fc2Crawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.FC2
+
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://adult.contents.fc2.com"
+
+    @override
+    async def _run(self, ctx: Context):
+        number = normalize_fc2_number(ctx.input.number)
+        real_url = ctx.input.appoint_url or f"{self.base_url}/article/{number}/"
+        ctx.debug(f"番号地址: {real_url}")
+        ctx.debug_info.detail_urls = [real_url]
+
+        html_content, error = await self.async_client.get_text(real_url)
         if html_content is None:
-            debug_info = f"网络请求错误: {error}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            raise CralwerException(f"网络请求错误: {error}")
         html_info = etree.fromstring(html_content, etree.HTMLParser())
 
         if isNotFoundPage(html_info):
-            debug_info = "搜索结果: 未匹配到番号！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
-
+            raise CralwerException("搜索结果: 未匹配到番号！")
         if not isDetailPage(html_info):
-            debug_info = "数据获取失败: 未进入影片详情页！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            raise CralwerException("数据获取失败: 未进入影片详情页！")
 
-        title = getTitle(html_info)  # 获取标题
+        title = getTitle(html_info)
         if not title:
-            debug_info = "数据获取失败: 未获取到title！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            raise CralwerException("数据获取失败: 未获取到title！")
 
-        cover_url, extrafanart = getCover(html_info)  # 获取cover,extrafanart
+        cover_url, extrafanart = getCover(html_info)
         if "http" not in cover_url:
-            debug_info = "数据获取失败: 未获取到cover！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            raise CralwerException("数据获取失败: 未获取到cover！")
 
-        poster_url = getCoverSmall(html_info)
-        outline = getOutline(html_info)
         tag = getTag(html_info)
         release = getRelease(html_info)
-        runtime = getRuntime(html_info)
-        score = getScore(html_info)
-        trailer = await getTrailer(number)
-        debug_info = (
-            "预告片: 已获取到带时效参数的临时链接，仅适合立即下载" if trailer else "预告片: 未获取到临时下载链接"
-        )
-        LogBuffer.info().write(web_info + debug_info)
+        trailer = await getTrailer(self.async_client, number)
+        ctx.debug("预告片: 已获取到带时效参数的临时链接" if trailer else "预告片: 未获取到临时下载链接")
         if trailer:
             signal.add_log("🟡 FC2 预告片链接带时效参数，仅适合立即下载，不建议长期复用远程链接。")
-        studio = getStudio(html_info)  # 使用卖家作为厂商
-        mosaic = getMosaic(tag, title)
-        tag = tag.replace("無修正,", "").replace("無修正", "").strip(",")
+
+        studio = getStudio(html_info)
         actor = studio if FieldRule.FC2_SELLER in manager.config.fields_rule else ""
+        tag = tag.replace("無修正,", "").replace("無修正", "").strip(",")
+        data = CrawlerData(
+            number="FC2-" + str(number),
+            title=title,
+            originaltitle=title,
+            actors=split_csv(actor),
+            outline=getOutline(html_info),
+            originalplot=getOutline(html_info),
+            tags=split_csv(tag),
+            release=release,
+            year=release[:4],
+            runtime=getRuntime(html_info),
+            score=getScore(html_info),
+            series="FC2系列",
+            directors=[],
+            studio=studio,
+            publisher=studio,
+            thumb=cover_url,
+            poster=getCoverSmall(html_info),
+            extrafanart=extrafanart,
+            trailer=trailer,
+            image_download=False,
+            image_cut="center",
+            mosaic=getMosaic(tag, title),
+            external_id=real_url,
+            wanted="",
+        )
+        result = data.to_result()
+        result.source = self.site().value
+        ctx.debug("数据获取成功！")
+        return result
 
-        try:
-            dic = {
-                "number": "FC2-" + str(number),
-                "title": title,
-                "originaltitle": title,
-                "actor": actor,
-                "outline": outline,
-                "originalplot": outline,
-                "tag": tag,
-                "release": release,
-                "year": release[:4],
-                "runtime": runtime,
-                "score": score,
-                "series": "FC2系列",
-                "director": "",
-                "studio": studio,
-                "publisher": studio,
-                "source": "fc2",
-                "website": real_url,
-                "actor_photo": {actor: ""},
-                "thumb": cover_url,
-                "poster": poster_url,
-                "extrafanart": extrafanart,
-                "trailer": trailer,
-                "image_download": image_download,
-                "image_cut": image_cut,
-                "mosaic": mosaic,
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        return None
 
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+    @override
+    async def _parse_search_page(self, ctx: Context, html, search_url: str) -> list[str] | str | None:
+        return None
 
-    except Exception as e:
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
-
-
-if __name__ == "__main__":
-    # yapf: disable
-    print(main('1723984',
-               ''))  # 有码  # print(main('1924776', ''))  # print(main('1860858', ''))  # print(main('1599412', ''))    # fc2hub有，fc2/fc2club没有  # print(main('1131214', ''))    # fc2club有，fc2/fc2hub没有  # print(main('1837553', ''))  # 无码  # print(main('1613618', ''))  # print(main('1837553', ''))  # print(main('1837589', ""))  # print(main('1760182', ''))  # print(main('1251689', ''))  # print(main('674239', ""))  # print(main('674239', "))
+    @override
+    async def _parse_detail_page(self, ctx: Context, html, detail_url: str) -> CrawlerData | None:
+        return None

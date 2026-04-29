@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-import time
+from typing import override
 
 from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def get_title(data):  # 获取标题
     return data.get("article", {}).get("title", "")
 
 
-def get_cover(data, number):  # 获取封面URL
+def get_cover(data):  # 获取封面URL
     image_url = data.get("article", {}).get("image_url", "")
     if image_url and "no-image" not in image_url:
         return image_url
@@ -22,12 +23,12 @@ def get_release_date(data):  # 获取发行日期
 
 def get_actors(data):  # 获取演员
     actresses = data.get("article", {}).get("actresses", [])
-    return ",".join([actress.get("name", "") for actress in actresses]) if actresses else ""
+    return [actress.get("name", "") for actress in actresses if actress.get("name")] if actresses else []
 
 
 def get_tags(data):  # 获取标签
     tags = data.get("article", {}).get("tags", [])
-    return ",".join([tag.get("name", "") for tag in tags]) if tags else ""
+    return [tag.get("name", "") for tag in tags if tag.get("name")] if tags else []
 
 
 def get_studio(data):  # 获取厂家
@@ -81,125 +82,104 @@ def cookie_str_to_dict(cookie_str: str) -> dict:  # cookie 转为字典
     return cookies
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    """
-    主函数，获取FC2视频信息
-    :param number: 番号
-    :param appoint_url: 指定的URL
-    :param language: 语言
-    :return: JSON格式的影片信息
-    """
-    start_time = time.time()
-    website_name = "fc2ppvdb"
-    LogBuffer.req().write(f"-> {website_name}")
-    real_url = appoint_url
-    number = number.upper().replace("FC2PPV", "").replace("FC2-PPV-", "").replace("FC2-", "").replace("-", "").strip()
-    dic = {}
-    web_info = "\n       "
+def normalize_fc2_number(number: str) -> str:
+    return number.upper().replace("FC2PPV", "").replace("FC2-PPV-", "").replace("FC2-", "").replace("-", "").strip()
 
-    try:
-        debug_info = f"番号地址: {real_url}"
-        LogBuffer.info().write(web_info + debug_info)
-        # ========================================================================番号详情页
+
+class Fc2ppvdbCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.FC2PPVDB
+
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://fc2ppvdb.com"
+
+    @override
+    async def _run(self, ctx: Context):
+        number = normalize_fc2_number(ctx.input.number)
+        article_url = f"{self.base_url}/articles/{number}"
+        xhr_url = f"{self.base_url}/articles/article-info?videoid={number}"
+        ctx.debug(f"番号地址: {article_url}")
+        ctx.debug_info.detail_urls = [article_url]
+
         cookies = cookie_str_to_dict(manager.config.fc2ppvdb)
         use_proxy = manager.config.use_proxy
-
-        # 先访问详情页，让站点接受配置中的独立 cookie。
-        url_article = f"https://fc2ppvdb.com/articles/{number}"
-        response_article, error = await manager.computed.async_client.request(
+        response_article, error = await self.async_client.request(
             "GET",
-            url_article,
+            article_url,
             cookies=cookies,
             use_proxy=use_proxy,
         )
         if response_article is None:
-            raise Exception(f"详情页请求失败: {error}")
+            raise CralwerException(f"详情页请求失败: {error}")
         if response_article.status_code != 200:
-            raise Exception(f"详情页请求失败: {response_article.status_code}")
+            raise CralwerException(f"详情页请求失败: {response_article.status_code}")
 
-        # 再访问 XHR 接口获取 JSON 数据。
-        xhr_url = f"https://fc2ppvdb.com/articles/article-info?videoid={number}"
-        html_info, error = await manager.computed.async_client.get_json(
+        ctx.debug(f"XHR 地址: {xhr_url}")
+        html_info, error = await self.async_client.get_json(
             xhr_url,
             cookies=cookies,
             use_proxy=use_proxy,
         )
         if html_info is None:
-            raise Exception(f"XHR 请求失败: {error}")
+            raise CralwerException(f"XHR 请求失败: {error}")
 
         title = get_title(html_info)
         if not title:
-            debug_info = "数据获取失败: 未获取到title！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
-        cover_url = get_cover(html_info, number)
+            raise CralwerException("数据获取失败: 未获取到title！")
+        cover_url = get_cover(html_info)
         if "http" not in cover_url:
-            debug_info = "数据获取失败: 未获取到cover！"
-            LogBuffer.info().write(web_info + debug_info)
+            ctx.debug("数据获取失败: 未获取到cover！")
         release_date = get_release_date(html_info)
-        year = release_date[:4] if release_date else ""
-        actor = get_actors(html_info)
-        tag = get_tags(html_info)
+        actors = get_actors(html_info)
+        tags = [tag for tag in get_tags(html_info) if tag != "無修正"]
         studio = get_studio(html_info)  # 使用卖家作为厂商
+        if "fc2_seller" in manager.config.fields_rule and studio:
+            actors = [studio]
         video_type = get_video_type(html_info)
-        video_url = get_video_url(html_info)
-        video_time = get_video_time(html_info)
-        tag = tag.replace("無修正,", "").replace("無修正", "").strip(",")
-        if "fc2_seller" in manager.config.fields_rule:
-            actor = studio
 
-        try:
-            dic = {
-                "number": "FC2-" + str(number),
-                "title": title,
-                "originaltitle": title,
-                "outline": "",
-                "actor": actor,
-                "originalplot": "",
-                "tag": tag,
-                "release": release_date,
-                "year": year,
-                "runtime": video_time,
-                "score": "",
-                "series": "FC2系列",
-                "director": "",
-                "studio": studio,
-                "publisher": studio,
-                "source": "fc2",
-                "website": real_url,
-                "actor_photo": {actor: ""},
-                "thumb": cover_url,
-                "poster": cover_url,
-                "extrafanart": [],
-                "trailer": video_url,
-                "image_download": False,
-                "image_cut": "center",
-                "mosaic": "无码" if video_type == "無碼" else "有码",
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+        data = CrawlerData(
+            number="FC2-" + str(number),
+            title=title,
+            originaltitle=title,
+            outline="",
+            actors=actors,
+            originalplot="",
+            tags=tags,
+            release=release_date,
+            year=release_date[:4] if release_date else "",
+            runtime=get_video_time(html_info),
+            score="",
+            series="FC2系列",
+            directors=[],
+            studio=studio,
+            publisher=studio,
+            thumb=cover_url,
+            poster=cover_url,
+            extrafanart=[],
+            trailer=get_video_url(html_info),
+            image_download=False,
+            image_cut="center",
+            mosaic="无码" if video_type == "無碼" else "有码",
+            external_id=article_url,
+            wanted="",
+        )
+        result = data.to_result()
+        result.source = self.site().value
+        ctx.debug("数据获取成功！")
+        return result
 
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        return None
 
+    @override
+    async def _parse_search_page(self, ctx: Context, html, search_url: str) -> list[str] | str | None:
+        return None
 
-if __name__ == "__main__":
-    print(main("FC2-3259498"))
+    @override
+    async def _parse_detail_page(self, ctx: Context, html, detail_url: str) -> CrawlerData | None:
+        return None

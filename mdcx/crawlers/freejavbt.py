@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import re
-import time
+from typing import override
 
 from lxml import etree
 from lxml.html import soupparser
 
 from ..base.web import get_dmm_trailer
-from ..config.manager import manager
-from ..models.log_buffer import LogBuffer
+from ..config.models import Website
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def get_title(html):
@@ -44,7 +44,7 @@ def get_title(html):
 
 
 def get_actor(html):
-    actor_result = html.xpath('//a[@class="actress"]/text()')
+    actor_result = html.xpath('//a[contains(concat(" ", normalize-space(@class), " "), " actress ")]/text()')
     av_man = [
         "貞松大輔",
         "鮫島",
@@ -239,13 +239,15 @@ def get_actor(html):
     return actor, all_actor
 
 
-def get_actor_photo(actor):
-    actor = actor.split(",")
-    data = {}
-    for i in actor:
-        actor_photo = {i: ""}
-        data.update(actor_photo)
-    return data
+def split_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def parse_detail_html(html_info: str):
+    html_detail = etree.fromstring(html_info, etree.HTMLParser())
+    if html_detail is None:
+        html_detail = soupparser.fromstring(html_info)
+    return html_detail
 
 
 def get_runtime(html):
@@ -292,23 +294,31 @@ def get_year(release):
 
 
 def get_tag(html):
-    result = html.xpath('//a[@class="genre"]//text()')
+    result = html.xpath(
+        '//a[contains(concat(" ", normalize-space(@class), " "), " genre ")]//text()'
+        ' | //a[contains(@href, "/genre/") or contains(@href, "/genres/") or contains(@href, "/tag/")]//text()'
+    )
     tag = ""
     for each in result:
-        tag += each.strip().replace("，", "") + ","
+        item = each.strip().lstrip("#").replace("，", "")
+        if item:
+            tag += item + ","
     return tag.strip(",")
 
 
 def get_cover(html):
-    try:
-        result = html.xpath(
-            "//img[@class='video-cover rounded lazyload' or @class='col-lg-2 col-md-2 col-sm-6 col-12 lazyload']/@data-src"
-        )[0]
-        if "no_preview_lg" in result or "http" not in result:
-            return ""
-    except Exception:
-        result = ""
-    return result
+    result = html.xpath(
+        "//img[contains(@class, 'video-cover')]/@data-src"
+        " | //img[contains(@class, 'video-cover')]/@src"
+        " | //meta[@property='og:image']/@content"
+        " | //meta[@name='twitter:image']/@content"
+        " | //img[contains(@class, 'lazyload') and contains(@data-src, '/samples/')]/@data-src"
+    )
+    for item in result:
+        item = item.strip()
+        if item and "no_preview_lg" not in item and item.startswith("http"):
+            return item
+    return ""
 
 
 def get_extrafanart(html):  # 获取封面链接
@@ -329,155 +339,83 @@ def get_mosaic(title, actor):
     return mosaic
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    # https://freejavbt.com/VRKM-565
-    start_time = time.time()
-    website_name = "freejavbt"
-    LogBuffer.req().write(f"-> {website_name}")
-    real_url = appoint_url
-    title = ""
-    cover_url = ""
-    poster_url = ""
-    image_download = False
-    image_cut = "right"
-    web_info = "\n       "
-    debug_info = ""
-    real_url = f"https://freejavbt.com/{number}"
-    LogBuffer.info().write("\n    🌐 freejavbt")
-    if appoint_url:
-        real_url = appoint_url.replace("/zh/", "/").replace("/en/", "/").replace("/ja/", "/")
+class FreejavbtCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.FREEJAVBT
 
-    try:  # 捕获主动抛出的异常
-        debug_info = f"番号地址: {real_url} "
-        LogBuffer.info().write(web_info + debug_info)
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "https://freejavbt.com"
 
-        html_info, error = await manager.computed.async_client.get_text(real_url)
+    @override
+    async def _run(self, ctx: Context):
+        real_url = f"{self.base_url}/{ctx.input.number}"
+        if ctx.input.appoint_url:
+            real_url = ctx.input.appoint_url.replace("/zh/", "/").replace("/en/", "/").replace("/ja/", "/")
+        ctx.debug(f"番号地址: {real_url}")
+        ctx.debug_info.detail_urls = [real_url]
+
+        html_info, error = await self.async_client.get_text(real_url)
         if html_info is None:
-            debug_info = f"请求错误: {error}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
-
-        # 判断返回内容是否有问题
+            raise CralwerException(f"请求错误: {error}")
         if not html_info:
-            debug_info = "未匹配到番号！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+            raise CralwerException("未匹配到番号！")
 
-        html_detail = etree.fromstring(html_info, etree.HTMLParser())
-
-        # docker版本正常，但在macOS会解析失败，猜测是emoji等特殊字符导致的，删除emoji后可解析正常。
-        # 搜索emoji正则: [\u{1F601}-\u{1F64F}\u{2702}-\u{27B0}\u{1F680}-\u{1F6C0}\u{1F170}-\u{1F251}\u{1F600}-\u{1F636}\u{1F681}-\u{1F6C5}\u{1F30D}-\u{1F567}]
-        # 另外，使用`lxml.html.soupparser.fromstring`可以解析成功。
+        html_detail = parse_detail_html(html_info)
         if html_detail is None:
-            debug_info = "HTML 解析失败，etree 返回 None"
-            LogBuffer.error().write(web_info + debug_info)
-            # 尝试soupparser
-            html_detail = soupparser.fromstring(html_info)
-            if html_detail is None:
-                debug_info = "HTML 解析失败，soupparser 返回 None"
-                LogBuffer.error().write(web_info + debug_info)
-                raise Exception(debug_info)
+            raise CralwerException("HTML 解析失败")
 
-        # docker版本正常，但在macOS会解析失败，猜测是emoji等特殊字符导致的，删除emoji后可解析正常。
-        # 搜索emoji正则: [\u{1F601}-\u{1F64F}\u{2702}-\u{27B0}\u{1F680}-\u{1F6C0}\u{1F170}-\u{1F251}\u{1F600}-\u{1F636}\u{1F681}-\u{1F6C5}\u{1F30D}-\u{1F567}]
-        # 另外，使用`lxml.html.soupparser.fromstring`可以解析成功。
-        if html_detail is None:
-            debug_info = "HTML 解析失败，etree 返回 None"
-            LogBuffer.error().write(web_info + debug_info)
-            # 尝试soupparser
-            html_detail = soupparser.fromstring(html_info)
-            if html_detail is None:
-                debug_info = "HTML 解析失败，soupparser 返回 None"
-                LogBuffer.error().write(web_info + debug_info)
-                raise Exception(debug_info)
-
-        # ========================================================================收集信息
-        title, number = get_title(html_detail)  # 获取标题并去掉头尾歌手名
+        title, number = get_title(html_detail)
         if not title or "single-video-info col-12" not in html_info:
-            debug_info = "数据获取失败: 番号标题不存在！"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
-        actor, all_actor = get_actor(html_detail)  # 获取actor
-        actor_photo = get_actor_photo(actor)
-        all_actor_photo = get_actor_photo(all_actor)
-        cover_url = get_cover(html_detail)  # 获取cover
+            raise CralwerException("数据获取失败: 番号标题不存在！")
 
-        # poster_url = cover_url.replace('/covers/', '/thumbs/')
-        outline = ""
-        tag = get_tag(html_detail)
+        actor, all_actor = get_actor(html_detail)
         release = get_release(html_detail)
-        year = get_year(release)
-        runtime = get_runtime(html_detail)
-        score = ""
-        series = get_series(html_detail)
+        tag = get_tag(html_detail)
         director = get_director(html_detail)
-        studio = get_studio(html_detail)
-        publisher = get_publisher(html_detail)
-        extrafanart = get_extrafanart(html_detail)
-        trailer = await get_trailer(html_detail)
-        website = real_url
-        mosaic = get_mosaic(title, actor)
-        try:
-            dic = {
-                "number": number,
-                "title": title,
-                "originaltitle": title,
-                "actor": actor,
-                "all_actor": all_actor,
-                "outline": outline,
-                "originalplot": outline,
-                "tag": tag,
-                "release": release,
-                "year": year,
-                "runtime": runtime,
-                "score": score,
-                "series": series,
-                "director": director,
-                "studio": studio,
-                "publisher": publisher,
-                "source": "freejavbt",
-                "actor_photo": actor_photo,
-                "all_actor_photo": all_actor_photo,
-                "thumb": cover_url,
-                "poster": poster_url,
-                "extrafanart": extrafanart,
-                "trailer": trailer,
-                "image_download": image_download,
-                "image_cut": image_cut,
-                "mosaic": mosaic,
-                "website": website,
-                "wanted": "",
-            }
-            debug_info = "数据获取成功！"
-            LogBuffer.info().write(web_info + debug_info)
+        data = CrawlerData(
+            number=number,
+            title=title,
+            originaltitle=title,
+            actors=split_csv(actor),
+            all_actors=split_csv(all_actor),
+            outline="",
+            originalplot="",
+            tags=split_csv(tag),
+            release=release,
+            year=get_year(release),
+            runtime=get_runtime(html_detail),
+            score="",
+            series=get_series(html_detail),
+            directors=split_csv(director),
+            studio=get_studio(html_detail),
+            publisher=get_publisher(html_detail),
+            thumb=get_cover(html_detail),
+            poster="",
+            extrafanart=get_extrafanart(html_detail),
+            trailer=await get_trailer(html_detail),
+            image_download=False,
+            image_cut="right",
+            mosaic=get_mosaic(title, actor),
+            external_id=real_url,
+            wanted="",
+        )
+        result = data.to_result()
+        result.source = self.site().value
+        ctx.debug("数据获取成功！")
+        return result
 
-        except Exception as e:
-            debug_info = f"数据生成出错: {str(e)}"
-            LogBuffer.info().write(web_info + debug_info)
-            raise Exception(debug_info)
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        return None
 
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+    @override
+    async def _parse_search_page(self, ctx: Context, html, search_url: str) -> list[str] | str | None:
+        return None
 
-
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('080815_130'))   # trailer url is http, not https
-    # print(main('', 'https://javdb.com/v/dWmGB'))
-    # print(main('ssis-118'))
-    # print(main('DANDY-520', ''))    # 预告片默认低品质dm，改成高品质dmb
-    # print(main('PPPD-653'))
-    print(main('SSNI-531'))  # print(main('ssis-330')) # 预告片  # print(main('n1403'))  # print(main('SKYHD-014'))       # 无预览图  # print(main('FC2-424646'))     # 无番号  # print(main('CWPBD-168'))  # print(main('BadMilfs.22.04.02'))  # print(main('vixen.19.12.10'))  # print(main('CEMD-133'))  # print(main('FC2-880652')) # 无番号  # print(main('PLA-018'))  # print(main('SIVR-060'))  # print(main('STCV-067'))  # print(main('ALDN-107'))  # print(main('DSVR-1205'))    # 无标题  # print(main('SIVR-100'))  # print(main('FC2-2787433'))  # print(main('MIDV-018'))  # print(main('MIDV-018', appoint_url='https://javdb.com/v/BnMY9'))  # print(main('SVSS-003'))  # print(main('SIVR-008'))  # print(main('blacked.21.07.03'))  # print(main('FC2-1262472'))  # 需要登录  # print(main('HUNTB-107'))  # 预告片返回url错误，只有https  # print(main('FC2-2392657'))                                                  # 需要登录  # print(main('GS-067'))                                                       # 两个同名番号  # print(main('MIDE-022'))  # print(main('KRAY-001'))  # print(main('ssis-243'))  # print(main('MIDE-900', 'https://javdb.com/v/MZp24?locale=en'))  # print(main('TD-011'))  # print(main('stars-011'))    # 发行商SOD star，下载封面  # print(main('stars-198'))  # 发行商SOD star，下载封面  # print(main('mium-748'))  # print(main('KMHRS-050'))    # 剧照第一张作为poster  # print(main('SIRO-4042'))  # print(main('snis-035'))  # print(main('vixen.18.07.18', ''))  # print(main('vixen.16.08.02', ''))  # print(main('SNIS-016', ''))  # print(main('bangbros18.19.09.17'))  # print(main('x-art.19.11.03'))  # print(main('abs-141'))  # print(main('HYSD-00083'))  # print(main('IESP-660'))  # print(main('GANA-1910'))  # print(main('heyzo-1031'))  # print(main('032020-001'))  # print(main('S2M-055'))  # print(main('LUXU-1217'))  # print(main('SSIS-001', ''))  # print(main('SSIS-090', ''))  # print(main('HYSD-00083', ''))  # print(main('IESP-660', ''))  # print(main('n1403', ''))  # print(main('GANA-1910', ''))  # print(main('heyzo-1031', ''))  # print(main_us('x-art.19.11.03'))  # print(main('032020-001', ''))  # print(main('S2M-055', ''))  # print(main('LUXU-1217', ''))  # print(main_us('x-art.19.11.03', ''))
+    @override
+    async def _parse_detail_page(self, ctx: Context, html, detail_url: str) -> CrawlerData | None:
+        return None

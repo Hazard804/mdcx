@@ -2,15 +2,15 @@
 
 import contextlib
 import re
-import time
 import unicodedata
 import urllib.parse
+from typing import override
 
 from lxml import etree
 
-from ..config.manager import manager
-from ..crawlers import getchu_dl
-from ..models.log_buffer import LogBuffer
+from ..config.enums import Website
+from . import getchu_dl
+from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
 def normalize_detail_url(url: str) -> str:
@@ -137,166 +137,133 @@ def get_extrafanart(html):
     return result
 
 
-async def main(
-    number,
-    appoint_url="",
-    **kwargs,
-):
-    if "DLID" in number.upper() or "ITEM" in number.upper() or "GETCHU" in number.upper() or "dl.getchu" in appoint_url:
-        return await getchu_dl.main(number, appoint_url)
-    start_time = time.time()
-    website_name = "getchu"
-    getchu_url = "http://www.getchu.com"
-    LogBuffer.req().write(f"-> {website_name}")
-    real_url = appoint_url.replace("&gc=gc", "") + "&gc=gc" if appoint_url else ""
-    cover_url = ""
-    image_cut = ""
-    image_download = True
-    url_search = ""
-    web_info = "\n       "
-    LogBuffer.info().write(" \n    🌐 getchu")
-    debug_info = ""
+def split_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
 
-    # real_url = 'http://www.getchu.com/soft.phtml?id=1141110&gc=gc'
-    # real_url = 'http://www.getchu.com/soft.phtml?id=1178713&gc=gc'
-    # real_url = 'http://www.getchu.com/soft.phtml?id=1007200&gc=gc'
 
-    try:  # 捕获主动抛出的异常
+class GetchuCrawler(BaseCrawler):
+    @classmethod
+    @override
+    def site(cls) -> Website:
+        return Website.GETCHU
+
+    @classmethod
+    @override
+    def base_url_(cls) -> str:
+        return "http://www.getchu.com"
+
+    @override
+    async def _run(self, ctx: Context):
+        data = await self._scrape(ctx)
+        result = data.to_result()
+        result.source = data.source if isinstance(data.source, str) else self.site().value
+        ctx.debug("数据获取成功！")
+        return result
+
+    async def _scrape(self, ctx: Context) -> CrawlerData:
+        number = ctx.input.number
+        appoint_url = ctx.input.appoint_url
+        if (
+            "DLID" in number.upper()
+            or "ITEM" in number.upper()
+            or "GETCHU" in number.upper()
+            or "dl.getchu" in appoint_url
+        ):
+            return await getchu_dl.scrape_dl_getchu(self.async_client, number, appoint_url, ctx)
+
+        real_url = appoint_url.replace("&gc=gc", "") + "&gc=gc" if appoint_url else ""
+        image_cut = ""
+        image_download = True
+
         if not real_url:
             number = number.replace("10bit", "").replace("裕未", "祐未").replace("“", "”").replace("·", "・")
-
-            keyword = unicodedata.normalize("NFC", number)  # Mac 会拆成两个字符，即 NFD，而网页请求使用的是 NFC
-            with contextlib.suppress(Exception):  # 转换为常见日文，比如～ 转换成 〜
+            keyword = unicodedata.normalize("NFC", number)
+            with contextlib.suppress(Exception):
                 keyword = keyword.encode("cp932").decode("shift_jis")
-            keyword2 = urllib.parse.quote_plus(
-                keyword, encoding="EUC-JP"
-            )  # quote() 不编码斜线，空格‘ ’编码为‘%20’；quote_plus() 会编码斜线为‘%2F’; 空格‘ ’编码为‘+’
-            url_search = f"http://www.getchu.com/php/search.phtml?genre=all&search_keyword={keyword2}&gc=gc"
-            # http://www.getchu.com/php/search.phtml?genre=anime_dvd&search_keyword=_WORD_&check_key_dtl=1&submit=&genre=anime_dvd&gc=gc
-            debug_info = f"搜索地址: {url_search} "
-            LogBuffer.info().write(web_info + debug_info)
+            keyword2 = urllib.parse.quote_plus(keyword, encoding="EUC-JP")
+            search_url = f"{self.base_url}/php/search.phtml?genre=all&search_keyword={keyword2}&gc=gc"
+            ctx.debug(f"搜索地址: {search_url}")
+            ctx.debug_info.search_urls = [search_url]
 
-            # ========================================================================搜索番号
-            html_search, error = await manager.computed.async_client.get_text(url_search, encoding="euc-jp")
+            html_search, error = await self.async_client.get_text(search_url, encoding="euc-jp")
             if html_search is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+                raise CralwerException(f"网络请求错误: {error}")
             html = etree.fromstring(html_search, etree.HTMLParser())
             url_list = html.xpath("//a[@class='blueb']/@href")
             title_list = html.xpath("//a[@class='blueb']/text()")
+            if not url_list:
+                ctx.debug("getchu 未匹配到结果，尝试 DL Getchu")
+                return await getchu_dl.scrape_dl_getchu(self.async_client, number, appoint_url, ctx)
 
-            if url_list:
-                real_url = normalize_detail_url(getchu_url + url_list[0].replace("../", "/") + "&gc=gc")
-                keyword_temp = re.sub(r"[ \[\]\［\］]+", "", keyword)
-                for i in range(len(url_list)):
-                    title_temp = re.sub(r"[ \[\]\［\］]+", "", title_list[i])
-                    if keyword_temp in title_temp:  # 有多个分集时，用标题符合的
-                        real_url = normalize_detail_url(getchu_url + url_list[i].replace("../", "/") + "&gc=gc")
-                        break
-            else:
-                debug_info = "搜索结果: 未匹配到番号！"
-                LogBuffer.info().write(web_info + debug_info)
-                return await getchu_dl.main(number, appoint_url)
+            real_url = normalize_detail_url(self.base_url + url_list[0].replace("../", "/") + "&gc=gc")
+            keyword_temp = re.sub(r"[ \[\]\［\］]+", "", keyword)
+            for i, url in enumerate(url_list):
+                title_temp = re.sub(r"[ \[\]\［\］]+", "", title_list[i])
+                if keyword_temp in title_temp:
+                    real_url = normalize_detail_url(self.base_url + url.replace("../", "/") + "&gc=gc")
+                    break
 
-        if real_url:
-            real_url = normalize_detail_url(real_url)
-            debug_info = f"番号地址: {real_url} "
-            LogBuffer.info().write(web_info + debug_info)
-
-            html_content, error = await manager.computed.async_client.get_text(real_url, encoding="euc-jp")
+        real_url = normalize_detail_url(real_url)
+        ctx.debug(f"番号地址: {real_url}")
+        ctx.debug_info.detail_urls = [real_url]
+        html_content, error = await self.async_client.get_text(real_url, encoding="euc-jp")
+        if html_content is None:
+            raise CralwerException(f"网络请求错误: {error}")
+        html_info = etree.fromstring(html_content, etree.HTMLParser())
+        continue_url = get_attestation_continue_url(html_info)
+        if continue_url:
+            ctx.debug(f"检测到年龄确认页，继续访问: {continue_url}")
+            real_url = continue_url
+            ctx.debug_info.detail_urls.append(real_url)
+            html_content, error = await self.async_client.get_text(real_url, encoding="euc-jp")
             if html_content is None:
-                debug_info = f"网络请求错误: {error} "
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
+                raise CralwerException(f"网络请求错误: {error}")
             html_info = etree.fromstring(html_content, etree.HTMLParser())
-            continue_url = get_attestation_continue_url(html_info)
-            if continue_url:
-                debug_info = f"检测到年龄确认页，继续访问: {continue_url} "
-                LogBuffer.info().write(web_info + debug_info)
-                real_url = continue_url
-                html_content, error = await manager.computed.async_client.get_text(real_url, encoding="euc-jp")
-                if html_content is None:
-                    debug_info = f"网络请求错误: {error} "
-                    LogBuffer.info().write(web_info + debug_info)
-                    raise Exception(debug_info)
-                html_info = etree.fromstring(html_content, etree.HTMLParser())
-            title = get_title(html_info)
-            if not title:
-                debug_info = "数据获取失败: 未获取到title！"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-            outline = get_outline(html_info)
-            actor = ""
-            actor_photo = {"": ""}
-            cover_url = get_cover(html_info)
-            number = get_web_number(html_info, number)
-            tag = get_tag(html_info)
-            studio = get_studio(html_info)
-            release = get_release(html_info)
-            year = get_year(release)
-            runtime = get_runtime(html_info)
-            score = ""
-            series = ""
-            director = get_director(html_info)
-            publisher = ""
-            extrafanart = get_extrafanart(html_info)
-            mosaic = "动漫"
-            if "18禁" in html_content:
-                mosaic = "里番"
-            mosaic = get_mosaic(html_info, mosaic)
-            try:
-                dic = {
-                    "number": number,
-                    "title": title,
-                    "originaltitle": title,
-                    "actor": actor,
-                    "outline": outline,
-                    "originalplot": outline,
-                    "tag": tag,
-                    "release": release,
-                    "year": year,
-                    "runtime": runtime,
-                    "score": score,
-                    "series": series,
-                    "director": director,
-                    "studio": studio,
-                    "publisher": publisher,
-                    "source": "getchu",
-                    "actor_photo": actor_photo,
-                    "thumb": cover_url,
-                    "poster": cover_url,
-                    "extrafanart": extrafanart,
-                    "trailer": "",
-                    "image_download": image_download,
-                    "image_cut": image_cut,
-                    "mosaic": mosaic,
-                    "website": real_url,
-                    "wanted": "",
-                }
-                debug_info = "数据获取成功！"
-                LogBuffer.info().write(web_info + debug_info)
 
-            except Exception as e:
-                debug_info = f"数据生成出错: {str(e)}"
-                LogBuffer.info().write(web_info + debug_info)
-                raise Exception(debug_info)
-    except Exception as e:
-        # print(traceback.format_exc())
-        LogBuffer.error().write(str(e))
-        dic = {
-            "title": "",
-            "thumb": "",
-            "website": "",
-        }
-    dic = {website_name: {"zh_cn": dic, "zh_tw": dic, "jp": dic}}
-    LogBuffer.req().write(f"({round(time.time() - start_time)}s) ")
-    return dic
+        title = get_title(html_info)
+        if not title:
+            raise CralwerException("数据获取失败: 未获取到title！")
+        release = get_release(html_info)
+        mosaic = "里番" if "18禁" in html_content else "动漫"
+        mosaic = get_mosaic(html_info, mosaic)
+        cover_url = get_cover(html_info)
+        outline = get_outline(html_info)
+        return CrawlerData(
+            number=get_web_number(html_info, number),
+            title=title,
+            originaltitle=title,
+            actors=[],
+            outline=outline,
+            originalplot=outline,
+            tags=split_csv(get_tag(html_info)),
+            release=release,
+            year=get_year(release),
+            runtime=get_runtime(html_info),
+            score="",
+            series="",
+            directors=split_csv(get_director(html_info)),
+            studio=get_studio(html_info),
+            publisher="",
+            thumb=cover_url,
+            poster=cover_url,
+            extrafanart=get_extrafanart(html_info),
+            trailer="",
+            image_download=image_download,
+            image_cut=image_cut,
+            mosaic=mosaic,
+            external_id=real_url,
+            wanted="",
+            source=self.site().value,
+        )
 
+    @override
+    async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
+        return None
 
-if __name__ == "__main__":
-    # yapf: disable
-    # print(main('コンビニ○○Z 第三話 あなた、ヤンクレママですよね。旦那に万引きがバレていいんですか？'))
-    # print(main('dokidokiりとる大家さん お家賃6突き目 妖しい踊りで悪霊祓い！『婦警』さんのきわどいオシオキ'))
-    # print(main('[PoRO]エロコンビニ店長 泣きべそ蓮っ葉・栞～お仕置きじぇらしぃナマ逸機～'))
-    print(main('4562215333534'))  # print(main('人妻、蜜と肉 第二巻［月野定規］'))  # print(main('ACHDL-1159'))  # print(main('好きにしやがれ GOTcomics'))    # 書籍，没有番号  # print(main('あまあまロ●ータ女装男子レズ キス・フェラ・69からの3P介入'))  # print(main('DLID4033023'))  # print(main('', appoint_url='https://dl.getchu.com/i/item4033023'))  # print(main('ACMDP-1005')) # 有时间、导演，上下集ACMDP-1005B  # print(main('ISTU-5391'))  # print(main('INH-392'))  # print(main('ISTU-5391', appoint_url='http://www.getchu.com/soft.phtml?id=1180483'))  # print(main('SPY×FAMILY Vol.1 Blu-ray Disc＜初回生産限定版＞'))    # dmm 没有
+    @override
+    async def _parse_search_page(self, ctx: Context, html, search_url: str) -> list[str] | str | None:
+        return None
+
+    @override
+    async def _parse_detail_page(self, ctx: Context, html, detail_url: str) -> CrawlerData | None:
+        return None

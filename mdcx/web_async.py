@@ -977,9 +977,14 @@ class AsyncWebClient:
             self._log(f"🔴 获取文件大小失败: {url} {error}")
             return None
         if response.status_code < 400:
+            content_length = self._extract_header_case_insensitive(
+                {str(k): str(v) for k, v in response.headers.items()}, "content-length"
+            )
+            if not content_length:
+                return None
             try:
-                return int(response.headers.get("Content-Length"))
-            except (ValueError, TypeError):
+                return int(content_length)
+            except ValueError:
                 self._log(f"🔴 获取文件大小失败: {url} Content-Length 解析错误")
                 return None
         self._log(f"🔴 获取文件大小失败: {url} HTTP {response.status_code}")
