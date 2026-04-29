@@ -26,6 +26,7 @@ from . import (
     jav321,
     javbus,
     javday,
+    javdbapi,
     javlibrary_new,
     kin8,
     love6,
@@ -89,6 +90,7 @@ CRAWLER_FUNCS: list[tuple[Website, Callable]] = [
 
 register_crawler(DmmCrawler)
 register_crawler(JavdbCrawler)
+register_crawler(javdbapi.JavdbApiCrawler)
 register_crawler(AvbaseCrawler)
 register_crawler(missav.MissavCrawler)
 for site, func in CRAWLER_FUNCS:

@@ -37,6 +37,7 @@ class GenericBaseCrawler[T: Context = Context](ABC):
         """
         self.async_client = client
         self.base_url: str = base_url or self.base_url_()
+        self.browser = browser
 
     async def close(self):
         """释放资源."""

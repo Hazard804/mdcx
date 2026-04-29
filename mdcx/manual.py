@@ -488,6 +488,8 @@ class ManualConfig:
         "jav321": Website.JAV321,
         "javbus": Website.JAVBUS,
         "javdb": Website.JAVDB,
+        "javdbapi": Website.JAVDBAPI,
+        "thejavdb.net": Website.JAVDBAPI,
         "missav": Website.MISSAV,
         "javlibrary": Website.JAVLIBRARY,
         "mdtv": Website.MDTV,
