@@ -1,8 +1,18 @@
 ## 新增
-*
+* 新增锁定刮削类型选项，完善刮削类型锁定 UI 布局
+* 桌面端迁移至 PyQt6，移除 v1 刮削器兼容层
+* 动态注册刮削器网站枚举
+* 新增 javdbapi 刮削器
 
 ## 修复
-*
+* 修复网站设置下拉框高度异常问题
+* 优化暗色模式按钮与下拉框样式
+* 修复主界面右键选中项错乱问题
+* 修复 Amazon 合集封面误命中问题
+* 识别 restored 为无码破解
+* 处理链接目录非法字符
+* 添加 fc2ppvdb 指定网站选项，统一请求入口并规范 runtime
+* 修复 PyQt6 QHoverEvent 参数类型
 
 <details>
 <summary>Full Changelog</summary>
