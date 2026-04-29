@@ -3,6 +3,19 @@ from typing import TYPE_CHECKING
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtWidgets import QApplication
 
+from mdcx.config.resources import resources
+
+
+def _qss_resources(style: str) -> str:
+    """将 QSS 中的相对资源路径替换为 Qt 可识别的绝对路径。"""
+    return (
+        style.replace("url(resources/Img/check_indicator.svg)", f"url({resources.qtr('Img/check_indicator.svg')})")
+        .replace("url(resources/Img/radio_indicator.svg)", f"url({resources.qtr('Img/radio_indicator.svg')})")
+        .replace("url(resources/Img/chevron_down_light.svg)", f"url({resources.qtr('Img/chevron_down_light.svg')})")
+        .replace("url(resources/Img/chevron_down_dark.svg)", f"url({resources.qtr('Img/chevron_down_dark.svg')})")
+    )
+
+
 if TYPE_CHECKING:
     from .main_window import MyMAinWindow
 
@@ -295,7 +308,8 @@ def set_style(self: "MyMAinWindow"):
         }
         """)
     # 设置页
-    self.Ui.page_setting.setStyleSheet("""
+    self.Ui.page_setting.setStyleSheet(
+        _qss_resources("""
         * {
             font-size:13px;
         }
@@ -388,8 +402,10 @@ def set_style(self: "MyMAinWindow"):
             border-radius: 10px;
         }
         """)
+    )
     # 整个页面
-    self.Ui.centralwidget.setStyleSheet(f"""
+    self.Ui.centralwidget.setStyleSheet(
+        _qss_resources(f"""
         * {{
             font-family: Consolas, 'PingFang SC', 'Microsoft YaHei UI', 'Noto Color Emoji', 'Segoe UI Emoji';
             font-size:13px;
@@ -690,6 +706,7 @@ def set_style(self: "MyMAinWindow"):
             margin: 0px;
         }}
         """)
+    )
     self.Ui.treeWidget_number.setStyleSheet(build_tree_widget_style(False))
 
 
@@ -784,7 +801,8 @@ def set_dark_style(self: "MyMAinWindow"):
         }
         """)
     # 设置页
-    self.Ui.page_setting.setStyleSheet("""
+    self.Ui.page_setting.setStyleSheet(
+        _qss_resources("""
         * {
             font-size:13px;
         }
@@ -892,8 +910,10 @@ def set_dark_style(self: "MyMAinWindow"):
             border: 1px solid #4C6EE0;
         }
         """)
+    )
     # 整个页面
-    self.Ui.centralwidget.setStyleSheet(f"""
+    self.Ui.centralwidget.setStyleSheet(
+        _qss_resources(f"""
         * {{
             font-family: Consolas, 'PingFang SC', 'Microsoft YaHei UI', 'Noto Color Emoji', 'Segoe UI Emoji';
             font-size:13px;
@@ -1194,4 +1214,5 @@ def set_dark_style(self: "MyMAinWindow"):
             margin: 0px;
         }}
         """)
+    )
     self.Ui.treeWidget_number.setStyleSheet(build_tree_widget_style(True))
