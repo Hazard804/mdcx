@@ -3,9 +3,9 @@ import platform
 import traceback
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QFileDialog
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QFileDialog
 
 from mdcx.config.enums import (
     CDChar,
@@ -1097,10 +1097,10 @@ def load_config(self: "MyMAinWindow"):
         # Qt 对话框设置
         if Switch.QT_DIALOG in switch_on:
             self.Ui.checkBox_dialog_qt.setChecked(True)
-            self.options = QFileDialog.DontUseNativeDialog
+            self.options = QFileDialog.Option.DontUseNativeDialog
         else:
             self.Ui.checkBox_dialog_qt.setChecked(False)
-            self.options = QFileDialog.Options()
+            self.options = QFileDialog.Option()
         if IS_WINDOWS:
             self.Ui.checkBox_hide_dock_icon.setEnabled(False)
             self.Ui.checkBox_hide_menu_icon.setEnabled(False)
@@ -1175,7 +1175,7 @@ def load_config(self: "MyMAinWindow"):
             self._windows_auto_adjust()
         except Exception:
             signal_qt.show_traceback_log(traceback.format_exc())
-        self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)  # type: ignore
+        self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)  # type: ignore
         self.activateWindow()
         try:
             # 主界面右上角显示提示信息

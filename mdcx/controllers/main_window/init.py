@@ -3,9 +3,9 @@ import traceback
 import webbrowser
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAbstractItemView, QAction, QMenu, QSystemTrayIcon, QTreeWidgetItem
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtWidgets import QAbstractItemView, QMenu, QSystemTrayIcon, QTreeWidgetItem
 
 from mdcx.config.enums import Website
 from mdcx.config.extend import get_movie_path_setting
@@ -14,6 +14,8 @@ from mdcx.consts import GITHUB_RELEASES_URL, IS_WINDOWS
 from mdcx.manual import ManualConfig
 from mdcx.models.flags import Flags
 from mdcx.signals import signal_qt
+
+from .style import build_menu_style, build_tree_widget_style
 
 if TYPE_CHECKING:
     from .main_window import MyMAinWindow
@@ -27,42 +29,17 @@ def Init_Ui(self: "MyMAinWindow"):
         self.setFixedSize(
             self.width(), self.height()
         )  # 禁止调整窗口大小(mac 平台禁止后最小化没反应，恢复时顶部会残留标题栏)
-    self.setAttribute(Qt.WA_TranslucentBackground)  # 设置窗口背景透明
+    self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)  # 设置窗口背景透明
     self.Ui.progressBar_scrape.setValue(0)  # 进度条清0
     self.Ui.progressBar_scrape.setTextVisible(False)  # 不显示进度条文字
     self.Ui.pushButton_start_cap.setCheckable(True)  # 主界面开始按钮可点状态
     self.init_QTreeWidget()  # 初始化树状图
-    self.Ui.treeWidget_number.setSelectionMode(QAbstractItemView.ExtendedSelection)  # 支持 Shift/Ctrl 多选结果项
+    self.Ui.treeWidget_number.setSelectionMode(
+        QAbstractItemView.SelectionMode.ExtendedSelection
+    )  # 支持 Shift/Ctrl 多选结果项
     self.Ui.treeWidget_number.setAllColumnsShowFocus(False)  # 关闭默认焦点框，避免与选中边框叠加
-    self.Ui.treeWidget_number.setContextMenuPolicy(Qt.CustomContextMenu)
-    self.Ui.treeWidget_number.setStyleSheet("""
-        QTreeWidget {
-            outline: 0;
-        }
-        QTreeWidget::item {
-            border: 1px solid transparent;
-            padding: 1px 2px;
-        }
-        QTreeWidget::item:hover {
-            background: rgba(76, 110, 255, 18);
-            border: 1px solid rgba(76, 110, 255, 100);
-        }
-        QTreeWidget::item:selected {
-            color: black;
-            background: rgba(76, 110, 255, 35);
-            border: 1px solid rgba(76, 110, 255, 180);
-        }
-        QTreeWidget::item:selected:active {
-            color: black;
-            background: rgba(76, 110, 255, 35);
-            border: 1px solid rgba(76, 110, 255, 180);
-        }
-        QTreeWidget::item:selected:!active {
-            color: black;
-            background: rgba(76, 110, 255, 25);
-            border: 1px solid rgba(76, 110, 255, 140);
-        }
-    """)
+    self.Ui.treeWidget_number.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+    self.Ui.treeWidget_number.setStyleSheet(build_tree_widget_style(False))
     self.Ui.label_poster.setScaledContents(True)  # 图片自适应窗口
     self.Ui.label_thumb.setScaledContents(True)  # 图片自适应窗口
     self.Ui.pushButton_right_menu.setIcon(QIcon(resources.right_menu))
@@ -247,8 +224,8 @@ def Init_Singal(self: "MyMAinWindow"):
     self.Ui.horizontalSlider_thread.valueChanged.connect(self.lcdNumber_thread_change)
     self.Ui.horizontalSlider_javdb_time.valueChanged.connect(self.lcdNumber_javdb_time_change)
     self.Ui.horizontalSlider_thread_time.valueChanged.connect(self.lcdNumber_thread_time_change)
-    self.Ui.comboBox_change_config.activated[str].connect(self.config_file_change)
-    self.Ui.comboBox_custom_website.activated[str].connect(self.switch_custom_website_change)
+    self.Ui.comboBox_change_config.textActivated.connect(self.config_file_change)
+    self.Ui.comboBox_custom_website.textActivated.connect(self.switch_custom_website_change)
     self.Ui.pushButton_right_menu.clicked.connect(self.main_open_right_menu)
     self.Ui.pushButton_play.clicked.connect(self.main_play_click)
     self.Ui.pushButton_open_folder.clicked.connect(self.main_open_folder_click)
@@ -347,6 +324,7 @@ def Init_QSystemTrayIcon(self: "MyMAinWindow"):
     hide_action.triggered.connect(self.hide)
     quit_action.triggered.connect(self.ready_to_exit)
     tray_menu = QMenu()
+    tray_menu.setStyleSheet(build_menu_style(self.dark_mode))
     tray_menu.addAction(show_action)
     tray_menu.addAction(hide_action)
     tray_menu.addSeparator()

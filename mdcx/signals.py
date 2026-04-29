@@ -2,7 +2,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, Literal
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 
 from .models.types import ShowData
 from .utils import singleton

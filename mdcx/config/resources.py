@@ -6,7 +6,7 @@ from pathlib import Path
 
 import zhconv
 from lxml import etree
-from PyQt5.QtGui import QFontDatabase
+from PyQt6.QtGui import QFontDatabase
 
 from ..consts import IS_PYINSTALLER, MAIN_PATH
 from ..manual import ManualConfig
@@ -155,10 +155,9 @@ class Resources:
         return info_data
 
     def get_fonts(self):
-        font_db = QFontDatabase()
         font_folder_path = self.qtr("fonts")
         for f in os.listdir(font_folder_path):
-            font_db.addApplicationFont(os.path.join(font_folder_path, f))  # 字体路径
+            QFontDatabase.addApplicationFont(os.path.join(font_folder_path, f))  # 字体路径
 
     def _get_or_generate_local_data(self):
         """如果用户数据目录下已有数据则直接读取, 否则根据内置数据生成"""

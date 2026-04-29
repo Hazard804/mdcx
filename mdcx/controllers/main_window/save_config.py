@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from pydantic import HttpUrl, ValidationError
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 from mdcx.config.enums import (
     CDChar,
@@ -779,7 +779,7 @@ def save_config(self: "MyMAinWindow"):
         self._windows_auto_adjust()  # 界面自动调整
     except Exception:
         signal_qt.show_traceback_log(traceback.format_exc())
-    self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)  # type: ignore
+    self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)  # type: ignore
     self.activateWindow()
     try:
         self.set_label_file_path.emit(

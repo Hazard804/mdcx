@@ -21,9 +21,7 @@ dependencies = [
     "pillow==11.3.0",
     "ping3==4.0.4",
     "pydantic-settings>=2.10.1",
-    "pyqt5==5.15.11",
-    "pyqt5-qt5==5.15.2; sys_platform == 'win32'", # 更高版本无 Windows wheel
-    "pyqt5-qt5==5.15.17; sys_platform != 'win32'",
+    "pyqt6==6.11.0",
     "zhconv==1.4.3",
     "opencv-contrib-python-headless==4.13.0.92",
 ]
@@ -44,7 +42,6 @@ dev = [
     "ipykernel>=6.30.1",
     "pre-commit>=4.2.0",
     "pyinstaller>=6.14.2",
-    "pyqt5-stubs>=5.15.6.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",

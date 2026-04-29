@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import aiofiles.os
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 from ..base.file import (
     _clean_empty_fodlers,
@@ -873,16 +873,18 @@ def get_remain_list() -> bool:
     Flags.remain_list = remains
     if not len(Flags.remain_list) or Switch.REMAIN_TASK not in manager.config.switch_on:
         return False
-    box = QMessageBox(QMessageBox.Information, "继续刮削", "上次刮削未完成，是否继续刮削剩余任务？")
-    box.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-    box.button(QMessageBox.Yes).setText("继续刮削剩余任务")
-    box.button(QMessageBox.No).setText("从头刮削")
-    box.button(QMessageBox.Cancel).setText("取消")
-    box.setDefaultButton(QMessageBox.No)
+    box = QMessageBox(QMessageBox.Icon.Information, "继续刮削", "上次刮削未完成，是否继续刮削剩余任务？")
+    box.setStandardButtons(
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel
+    )
+    box.button(QMessageBox.StandardButton.Yes).setText("继续刮削剩余任务")
+    box.button(QMessageBox.StandardButton.No).setText("从头刮削")
+    box.button(QMessageBox.StandardButton.Cancel).setText("取消")
+    box.setDefaultButton(QMessageBox.StandardButton.No)
     reply = box.exec()
-    if reply == QMessageBox.Yes:
+    if reply == QMessageBox.StandardButton.Yes:
         signal.show_log_text("🍯 🍯 🍯 NOTE: 用户选择继续刮削剩余任务。")
-    elif reply == QMessageBox.No:
+    elif reply == QMessageBox.StandardButton.No:
         signal.show_log_text("🍯 🍯 🍯 NOTE: 用户选择从头刮削。")
         return False  # 从头刮削
     else:
@@ -897,18 +899,18 @@ def get_remain_list() -> bool:
     p = Flags.remain_list[0]
     if not is_descendant(p, movie_path):
         box = QMessageBox(
-            QMessageBox.Warning,
+            QMessageBox.Icon.Warning,
             "提醒",
             f"很重要！！请注意：\n当前待刮削目录：{movie_path}\n剩余任务文件路径：{p.resolve()}\n"
             "文件不在当前待刮削目录中, 可能是使用其他配置扫描的！\n"
             "请确认成功输出目录和失败目录是否正确！如果配置不正确，继续刮削可能会导致文件被移动到新配置的输出位置！\n是否继续刮削？",
         )
-        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        box.button(QMessageBox.Yes).setText("继续")
-        box.button(QMessageBox.No).setText("取消")
-        box.setDefaultButton(QMessageBox.No)
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        box.button(QMessageBox.StandardButton.Yes).setText("继续")
+        box.button(QMessageBox.StandardButton.No).setText("取消")
+        box.setDefaultButton(QMessageBox.StandardButton.No)
         reply = box.exec()
-        if reply == QMessageBox.No:
+        if reply == QMessageBox.StandardButton.No:
             return True
     signal.show_log_text(f"🍯 🍯 🍯 NOTE: 继续刮削未完成任务！！！ 剩余未刮削文件数量（{len(Flags.remain_list)})")
     start_new_scrape(FileMode.Default, Flags.remain_list)

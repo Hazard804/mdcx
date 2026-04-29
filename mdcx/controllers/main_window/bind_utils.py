@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QCheckBox, QRadioButton
+from PyQt6.QtWidgets import QCheckBox, QRadioButton
 
 
 def get_checkboxes[T](*component_value_pairs: tuple[QCheckBox | QRadioButton | bool, T]) -> list[T]:

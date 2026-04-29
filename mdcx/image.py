@@ -4,7 +4,7 @@ from pathlib import Path
 
 import aiofiles.os
 from PIL import Image, ImageFilter
-from PyQt5.QtGui import QImageReader, QPixmap
+from PyQt6.QtGui import QImageReader, QPixmap
 
 from .signals import signal
 from .utils.file import delete_file_async
