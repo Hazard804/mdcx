@@ -46,7 +46,7 @@ dev = [
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
     "rich>=14.1.0",
-    "ruff>=0.12.5",
+    "ruff>=0.15.0,<0.16.0",
     "typer>=0.16.0",
     "types-lxml>=2025.3.30",
 ]
