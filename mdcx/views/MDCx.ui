@@ -8522,6 +8522,11 @@
                             </item>
                             <item>
                               <property name="text">
+                                <string>fc2ppvdb</string>
+                              </property>
+                            </item>
+                            <item>
+                              <property name="text">
                                 <string>cableav</string>
                               </property>
                             </item>
