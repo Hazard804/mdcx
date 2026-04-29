@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import QAbstractItemView, QMenu, QSystemTrayIcon, QTreeWidgetItem
+from PyQt6.QtWidgets import QAbstractItemView, QComboBox, QListView, QMenu, QSystemTrayIcon, QTreeWidgetItem
 
 from mdcx.config.enums import Website
 from mdcx.config.extend import get_movie_path_setting
@@ -118,6 +118,7 @@ def Init_Ui(self: "MyMAinWindow"):
     if Website.AVBASE.value not in supported_websites:
         supported_websites.append(Website.AVBASE.value)
     self.Ui.comboBox_custom_website.addItems(supported_websites)
+    _setup_combo_boxes(self)
     self.Ui.textBrowser_log_main.document().setMaximumBlockCount(6000)
     self.Ui.textBrowser_log_main_2.document().setMaximumBlockCount(3000)
     self.Ui.textBrowser_log_main.viewport().installEventFilter(self)  # 注册事件用于识别点击控件时隐藏失败列表面板
@@ -129,6 +130,19 @@ def Init_Ui(self: "MyMAinWindow"):
     self.Ui.widget_show_tips.hide()
     self.Ui.widget_nfo.resize(791, 681)
     self.Ui.widget_nfo.hide()
+
+
+def _setup_combo_boxes(self: "MyMAinWindow") -> None:
+    for combo_box in self.findChildren(QComboBox):
+        view = QListView(combo_box)
+        view.setUniformItemSizes(True)
+        view.setSpacing(0)
+        view.setMaximumHeight(322)
+        combo_box.setMaxVisibleItems(10)
+        combo_box.setView(view)
+        combo_box.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        combo_box.view().setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        combo_box.view().setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
 
 
 def Init_Singal(self: "MyMAinWindow"):

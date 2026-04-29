@@ -272,6 +272,7 @@ def set_style(self: "MyMAinWindow"):
             border-radius: 15px;
         }
         QComboBox{
+            combobox-popup: 0;
             font-size: 13px;
             color: black;
         }
@@ -348,6 +349,7 @@ def set_style(self: "MyMAinWindow"):
             font-size:13px;
         }
         QComboBox{
+            combobox-popup: 0;
             font-size:13px;
         }
         QCheckBox{
@@ -452,11 +454,29 @@ def set_style(self: "MyMAinWindow"):
             padding: 4px 8px;
         }}
         QComboBox{{
+            combobox-popup: 0;
             background: #FFFFFF;
             border: 1px solid #D8DEE9;
             border-radius: 8px;
-            padding: 3px 8px;
+            padding: 3px 30px 3px 8px;
             selection-background-color: #4C6EFF;
+        }}
+        QComboBox::drop-down{{
+            subcontrol-origin: padding;
+            subcontrol-position: top right;
+            width: 26px;
+            border-left: 1px solid #D8DEE9;
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+            background: #F8FAFC;
+        }}
+        QComboBox::drop-down:hover{{
+            background: #EEF2FF;
+        }}
+        QComboBox::down-arrow{{
+            image: url(resources/Img/chevron_down_light.svg);
+            width: 14px;
+            height: 14px;
         }}
         QComboBox:focus{{
             border: 1px solid #4C6EFF;
@@ -467,6 +487,15 @@ def set_style(self: "MyMAinWindow"):
             selection-background-color: #4C6EFF;
             selection-color: white;
             outline: 0;
+        }}
+        QComboBox QAbstractItemView::item{{
+            min-height: 24px;
+            padding: 4px 8px;
+            color: #111827;
+        }}
+        QComboBox QAbstractItemView::item:selected{{
+            color: #FFFFFF;
+            background: #4C6EFF;
         }}
         QCheckBox::indicator, QRadioButton::indicator{{
             width: 14px;
@@ -830,8 +859,25 @@ def set_dark_style(self: "MyMAinWindow"):
             background-color: rgba(180, 180, 180, 20);
             border-radius: 10px;
         }
+        QPushButton{
+            color: #E5E7EB;
+        }
         QPushButton#pushButton_scrape_note,#pushButton_field_tips_website,#pushButton_field_tips_nfo{
-            color: black;
+            color: #E5E7EB;
+            background: #1D2834;
+            border: 1px solid #3B4654;
+            border-radius: 6px;
+            padding: 3px 10px;
+        }
+        QPushButton:hover#pushButton_scrape_note,:hover#pushButton_field_tips_website,:hover#pushButton_field_tips_nfo{
+            color: #FFFFFF;
+            background: #6684FF;
+            border: 1px solid #6684FF;
+        }
+        QPushButton:pressed#pushButton_scrape_note,:pressed#pushButton_field_tips_website,:pressed#pushButton_field_tips_nfo{
+            color: #FFFFFF;
+            background: #4C6EE0;
+            border: 1px solid #4C6EE0;
         }
         """)
     # 整个页面
@@ -1047,28 +1093,48 @@ def set_dark_style(self: "MyMAinWindow"):
             background: #FFFFFF;
         }}
         QComboBox{{
+            combobox-popup: 0;
             font-size:13px;
             color: white;
             background:#18222D;
-            border-radius: 15px;
+            border: 1px solid #2F3A46;
+            border-radius: 8px;
+            padding: 3px 30px 3px 8px;
         }}
-        QComboBox::drop-down:!editable {{
+        QComboBox::drop-down {{
+            subcontrol-origin: padding;
             subcontrol-position: right;
-            margin: 10px;
-            height: 10px;
-            width: 10px;
-            border-radius: 5px;
-            background: lightgreen;
+            width: 26px;
+            border-left: 1px solid #2F3A46;
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+            background: #1D2834;
         }}
-        QComboBox::drop-down:!editable:on {{
-            background: lightgreen;
+        QComboBox::drop-down:hover {{
+            background: #243244;
+        }}
+        QComboBox::down-arrow {{
+            image: url(resources/Img/chevron_down_dark.svg);
+            width: 14px;
+            height: 14px;
         }}
 
         QComboBox QAbstractItemView {{
             color:white;
             background: #1F272F;
+            border: 1px solid #2F3A46;
             selection-color:white;
-            selection-background-color: #18222D;
+            selection-background-color: #6684FF;
+            outline: 0;
+        }}
+        QComboBox QAbstractItemView::item {{
+            min-height: 24px;
+            padding: 4px 8px;
+            color: #E5E7EB;
+        }}
+        QComboBox QAbstractItemView::item:selected {{
+            color: #FFFFFF;
+            background: #6684FF;
         }}
         QScrollBar:vertical{{
             width: 10px;
