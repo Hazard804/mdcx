@@ -1,7 +1,9 @@
 import asyncio
+import contextlib
 import random
 import re
 import sys
+import threading
 import time
 from collections.abc import Callable
 from io import BytesIO
@@ -28,8 +30,8 @@ class AsyncWebLimiters:
             "localhost": AsyncLimiter(300, 1),
         }
 
-    def get(self, key: str, rate: float = 5, period: float = 1) -> AsyncLimiter:
-        """默认对所有域名启用 5 req/s 的速率限制"""
+    def get(self, key: str, rate: float = 8, period: float = 1) -> AsyncLimiter:
+        """默认对所有域名启用 8 req/s 的速率限制"""
         return self.limiters.setdefault(key, AsyncLimiter(rate, period))
 
     def remove(self, key: str):
@@ -52,14 +54,27 @@ class AsyncWebClient:
     ):
         self.retry = retry
         self.proxy = proxy
-        self.curl_session = AsyncSession(
-            loop=loop,
-            max_clients=50,
-            verify=False,
-            max_redirects=20,
-            timeout=timeout,
-            impersonate=random.choice(["chrome123", "chrome124", "chrome131", "chrome136", "firefox133", "firefox135"]),
-        )
+        self.timeout = timeout
+        self.loop = loop
+        self.max_clients = 50
+        self._session_kwargs = {
+            "loop": loop,
+            "max_clients": self.max_clients,
+            "verify": False,
+            "max_redirects": 20,
+            "timeout": timeout,
+        }
+        self.curl_session = self._new_curl_session()
+        self._closed = False
+        self._close_requested = False
+        self._reset_requested = False
+        self._active_requests = 0
+        self._active_lock = asyncio.Lock()
+        self._session_lock = asyncio.Lock()
+        self._lease_lock = threading.Lock()
+        self._leases = 0
+        self._transport_error_streak = 0
+        self._transport_error_reset_threshold = 5
 
         self.log_fn = log_fn if log_fn is not None else lambda _: None
         self.limiters = limiters if limiters is not None else AsyncWebLimiters()
@@ -78,10 +93,193 @@ class AsyncWebClient:
         self._cf_bypass_retries = 2
         self._cf_mirror_max_redirects = 8
         self._cf_request_bypass_rounds = 2
-        self._cf_retry_max_concurrent_per_host = 2
+        self._cf_retry_max_concurrent_per_host = 4
         self._cf_retry_after_bypass_base_delay = 1.2
         self._cf_retry_after_bypass_jitter = 1.3
         self._retry_sleep_jitter = 0.4
+
+    def _new_curl_session(self) -> AsyncSession:
+        return AsyncSession(
+            **self._session_kwargs,
+            impersonate=random.choice(["chrome123", "chrome124", "chrome131", "chrome136", "firefox133", "firefox135"]),
+        )
+
+    def retain(self) -> None:
+        """声明一个长生命周期使用方正在持有客户端，避免配置重载时提前关闭连接池。"""
+        with self._lease_lock:
+            if self._closed:
+                raise RuntimeError("网络客户端已关闭")
+            self._leases += 1
+
+    async def release(self) -> None:
+        """释放长生命周期使用方。若已请求关闭，则在空闲后关闭底层连接池。"""
+        with self._lease_lock:
+            if self._leases > 0:
+                self._leases -= 1
+        if self._close_requested:
+            await self._close_if_idle()
+
+    def _lease_count(self) -> int:
+        with self._lease_lock:
+            return self._leases
+
+    def _request_timeout_seconds(self, timeout: float | httpx.Timeout | None) -> float | None:
+        if timeout is None or timeout is not_set:
+            return float(self.timeout) + 5.0
+        if isinstance(timeout, (int, float)):
+            return float(timeout) + 5.0
+        return None
+
+    async def _begin_request(self) -> AsyncSession:
+        async with self._session_lock:
+            if self._closed or (self._close_requested and self._lease_count() == 0):
+                raise RuntimeError("网络客户端已关闭")
+            async with self._active_lock:
+                self._active_requests += 1
+            return self.curl_session
+
+    async def _end_request(self) -> None:
+        should_reset = False
+        async with self._active_lock:
+            self._active_requests = max(self._active_requests - 1, 0)
+            should_reset = self._active_requests == 0 and self._reset_requested and not self._close_requested
+        if should_reset:
+            await self.reset_connections("连续网络错误后重建连接池")
+
+    async def _is_idle(self) -> bool:
+        async with self._active_lock:
+            return self._active_requests == 0 and self._lease_count() == 0
+
+    async def _close_if_idle(self) -> bool:
+        if not await self._is_idle():
+            return False
+        await self.close()
+        return True
+
+    async def close_when_idle(self, *, poll_interval: float = 0.2) -> None:
+        """等待所有持有方与进行中的请求结束后关闭连接池。"""
+        self._close_requested = True
+        while not await self._is_idle():
+            await asyncio.sleep(poll_interval)
+        await self.close()
+
+    async def close(self) -> None:
+        """关闭底层连接池。关闭后的客户端不可继续使用。"""
+        if self._closed:
+            return
+        self._close_requested = True
+        async with self._session_lock:
+            if self._closed:
+                return
+            self._closed = True
+            with contextlib.suppress(Exception):
+                await self.curl_session.close()
+
+    async def reset_connections(self, reason: str) -> None:
+        """重建底层连接池，用于代理/节点不稳定后丢弃可能失效的连接。"""
+        if self._closed:
+            return
+
+        old_session: AsyncSession | None = None
+        async with self._session_lock:
+            if self._closed:
+                return
+            async with self._active_lock:
+                if self._active_requests > 0:
+                    self._reset_requested = True
+                    return
+                old_session = self.curl_session
+                self.curl_session = self._new_curl_session()
+                self._reset_requested = False
+                self._transport_error_streak = 0
+            self._log(f"♻️ 网络连接池已重建: {reason}")
+
+        if old_session is not None:
+            with contextlib.suppress(Exception):
+                await old_session.close()
+
+    async def _record_transport_failure(self, error_msg: str) -> None:
+        self._transport_error_streak += 1
+        if self._transport_error_streak < self._transport_error_reset_threshold:
+            return
+        await self.reset_connections(error_msg)
+
+    async def _record_transport_success(self) -> None:
+        self._transport_error_streak = 0
+
+    async def _curl_request(self, **kwargs) -> Response:
+        session = await self._begin_request()
+        release_now = True
+        try:
+            coro = session.request(**kwargs)
+            timeout_seconds = self._request_timeout_seconds(kwargs.get("timeout"))
+            if timeout_seconds is None:
+                response = await coro
+            else:
+                response = await asyncio.wait_for(coro, timeout=timeout_seconds)
+            if kwargs.get("stream"):
+                release_now = False
+                return self._attach_stream_release(response)
+            return response
+        finally:
+            if release_now:
+                await self._end_request()
+
+    def _attach_stream_release(self, response: Response) -> Response:
+        if getattr(response, "_mdcx_release_attached", False):
+            return response
+
+        released = False
+        original_close = getattr(response, "close", None)
+        original_aclose = getattr(response, "aclose", None)
+
+        async def release_once() -> None:
+            nonlocal released
+            if released:
+                return
+            released = True
+            await self._end_request()
+
+        def close_wrapper(*args, **kwargs):
+            try:
+                if original_close is not None:
+                    return original_close(*args, **kwargs)
+                return None
+            finally:
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(release_once())
+                except RuntimeError:
+                    if self.loop and not self.loop.is_closed():
+                        asyncio.run_coroutine_threadsafe(release_once(), self.loop)
+
+        async def aclose_wrapper(*args, **kwargs):
+            try:
+                if original_aclose is not None:
+                    return await original_aclose(*args, **kwargs)
+                if original_close is not None:
+                    return original_close()
+                return None
+            finally:
+                await release_once()
+
+        try:
+            response.close = close_wrapper  # type: ignore[method-assign]
+            response.aclose = aclose_wrapper  # type: ignore[method-assign]
+            response._mdcx_release_attached = True  # type: ignore[attr-defined]
+        except Exception:
+            pass
+        return response
+
+    async def _close_response(self, response: Response | None) -> None:
+        if response is None:
+            return
+        if hasattr(response, "aclose"):
+            with contextlib.suppress(Exception):
+                await response.aclose()
+            return
+        with contextlib.suppress(Exception):
+            response.close()
 
     def _log(self, message: str) -> None:
         try:
@@ -452,9 +650,9 @@ class AsyncWebClient:
             try:
                 limiter = self.limiters.get("127.0.0.1")
                 await limiter.acquire()
-                response = await self.curl_session.request(
-                    current_method,
-                    mirror_url,
+                response = await self._curl_request(
+                    method=current_method,
+                    url=mirror_url,
                     proxy=None,
                     headers=mirror_headers,
                     data=current_data,
@@ -725,15 +923,16 @@ class AsyncWebClient:
                 retry = False
                 should_sleep_before_retry = True
                 sleep_after_cf_bypass = False
+                resp: Response | None = None
                 try:
                     await limiter.acquire()
                     req_headers = dict(prepared_headers)
                     req_cookies = self._merge_cookies(cookies)
                     if host_retry_semaphore is not None:
                         async with host_retry_semaphore:
-                            resp: Response = await self.curl_session.request(
-                                method,
-                                url,
+                            resp = await self._curl_request(
+                                method=method,
+                                url=url,
                                 proxy=self.proxy if use_proxy else None,
                                 headers=req_headers,
                                 cookies=req_cookies,
@@ -745,9 +944,9 @@ class AsyncWebClient:
                                 allow_redirects=allow_redirects,
                             )
                     else:
-                        resp = await self.curl_session.request(
-                            method,
-                            url,
+                        resp = await self._curl_request(
+                            method=method,
+                            url=url,
                             proxy=self.proxy if use_proxy else None,
                             headers=req_headers,
                             cookies=req_cookies,
@@ -808,6 +1007,8 @@ class AsyncWebClient:
                                         f"✅ bypass 成功（模式: {bypass_mode or 'unknown'}），直接使用 bypass 响应",
                                         host,
                                     )
+                                    if stream:
+                                        await self._close_response(resp)
                                     return bypass_response, ""
                             else:
                                 error_msg = f"Cloudflare 挑战页且 bypass 失败: {bypass_error}"
@@ -827,22 +1028,34 @@ class AsyncWebClient:
                         self._log(f"✅ {method} {url} 成功")
                         if host:
                             self._cf_host_challenge_hits[host] = 0
+                        await self._record_transport_success()
                         return resp, ""
                 except Timeout:
                     error_msg = "连接超时"
                     retry = True  # 超时错误进行重试
+                    await self._record_transport_failure(error_msg)
                 except ConnectionError as e:
                     error_msg = f"连接错误: {str(e)}"
                     retry = True  # 连接错误进行重试
+                    await self._record_transport_failure(error_msg)
                 except RequestException as e:
                     error_msg = f"请求异常: {str(e)} {e.code}"
                     retry = True  # 请求异常进行重试
+                    await self._record_transport_failure(error_msg)
+                except TimeoutError:
+                    error_msg = "请求等待超时"
+                    retry = True
+                    await self._record_transport_failure(error_msg)
                 except Exception as e:
                     error_msg = f"curl-cffi 异常: {str(e)}"
                     retry = False  # 其他异常不重试，避免死循环
                 if not retry:
+                    if stream:
+                        await self._close_response(resp)
                     break
                 self._log(f"🔴 {method} {url} 失败: {error_msg} ({attempt + 1}/{retry_count})")
+                if stream:
+                    await self._close_response(resp)
                 # 重试前等待
                 if should_sleep_before_retry and attempt < retry_count - 1:
                     sleep_seconds = self._calc_retry_sleep_seconds(attempt, after_cf_bypass=sleep_after_cf_bypass)
@@ -1101,8 +1314,13 @@ class AsyncWebClient:
             )
             if res is None:
                 return error
+            try:
+                content = await res.acontent()
+            finally:
+                await self._close_response(res)
+
         # 写入文件
         async with aiofiles.open(file_path, "rb+") as fp:
             await fp.seek(start)
-            await fp.write(await res.acontent())
+            await fp.write(content)
         return ""

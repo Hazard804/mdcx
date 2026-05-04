@@ -23,7 +23,7 @@ async def test_get_filesize_accepts_lowercase_content_length(monkeypatch: pytest
         assert await client.get_filesize("https://example.test/image.jpg") == 12345
         assert logs == []
     finally:
-        await client.curl_session.close()
+        await client.close()
 
 
 @pytest.mark.asyncio
@@ -40,4 +40,4 @@ async def test_get_filesize_missing_content_length_falls_back_without_error(monk
         assert await client.get_filesize("https://javday.app/upload/vod/demo.jpg") is None
         assert logs == []
     finally:
-        await client.curl_session.close()
+        await client.close()

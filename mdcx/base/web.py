@@ -534,11 +534,13 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
 
 async def get_imgsize(url) -> tuple[int, int]:
     response, _ = await manager.computed.async_client.request("GET", url, stream=True)
-    if response is None or response.status_code != 200:
+    if response is None:
         return 0, 0
     file_head = BytesIO()
     chunk_size = 1024 * 10
     try:
+        if response.status_code != 200:
+            return 0, 0
         for chunk in response.iter_content(chunk_size):
             file_head.write(await chunk)
             try:
@@ -554,7 +556,7 @@ async def get_imgsize(url) -> tuple[int, int]:
     except Exception:
         return 0, 0
     finally:
-        response.close()
+        await manager.computed.async_client._close_response(response)
 
     return 0, 0
 

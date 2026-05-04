@@ -15,7 +15,6 @@ router = APIRouter(prefix="/config", tags=["配置管理"])
 
 @router.get("/", operation_id="getCurrentConfig", summary="获取当前配置")
 async def get_config() -> Config:
-    manager.load()
     return manager.config
 
 
@@ -23,6 +22,7 @@ async def get_config() -> Config:
 async def update_config(new_config: Config) -> Config:
     manager.config = new_config
     manager.save()
+    manager.load()
     return manager.config
 
 

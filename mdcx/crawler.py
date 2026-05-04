@@ -20,6 +20,8 @@ class CrawlerProvider:
         self.config = config
         self.client = client
         self.lock = asyncio.Lock()
+        self.client.retain()
+        self._closed = False
 
     async def get(self, site: Website):
         if r := self.instances.get(site):
@@ -37,6 +39,10 @@ class CrawlerProvider:
         return self.instances[site]
 
     async def close(self):
+        if self._closed:
+            return
+        self._closed = True
         for instance in self.instances.values():
             await instance.close()
         self.instances.clear()
+        await self.client.release()

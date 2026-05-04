@@ -114,31 +114,34 @@ def _crawl(sites: list[Website], input: CrawlerInput, output: str | None, proxy:
         return await crawler.run(input)
 
     futures = [executor.submit(task(c)) for c in classes]
-    executor.wait_all()
+    try:
+        executor.wait_all()
 
-    for i, f in enumerate(futures):
-        print(f"\n[blue]====== Res from site: [bold]{sites[i]}[/bold] ======[/blue]")
-        if f.exception():
-            print(f"[red]错误: {f.exception()}[/red]")
-            continue
+        for i, f in enumerate(futures):
+            print(f"\n[blue]====== Res from site: [bold]{sites[i]}[/bold] ======[/blue]")
+            if f.exception():
+                print(f"[red]错误: {f.exception()}[/red]")
+                continue
 
-        res = f.result()
-        print("[bold blue]Debug Info:[/bold blue]")
-        print("\t" + "\n\t".join("\n".join(res.debug_info.logs).splitlines()))
-        print(f"\n[bold]耗时: {res.debug_info.execution_time:.2f} 秒[/bold]\n")
-        if res.data:
-            print("[green]成功. 结果:[/green]\n")
-            j = json.dumps(asdict(res.data), ensure_ascii=False, indent=2)
-            print_json(j)
-            if output:
-                output_path = Path(output.replace("{site}", sites[i].value))
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_text(j, encoding="utf-8")
-                print(f"[green]结果已保存到: {output_path}[/green]")
-        else:
-            print("[red]失败[/red]\n")
-            if res.debug_info.error:
-                print(f"[red]{res.debug_info.error}[/red]")
+            res = f.result()
+            print("[bold blue]Debug Info:[/bold blue]")
+            print("\t" + "\n\t".join("\n".join(res.debug_info.logs).splitlines()))
+            print(f"\n[bold]耗时: {res.debug_info.execution_time:.2f} 秒[/bold]\n")
+            if res.data:
+                print("[green]成功. 结果:[/green]\n")
+                j = json.dumps(asdict(res.data), ensure_ascii=False, indent=2)
+                print_json(j)
+                if output:
+                    output_path = Path(output.replace("{site}", sites[i].value))
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    output_path.write_text(j, encoding="utf-8")
+                    print(f"[green]结果已保存到: {output_path}[/green]")
+            else:
+                print("[red]失败[/red]\n")
+                if res.debug_info.error:
+                    print(f"[red]{res.debug_info.error}[/red]")
+    finally:
+        executor.run(client.close())
 
 
 site_help = "指定网站类型. 若未指定, 将尝试从 URL 自动检测. 若有相应 GenericBaseCrawler 实现, 将调用其 _fetch_detail 方法, 否则将直接使用 AsyncWebClient.get_text"
@@ -301,6 +304,7 @@ async def _fetch_async(
         raise typer.Exit(1)
     finally:
         await browser_provider.close()
+        await async_client.close()
 
 
 def _determine_output_path(

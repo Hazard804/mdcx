@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 import re
 
 import httpx
@@ -50,3 +52,21 @@ class Computed:
         self.google_keyused = [each for each in temp_list if each.strip()]  # 去空
         temp_list = re.split(r"[,，]", ",".join(config.google_exclude))
         self.google_keyword = [each for each in temp_list if each.strip()]  # 去空
+
+    def retain(self) -> None:
+        self.async_client.retain()
+        self.llm_client.retain()
+
+    async def release(self) -> None:
+        await asyncio.gather(self.async_client.release(), self.llm_client.release(), return_exceptions=True)
+
+    async def close_when_idle(self) -> None:
+        await asyncio.gather(
+            self.async_client.close_when_idle(),
+            self.llm_client.close_when_idle(),
+            return_exceptions=True,
+        )
+
+    async def close(self) -> None:
+        with contextlib.suppress(Exception):
+            await asyncio.gather(self.async_client.close(), self.llm_client.close(), return_exceptions=True)

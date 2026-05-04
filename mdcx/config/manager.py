@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from ..consts import IS_PYINSTALLER, MAIN_PATH, MARK_FILE
+from ..utils import executor
 from .computed import Computed
 from .models import Config
 from .v1 import ConfigV1, load_v1
@@ -37,15 +38,18 @@ class ConfigManager:
     def load(self) -> list[str]:
         if self._path.suffix == ".ini":  # handle v1 config
             return self.handle_v1()
+        old_computed = getattr(self, "computed", None)
         try:
             d = json.loads(self._path.read_text(encoding="UTF-8"))
             errors = Config.update(d)
             self.config = Config.model_validate(d)
             self.computed = Computed(self.config)
+            self._close_old_computed(old_computed)
             return errors
         except Exception as e:
             self.config = Config()
             self.computed = Computed(self.config)
+            self._close_old_computed(old_computed)
             msg = f" 配置文件 {self._path} 验证失败. 错误信息: \n{str(e)}"
             return msg.splitlines()
 
@@ -64,10 +68,17 @@ class ConfigManager:
         ] + errors
         config_v1 = ConfigV1(**d)
         config_v1.init()
+        old_computed = getattr(self, "computed", None)
         self.config = config_v1.to_pydantic_model()
         self.computed = Computed(self.config)
+        self._close_old_computed(old_computed)
         self.save()
         return errors
+
+    def _close_old_computed(self, old_computed: Computed | None):
+        if old_computed is None:
+            return
+        executor.submit(old_computed.close_when_idle())
 
     def save(self):
         self._path.write_text(self.config.model_dump_json(indent=2), encoding="UTF-8")
