@@ -59,11 +59,8 @@ class DraggableButton(QPushButton):
         y = pos.y() - self.iniDragCor[1]
         cor = QPoint(x, y)
         target = self.mapToParent(cor)
-        if target.x() < 0:
-            target.setX(0)
-        if target.y() < 0:
-            target.setY(0)
-        self.move(target)  # 需要maptoparent一下才可以的,否则只是相对位置。
+        rect = self.cutwindow._constrain_crop_rect(QRect(target.x(), target.y(), self.width(), self.height()))
+        self.move(rect.topLeft())  # 需要maptoparent一下才可以的,否则只是相对位置。
 
         # 更新实际裁剪位置
         self.cutwindow.getRealPos()
@@ -96,6 +93,8 @@ class CutWindow(QDialog):
         self.pushButton_select_cutrange.setGeometry(QRect(420, 0, 379, 539))
         self.pushButton_select_cutrange.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
         self.pushButton_select_cutrange.setAcceptDrops(True)
+        self.Ui.horizontalSlider_left.setRange(1, 10000)
+        self.Ui.horizontalSlider_right.setRange(1, 10000)
         self.set_style()
         self.Ui.horizontalSlider_left.valueChanged.connect(self.change_postion_left)
         self.Ui.horizontalSlider_right.valueChanged.connect(self.change_postion_right)
@@ -190,28 +189,69 @@ class CutWindow(QDialog):
             """)
 
     def change_postion_left(self):
-        # abc: 0-10000
-        abc = self.Ui.horizontalSlider_left.value()
+        # 滑块表示裁剪框高度占当前显示图片高度的比例，拖动时尽量保持中心点不变。
+        slider_value = self.Ui.horizontalSlider_left.value()
         # 当前裁剪框位置. 左上角坐标 + 尺寸
         x, y, width, height = self.pushButton_select_cutrange.geometry().getRect()
         if x is None or y is None or width is None or height is None:
             return
-        height = (abc + 1) / 10000 * self.pic_h
-        self.rect_h_w_ratio = height / width  # 更新高宽比
-        self.Ui.label_cut_ratio.setText(str(f"{self.rect_h_w_ratio:.2f}"))
-        self.pushButton_select_cutrange.setGeometry(x, y, width, int(height))  # 显示裁剪框
+        center_y = y + height / 2
+        height = self._slider_to_size(slider_value, self.pic_new_h)
+        rect = self._constrain_crop_rect(QRect(x, int(round(center_y - height / 2)), width, height))
+        self._apply_crop_rect(rect)
         self.getRealPos()  # 显示裁剪框实际位置
 
     def change_postion_right(self):
-        abc = self.Ui.horizontalSlider_right.value()
+        # 滑块表示裁剪框宽度占当前显示图片宽度的比例，拖动时尽量保持中心点不变。
+        slider_value = self.Ui.horizontalSlider_right.value()
         x, y, width, height = self.pushButton_select_cutrange.geometry().getRect()
         if x is None or y is None or width is None or height is None:
             return
-        width = (abc + 1) / 10000 * self.pic_w
-        self.rect_h_w_ratio = height / width  # 更新高宽比
-        self.Ui.label_cut_ratio.setText(str(f"{self.rect_h_w_ratio:.2f}"))
-        self.pushButton_select_cutrange.setGeometry(x, y, int(width), height)  # 显示裁剪框
+        center_x = x + width / 2
+        width = self._slider_to_size(slider_value, self.pic_new_w)
+        rect = self._constrain_crop_rect(QRect(int(round(center_x - width / 2)), y, width, height))
+        self._apply_crop_rect(rect)
         self.getRealPos()  # 显示裁剪框实际位置
+
+    def _slider_to_size(self, value: int, max_size: int) -> int:
+        if max_size <= 0:
+            return 1
+        min_size = min(20, max_size)
+        size = int(round(max_size * value / 10000))
+        return max(min_size, min(size, max_size))
+
+    def _size_to_slider(self, size: int, max_size: int) -> int:
+        if max_size <= 0:
+            return 1
+        return max(1, min(10000, int(round(size / max_size * 10000))))
+
+    def _constrain_crop_rect(self, rect: QRect) -> QRect:
+        max_w = max(1, int(self.pic_new_w))
+        max_h = max(1, int(self.pic_new_h))
+        width = max(1, min(rect.width(), max_w))
+        height = max(1, min(rect.height(), max_h))
+        max_x = max_w - width
+        max_y = max_h - height
+        x = max(0, min(rect.x(), max_x))
+        y = max(0, min(rect.y(), max_y))
+        return QRect(x, y, width, height)
+
+    def _apply_crop_rect(self, rect: QRect, sync_sliders: bool = False):
+        rect = self._constrain_crop_rect(rect)
+        self.pushButton_select_cutrange.setGeometry(rect)
+        if rect.width() > 0:
+            self.rect_h_w_ratio = rect.height() / rect.width()  # 更新高宽比
+            self.Ui.label_cut_ratio.setText(str(f"{self.rect_h_w_ratio:.2f}"))
+        if sync_sliders:
+            self._sync_crop_sliders(rect)
+
+    def _sync_crop_sliders(self, rect: QRect):
+        self.Ui.horizontalSlider_left.blockSignals(True)
+        self.Ui.horizontalSlider_right.blockSignals(True)
+        self.Ui.horizontalSlider_left.setValue(self._size_to_slider(rect.height(), self.pic_new_h))
+        self.Ui.horizontalSlider_right.setValue(self._size_to_slider(rect.width(), self.pic_new_w))
+        self.Ui.horizontalSlider_left.blockSignals(False)
+        self.Ui.horizontalSlider_right.blockSignals(False)
 
     # 打开图片选择框
     def open_image(self):
@@ -345,8 +385,8 @@ class CutWindow(QDialog):
             self.rect_h = int(self.rect_w * self.rect_h_w_ratio)  # 计算裁剪框的高度
             self.rect_x = 0  # 裁剪框左上角的x值
             self.rect_y = int((self.pic_new_h - self.rect_h) / 2)  # 裁剪框左上角的y值（默认垂直居中）
-        self.pushButton_select_cutrange.setGeometry(
-            QRect(self.rect_x, self.rect_y, self.rect_w, self.rect_h)
+        self._apply_crop_rect(
+            QRect(self.rect_x, self.rect_y, self.rect_w, self.rect_h), sync_sliders=True
         )  # 显示裁剪框
         self.getRealPos()  # 显示裁剪框实际位置
 
@@ -358,54 +398,20 @@ class CutWindow(QDialog):
         px, py, pw, ph = self.pushButton_select_cutrange.geometry().getRect()  # 获取裁剪框大小位置
         if px is None or py is None or pw is None or ph is None:
             return 0, 0, 0, 0
-        pw1 = int(pw / 2)  # 裁剪框一半的宽度
-        ph1 = int(ph / 2)  # 裁剪框一半的高度
-        if px <= -pw1:  # 左边出去一半
-            px = -pw1
-        elif px >= pic_new_w - pw1:  # x右边出去一半
-            px = pic_new_w - pw1
-        if py <= -ph1:  # 上面出去一半
-            py = -ph1
-        elif py >= pic_new_h - ph1:  # 下面出去一半
-            py = pic_new_h - ph1
+        rect = self._constrain_crop_rect(QRect(px, py, pw, ph))
+        if rect != self.pushButton_select_cutrange.geometry():
+            self._apply_crop_rect(rect, sync_sliders=True)
+        px, py, pw, ph = rect.getRect()
 
-        # 更新显示裁剪框
-        self.pushButton_select_cutrange.setGeometry(px, py, pw, ph)
-
-        # 计算实际裁剪位置(裁剪时用的是左上角和右下角的坐标)
-        if self.keep_side == "height":
-            c_h = self.pic_h
-            c_w = self.pic_w * pw / self.pic_new_w
-            self.c_x = self.pic_w * px / self.pic_new_w  # 左上角坐标x
-            self.c_y = self.pic_w * py / self.pic_new_w  # 左上角坐标y
-        else:
-            c_w = self.pic_w
-            c_h = self.pic_h * ph / self.pic_new_h
-            self.c_x = self.pic_h * px / self.pic_new_h
-            self.c_y = self.pic_h * py / self.pic_new_h
-        self.c_x2 = self.c_x + c_w  # 右下角坐标x
-        self.c_y2 = self.c_y + c_h  # 右下角坐标y
-
-        # 在原图以外的区域不裁剪
-        if self.c_x < 0:
-            c_w += self.c_x
-            self.c_x = 0
-        if self.c_y < 0:
-            c_h += self.c_y
-            self.c_y = 0
-        if self.c_x2 > self.pic_w:
-            c_w += self.pic_w - self.c_x2
-            self.c_x2 = self.pic_w
-        if self.c_y2 > self.pic_h:
-            c_h += self.pic_h - self.c_y2
-            self.c_y2 = self.pic_h
-
-        self.c_x = int(self.c_x)
-        self.c_y = int(self.c_y)
-        self.c_x2 = int(self.c_x2)
-        self.c_y2 = int(self.c_y2)
-        c_w = int(c_w)
-        self.c_y = int(self.c_y)
+        # 显示坐标按图片缩放比例换算到原图坐标，保证界面选区和实际裁剪范围一致。
+        scale_x = self.pic_w / pic_new_w if pic_new_w else 1
+        scale_y = self.pic_h / pic_new_h if pic_new_h else 1
+        self.c_x = max(0, min(self.pic_w, int(round(px * scale_x))))
+        self.c_y = max(0, min(self.pic_h, int(round(py * scale_y))))
+        self.c_x2 = max(0, min(self.pic_w, int(round((px + pw) * scale_x))))
+        self.c_y2 = max(0, min(self.pic_h, int(round((py + ph) * scale_y))))
+        c_w = self.c_x2 - self.c_x
+        c_h = self.c_y2 - self.c_y
 
         # 显示实际裁剪位置
         self.Ui.label_cut_postion.setText(f"{str(self.c_x)}, {str(self.c_y)}, {str(self.c_x2)}, {str(self.c_y2)}")
