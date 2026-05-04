@@ -514,7 +514,7 @@ class MyMAinWindow(QMainWindow):
 
     # region 窗口操作
     def tray_icon_click(self, e):
-        if int(e) == 3 and IS_WINDOWS:
+        if e == QSystemTrayIcon.ActivationReason.Trigger and IS_WINDOWS:
             if self.isVisible():
                 self.hide()
             else:
@@ -523,7 +523,7 @@ class MyMAinWindow(QMainWindow):
                 self.show()
 
     def tray_icon_show(self):
-        if int(self.windowState()) == 1:  # 最小化时恢复
+        if self.windowState() & Qt.WindowState.WindowMinimized:  # 最小化时恢复
             self.showNormal()
         self.recover_windowflags()  # 恢复焦点
         self.activateWindow()
@@ -536,9 +536,9 @@ class MyMAinWindow(QMainWindow):
     def eventFilter(self, a0, a1):
         # print(event.type())
 
-        if a1.type() == 3:  # 松开鼠标，检查是否在前台
+        if a1.type() == QEvent.Type.MouseButtonRelease:  # 松开鼠标，检查是否在前台
             self.recover_windowflags()
-        if a1.type() == 121 and not self.isVisible():
+        if a1.type() == QEvent.Type.ApplicationActivate and not self.isVisible():
             self.show()
         if a0.objectName() == "label_poster" or a0.objectName() == "label_thumb":
             if a1.type() == QEvent.Type.MouseButtonPress:
@@ -573,7 +573,7 @@ class MyMAinWindow(QMainWindow):
             not IS_WINDOWS
             and self.window_radius
             and a0.type() == QEvent.Type.WindowStateChange
-            and not int(self.windowState())
+            and self.windowState() == Qt.WindowState.WindowNoState
         ):
             self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)  # 隐藏边框
             self.show()
@@ -689,7 +689,7 @@ class MyMAinWindow(QMainWindow):
         if Switch.SHOW_DIALOG_EXIT in manager.config.switch_on:
             if not self.isVisible():
                 self.show()
-            if int(self.windowState()) == 1:
+            if self.windowState() & Qt.WindowState.WindowMinimized:
                 self.showNormal()
 
             # print(self.window().isActiveWindow()) # 是否为活动窗口
