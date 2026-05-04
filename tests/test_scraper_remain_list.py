@@ -23,6 +23,7 @@ async def test_run_uses_copied_remain_list(monkeypatch: pytest.MonkeyPatch):
 
         assert len(scheduled_list) == 4
         assert scheduled_list[0] == origin_first
+        Flags.scrape_done = _task_count
 
     async def fake_save_success_list(_old_path=None, _new_path=None):
         return None
@@ -50,3 +51,21 @@ async def test_run_uses_copied_remain_list(monkeypatch: pytest.MonkeyPatch):
 
     assert movie_list == [Path("MIAA-001.mp4"), Path("MIAA-002.mp4"), Path("MIAA-003.mp4"), Path("MIAA-004.mp4")]
     assert Flags.remain_list == [Path("MIAA-002.mp4"), Path("MIAA-003.mp4"), Path("MIAA-004.mp4")]
+
+
+@pytest.mark.asyncio
+async def test_unexpected_cancelled_scrape_task_is_not_silent(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.core import scraper as scraper_module
+
+    Flags.reset()
+    scraper_module.signal.stop = False
+    Flags.stop_requested = False
+
+    async def cancelled_process_one_file(_self, _task):
+        raise scraper_module.asyncio.CancelledError
+
+    monkeypatch.setattr(scraper_module.Scraper, "process_one_file", cancelled_process_one_file)
+
+    scraper = scraper_module.Scraper(crawler_provider=object())
+    with pytest.raises(scraper_module.UnexpectedScrapeCancellation, match="异常取消"):
+        await scraper._run_tasks_with_limit([Path("MIAA-001.mp4")], 1, 1)

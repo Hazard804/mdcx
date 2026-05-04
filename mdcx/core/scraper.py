@@ -66,6 +66,9 @@ if TYPE_CHECKING:
 class StopScrape(Exception): ...
 
 
+class UnexpectedScrapeCancellation(Exception): ...
+
+
 class Scraper:
     def __init__(self, crawler_provider: "CrawlerProviderProtocol"):
         self.crawler_provider = crawler_provider
@@ -79,7 +82,10 @@ class Scraper:
                 index, each_file = next(task_iter)
             except StopIteration:
                 return False
-            running_tasks.add(asyncio.create_task(self.process_one_file((each_file, index, task_count))))
+            task_name = f"scrape-{index}/{task_count}:{each_file.name}"
+            running_tasks.add(
+                asyncio.create_task(self.process_one_file((each_file, index, task_count)), name=task_name)
+            )
             return True
 
         for _ in range(min(thread_number, task_count)):
@@ -98,9 +104,19 @@ class Scraper:
                     try:
                         done_task.result()
                     except StopScrape:
-                        stop_requested = True
+                        if signal.stop or Flags.stop_requested:
+                            stop_requested = True
+                        elif fatal_error is None:
+                            fatal_error = UnexpectedScrapeCancellation(
+                                f"刮削任务异常停止：{done_task.get_name()}，但未检测到手动停止标识"
+                            )
                     except asyncio.CancelledError:
-                        stop_requested = True
+                        if signal.stop or Flags.stop_requested:
+                            stop_requested = True
+                        elif fatal_error is None:
+                            fatal_error = UnexpectedScrapeCancellation(
+                                f"刮削任务被异常取消：{done_task.get_name()}，但未检测到手动停止标识"
+                            )
                     except Exception as e:
                         if fatal_error is None:
                             fatal_error = e
@@ -201,6 +217,11 @@ class Scraper:
 
             # 异步并发（按并发数渐进投喂任务，避免大列表一次性创建海量协程）
             await self._run_tasks_with_limit(movie_list, task_count, thread_number)
+            if Flags.scrape_done < task_count and not (signal.stop or Flags.stop_requested):
+                message = f"刮削异常提前结束：已完成 {Flags.scrape_done}/{task_count}，剩余 {task_count - Flags.scrape_done} 个任务未执行"
+                signal.show_traceback_log(message)
+                signal.show_log_text(f" 🔴 {message}")
+                raise UnexpectedScrapeCancellation(message)
             signal.label_result.emit(f" 刮削中：0 成功：{Flags.succ_count} 失败：{Flags.fail_count}")
             await save_success_list()  # 保存成功列表
             if signal.stop or Flags.stop_requested:
