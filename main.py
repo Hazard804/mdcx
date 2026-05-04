@@ -34,11 +34,23 @@ def show_constants():
 
 show_constants()
 
+# --------------------------
+# Qt6 禁用系统DPI缩放（必须在 QApplication 实例化前设置）
+# --------------------------
+# 1. 禁用 Qt 自动高 DPI 缩放
+os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+# 2. 强制缩放因子为 1.0
+os.environ["QT_SCALE_FACTOR"] = "1"
+# 3. 禁用自动屏幕缩放因子
+os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+# 4. 强制字体 DPI 为 96（标准屏幕）
+os.environ["QT_FONT_DPI"] = "96"
+# 5. 设置缩放策略为 PassThrough（避免取整）
+QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
-if os.path.isfile("highdpi_passthrough"):
-    # Qt6 默认启用高 DPI，这里仅保留非整数缩放策略开关，避免 150% 缩放被取整。
-    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-
+# --------------------------
+# 创建QApplication实例及后续逻辑
+# --------------------------
 app = QApplication(sys.argv)
 app.setStyle("Fusion")
 apply_application_palette(False)
