@@ -50,6 +50,7 @@ from mdcx.config.resources import resources
 from mdcx.consts import GITHUB_ISSUES_URL, GITHUB_RELEASES_URL, IS_WINDOWS, LOCAL_VERSION
 from mdcx.core.nfo import write_nfo
 from mdcx.core.scraper import again_search, get_remain_list, start_new_scrape
+from mdcx.crawlers.fc2ppvdb import cookie_str_to_dict, fetch_article_info_with_warmup
 from mdcx.image import get_pixmap
 from mdcx.models.enums import FileMode
 from mdcx.models.flags import Flags
@@ -3174,11 +3175,26 @@ class MyMAinWindow(QMainWindow):
 
         if "fc2ppvdb_session" not in input_cookie:
             tips = "❌ Cookie 无效！缺少 fc2ppvdb_session"
-        elif manager.config.fc2ppvdb != input_cookie:
-            self.exec_save_config.emit()
-            tips = "✅ 连接正常，Cookie 已保存！"
         else:
-            tips = "✅ 连接正常！"
+            cookies = cookie_str_to_dict(input_cookie)
+            response, error = executor.run(
+                fetch_article_info_with_warmup(
+                    manager.computed.async_client,
+                    base_url="https://fc2ppvdb.com",
+                    number="3259498",
+                    cookies=cookies,
+                    use_proxy=manager.config.use_proxy,
+                )
+            )
+            if response is None:
+                tips = f"❌ Cookie 检查失败：{error}"
+            elif not response.get("article"):
+                tips = "❌ Cookie 检查失败：返回数据异常"
+            elif manager.config.fc2ppvdb != input_cookie:
+                self.exec_save_config.emit()
+                tips = "✅ 连接正常，Cookie 已保存！"
+            else:
+                tips = "✅ 连接正常！"
 
         self.set_fc2ppvdb_status.emit(tips)
         self.show_log_text(tips.replace("❌", " ❌ FC2PPVDB").replace("✅", " ✅ FC2PPVDB"))

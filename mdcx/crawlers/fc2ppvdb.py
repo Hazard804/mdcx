@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-from typing import override
+from http.cookies import SimpleCookie
+from typing import Any, override
 
 from ..config.manager import manager
 from ..config.models import Website
@@ -74,16 +75,108 @@ def get_video_time(data):  # 获取视频时长
 
 
 def cookie_str_to_dict(cookie_str: str) -> dict:  # cookie 转为字典
-    cookies = {}
-    for item in cookie_str.split("; "):
-        if "=" in item:
-            key, value = item.split("=", 1)
-            cookies[key] = value
-    return cookies
+    cookie = SimpleCookie()
+    try:
+        cookie.load(cookie_str)
+    except Exception:
+        return {}
+    return {key: morsel.value for key, morsel in cookie.items()}
 
 
 def normalize_fc2_number(number: str) -> str:
     return number.upper().replace("FC2PPV", "").replace("FC2-PPV-", "").replace("FC2-", "").replace("-", "").strip()
+
+
+def get_xhr_headers(article_url: str) -> dict[str, str]:
+    return {
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Referer": article_url,
+        "X-Requested-With": "XMLHttpRequest",
+    }
+
+
+def describe_xhr_json_error(response, error: Exception) -> str:
+    content_type = str(response.headers.get("content-type", "")).strip() or "未知"
+    text = str(getattr(response, "text", "") or "")
+    text_preview = " ".join(text.strip().split())[:120]
+    if not text.strip():
+        reason = "接口返回空内容"
+    elif "ログイン" in text or "login" in text.lower():
+        reason = "接口返回登录页，fc2ppvdb Cookie 可能无效或已过期"
+    elif "text/html" in content_type.lower() or text.lstrip().startswith("<!DOCTYPE html"):
+        reason = "接口返回 HTML 页面而不是 JSON"
+    else:
+        reason = "接口返回内容不是有效 JSON"
+
+    detail = f"{reason}，status={response.status_code}，content-type={content_type}"
+    if text_preview:
+        detail = f"{detail}，响应摘要={text_preview}"
+    return f"{detail}；JSON解析失败: {error}"
+
+
+def get_response_final_url(response) -> str:
+    headers = getattr(response, "headers", {}) or {}
+    return str(headers.get("x-mdcx-final-url") or getattr(response, "url", "") or "")
+
+
+async def fetch_article_info(
+    async_client,
+    *,
+    base_url: str,
+    number: str,
+    cookies: dict[str, str],
+    use_proxy: bool,
+) -> tuple[dict[str, Any] | None, str]:
+    article_url = f"{base_url}/articles/{number}"
+    xhr_url = f"{base_url}/articles/article-info?videoid={number}"
+    response, error = await async_client.request(
+        "GET",
+        xhr_url,
+        headers=get_xhr_headers(article_url),
+        cookies=cookies,
+        use_proxy=use_proxy,
+    )
+    if response is None:
+        return None, error
+    try:
+        data = response.json()
+    except Exception as e:
+        return None, describe_xhr_json_error(response, e)
+    if not isinstance(data, dict):
+        return None, f"接口返回 JSON 结构异常: {type(data).__name__}"
+    return data, ""
+
+
+async def fetch_article_info_with_warmup(
+    async_client,
+    *,
+    base_url: str,
+    number: str,
+    cookies: dict[str, str],
+    use_proxy: bool,
+) -> tuple[dict[str, Any] | None, str]:
+    article_url = f"{base_url}/articles/{number}"
+    response_article, error = await async_client.request(
+        "GET",
+        article_url,
+        cookies=cookies,
+        use_proxy=use_proxy,
+    )
+    if response_article is None:
+        return None, f"详情页请求失败: {error}"
+    if response_article.status_code != 200:
+        return None, f"详情页请求失败: HTTP {response_article.status_code}"
+    final_url = get_response_final_url(response_article)
+    if "/login" in final_url:
+        return None, f"详情页跳转到登录页，fc2ppvdb Cookie 未生效: {final_url}"
+
+    return await fetch_article_info(
+        async_client,
+        base_url=base_url,
+        number=number,
+        cookies=cookies,
+        use_proxy=use_proxy,
+    )
 
 
 class Fc2ppvdbCrawler(BaseCrawler):
@@ -107,20 +200,11 @@ class Fc2ppvdbCrawler(BaseCrawler):
 
         cookies = cookie_str_to_dict(manager.config.fc2ppvdb)
         use_proxy = manager.config.use_proxy
-        response_article, error = await self.async_client.request(
-            "GET",
-            article_url,
-            cookies=cookies,
-            use_proxy=use_proxy,
-        )
-        if response_article is None:
-            raise CralwerException(f"详情页请求失败: {error}")
-        if response_article.status_code != 200:
-            raise CralwerException(f"详情页请求失败: {response_article.status_code}")
-
         ctx.debug(f"XHR 地址: {xhr_url}")
-        html_info, error = await self.async_client.get_json(
-            xhr_url,
+        html_info, error = await fetch_article_info_with_warmup(
+            self.async_client,
+            base_url=self.base_url,
+            number=number,
             cookies=cookies,
             use_proxy=use_proxy,
         )
