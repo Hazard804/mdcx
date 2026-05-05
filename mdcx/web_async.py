@@ -109,7 +109,6 @@ class HostConnectionPool:
         self._generation += 1
         self._sessions[self._generation] = self.session
         self.last_used_at = time.monotonic()
-        self._log(f"♻️ 网络连接池已重建: {self.key.split('|', 1)[0]}")
         old_session = self._sessions.get(old_generation)
         if old_session is None:
             return []
