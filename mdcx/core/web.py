@@ -777,8 +777,7 @@ async def extrafanart_download(extrafanart: list[str], extrafanart_from: str, fo
     if DownloadableFile.EXTRAFANART not in download_files:
         return True
 
-    # 检测链接有效性
-    if extrafanart_list and await check_url(extrafanart_list[0]):
+    if extrafanart_list:
         extrafanart_folder_path_temp = extrafanart_folder_path
         if await aiofiles.os.path.exists(extrafanart_folder_path_temp):
             extrafanart_folder_path_temp = extrafanart_folder_path.with_name(
