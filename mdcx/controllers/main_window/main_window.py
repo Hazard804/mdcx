@@ -8,7 +8,6 @@ import webbrowser
 from collections import deque
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
-from urllib.parse import quote_plus
 
 from PyQt6.QtCore import QEvent, QItemSelectionModel, QPoint, QPointF, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QCursor, QGuiApplication, QHoverEvent, QIcon, QKeySequence, QShortcut
@@ -41,13 +40,14 @@ from mdcx.base.file import (
 )
 from mdcx.base.image import add_del_extrafanart_copy
 from mdcx.base.video import add_del_extras, add_del_theme_videos
-from mdcx.base.web import check_theporndb_api_token, check_version, get_avsox_domain, ping_host
+from mdcx.base.web import check_theporndb_api_token, check_version
 from mdcx.base.web_sync import get_text_sync
 from mdcx.config.enums import NfoInclude, Switch, Website
 from mdcx.config.extend import deal_url, get_movie_path_setting
 from mdcx.config.manager import manager
 from mdcx.config.resources import resources
 from mdcx.consts import GITHUB_ISSUES_URL, GITHUB_RELEASES_URL, IS_WINDOWS, LOCAL_VERSION
+from mdcx.core.network_check import run_network_check
 from mdcx.core.nfo import write_nfo
 from mdcx.core.scraper import again_search, get_remain_list, start_new_scrape
 from mdcx.crawlers.fc2ppvdb import cookie_str_to_dict, fetch_article_info_with_warmup
@@ -63,7 +63,6 @@ from mdcx.tools.emby_actor_info import creat_kodi_actors, show_emby_actor_list, 
 from mdcx.tools.missing import check_missing_number
 from mdcx.tools.subtitle import add_sub_for_all_video
 from mdcx.utils import (
-    _async_raise,
     add_html,
     add_html_plain_text,
     executor,
@@ -154,6 +153,8 @@ class MyMAinWindow(QMainWindow):
         self.main_log_queue: deque[str] = deque()
         self.main_log_batch_size = 80
         self.main_log_max_count = 10000
+        self.network_check_cancel_event: threading.Event | None = None
+        self.network_check_future = None
         self.file_main_open_path = Path()  # 主界面打开的文件路径
         self.json_array: dict[str, ShowData] = {}  # 主界面右侧结果树状数据
 
@@ -209,19 +210,13 @@ class MyMAinWindow(QMainWindow):
 
         # region 启动显示信息和后台检查更新
         self.show_scrape_info()  # 主界面左下角显示一些配置信息
-        self.show_net_info("\n🏠 代理设置在:【设置】 - 【网络】 - 【代理设置】。\n")  # 检查网络界面显示提示信息
+        self.show_net_info("\n🏠 代理设置在:【设置】 - 【网络】 - 【代理设置】。")
         show_netstatus()  # 检查网络界面显示当前网络代理信息
         self.show_net_info(
-            "\n💡 说明：\n "
-            "任意代理：javbus、jav321、javlibrary、mywife、giga、freejavbt、"
-            "mdtv、madouqu、7mmtv、faleno、dahlia、prestige、theporndb、cnmdb、fantastica、kin8、avbase\n "
-            "非日本代理：javdb、airav-cc、avsex（日本代理会报错）\n "
-            "日本代理：seesaawiki、mgstage\n "
-            "无需代理：avsex、hdouban、iqqtv、love6、lulubar、fc2、fc2club、fc2hub\n\n"
-            "Cloudflare Bypass：在【设置】-【网络】-【CF Bypass】填写本地服务地址后生效，"
-            "例如 http://127.0.0.1:8000。\n\n"
+            "\n💡 Cloudflare Bypass：在【设置】-【网络】-【CF Bypass】填写本地服务地址后生效，"
+            "例如 http://127.0.0.1:8000。\n"
             "▶️ 点击右上角 【开始检测】按钮以测试网络连通性。"
-        )  # 检查网络界面显示提示信息
+        )
         signal_qt.add_log("🍯 你可以点击左下角的图标来 显示 / 隐藏 请求信息面板！")
         self.show_version()  # 日志页面显示版本信息
         self.creat_right_menu()  # 加载右键菜单
@@ -2856,182 +2851,23 @@ class MyMAinWindow(QMainWindow):
 
     # region 检测网络
     def network_check(self):
-        start_time = time.time()
         try:
-            # 显示代理信息
-            signal_qt.show_net_info("\n⛑ 开始检测网络....")
-            show_netstatus()
-            # 检测网络连通性
-            signal_qt.show_net_info(" 开始检测网络连通性...")
-
-            net_info = {
-                "github": ["https://raw.githubusercontent.com", ""],
-                "cf-bypass": [manager.config.cf_bypass_url.strip(), ""],
-                "airav_cc": ["https://airav.io", ""],
-                "avbase": ["https://www.avbase.net", ""],
-                "iqqtv": ["https://iqq5.xyz", ""],
-                "avsex": ["https://paycalling.com", ""],
-                "freejavbt": ["https://freejavbt.com", ""],
-                "javbus": ["https://www.javbus.com", ""],
-                "javdb": ["https://javdb.com", ""],
-                "jav321": ["https://www.jav321.com", ""],
-                "javlibrary": ["https://www.javlibrary.com", ""],
-                "dmm": ["https://www.dmm.co.jp", ""],
-                "mgstage": ["https://www.mgstage.com", ""],
-                "getchu": ["http://www.getchu.com", ""],
-                "theporndb": ["https://api.theporndb.net", ""],
-                "avsox": [executor.run(get_avsox_domain()), ""],
-                "xcity": ["https://xcity.jp", ""],
-                "7mmtv": ["https://7mmtv.sx", ""],
-                "mdtv": ["https://www.mdpjzip.xyz", ""],
-                "madouqu": ["https://madouqu.com", ""],
-                "cnmdb": ["https://cnmdb.net", ""],
-                "hscangku": ["https://hscangku.net", ""],
-                "cableav": ["https://cableav.tv", ""],
-                "lulubar": ["https://lulubar.co", ""],
-                "love6": ["https://love6.tv", ""],
-                "yesjav": ["http://www.yesjav101.com", ""],
-                "fc2": ["https://adult.contents.fc2.com", ""],
-                "fc2club": ["https://fc2club.top", ""],
-                "fc2hub": ["https://javten.com", ""],
-                "av-wiki": ["https://av-wiki.net", ""],
-                "seesaawiki": ["https://seesaawiki.jp", ""],
-                "mywife": ["https://mywife.cc", ""],
-                "giga": ["https://www.giga-web.jp", ""],
-                "kin8": ["https://www.kin8tengoku.com", ""],
-                "fantastica": ["http://fantastica-vr.com", ""],
-                "faleno": ["https://faleno.jp", ""],
-                "dahlia": ["https://dahlia-av.jp", ""],
-                "prestige": ["https://www.prestige-av.com", ""],
-                "s1s1s1": ["https://s1s1s1.com", ""],
-                "moodyz": ["https://moodyz.com", ""],
-                "madonna": ["https://www.madonna-av.com", ""],
-                "wanz-factory": ["https://www.wanz-factory.com", ""],
-                "ideapocket": ["https://ideapocket.com", ""],
-                "kirakira": ["https://kirakira-av.com", ""],
-                "ebody": ["https://www.av-e-body.com", ""],
-                "bi-av": ["https://bi-av.com", ""],
-                "premium": ["https://premium-beauty.com", ""],
-                "miman": ["https://miman.jp", ""],
-                "tameikegoro": ["https://tameikegoro.jp", ""],
-                "fitch": ["https://fitch-av.com", ""],
-                "kawaiikawaii": ["https://kawaiikawaii.jp", ""],
-                "befreebe": ["https://befreebe.com", ""],
-                "muku": ["https://muku.tv", ""],
-                "attackers": ["https://attackers.net", ""],
-                "mko-labo": ["https://mko-labo.net", ""],
-                "dasdas": ["https://dasdas.jp", ""],
-                "mvg": ["https://mvg.jp", ""],
-                "opera": ["https://av-opera.jp", ""],
-                "oppai": ["https://oppai-av.com", ""],
-                "v-av": ["https://v-av.com", ""],
-                "to-satsu": ["https://to-satsu.com", ""],
-                "bibian": ["https://bibian-av.com", ""],
-                "honnaka": ["https://honnaka.jp", ""],
-                "rookie": ["https://rookie-av.jp", ""],
-                "nanpa": ["https://nanpa-japan.jp", ""],
-                "hajimekikaku": ["https://hajimekikaku.com", ""],
-                "hhh-av": ["https://hhh-av.com", ""],
-            }
-
-            for website in Website:
-                if r := manager.config.get_site_url(website):
-                    signal_qt.show_net_info(f"   ⚠️{website} 使用自定义网址：{r}")
-                    net_info[website.value][0] = r
-
-            net_info["javdb"][0] += "/v/D16Q5?locale=zh"
-            net_info["seesaawiki"][0] += "/av_neme/d/%C9%F1%A5%EF%A5%A4%A5%D5"
-            net_info["airav_cc"][0] += "/playon.aspx?hid=44733"
-            net_info["javlibrary"][0] += "/cn/?v=javme2j2tu"
-            net_info["kin8"][0] += "/moviepages/3681/index.html"
-
-            for name, each in net_info.items():
-                if name == "cf-bypass":
-                    if not each[0]:
-                        each[1] = "ℹ️ 未配置（仅遇到 CF 挑战页时才需要）"
-                    else:
-                        health_url = each[0].rstrip("/") + "/cookies?url=http://example.com"
-                        bypass_proxy = manager.config.cf_bypass_proxy.strip()
-                        if bypass_proxy:
-                            signal_qt.show_net_info("   🔧 使用 CF Bypass 独立代理进行连通性检测")
-                            health_url += "&proxy=" + quote_plus(bypass_proxy)
-                        html_info, error = get_text_sync(health_url, use_proxy=False)
-                        if html_info is None:
-                            each[1] = "❌ 连接失败 请检查服务是否启动！ " + str(error)
-                        else:
-                            each[1] = "✅ 服务可用"
-                    signal_qt.show_net_info("   " + name.ljust(12) + each[1])
-                    continue
-
-                host_address = each[0].replace("https://", "").replace("http://", "").split("/")[0]
-                if name == "javdb":
-                    res_javdb = self._check_javdb_cookie()
-                    each[1] = res_javdb.replace("✅ 连接正常", f"✅ 连接正常{ping_host(host_address)}")
-                elif name == "javbus":
-                    res_javbus = self._check_javbus_cookie()
-                    each[1] = res_javbus.replace("✅ 连接正常", f"✅ 连接正常{ping_host(host_address)}")
-                elif name == "theporndb":
-                    res_theporndb = check_theporndb_api_token()
-                    each[1] = res_theporndb.replace("✅ 连接正常", f"✅ 连接正常{ping_host(host_address)}")
-                elif name == "javlibrary":
-                    use_proxy = True
-                    if manager.config.get_site_url(Website.JAVLIBRARY):
-                        use_proxy = False
-                    html_info, error = get_text_sync(each[0], use_proxy=use_proxy)
-                    if html_info is None:
-                        each[1] = "❌ 连接失败 请检查网络或代理设置！ " + error
-                    elif "Cloudflare" in html_info:
-                        each[1] = "❌ 连接失败 (被 Cloudflare 5 秒盾拦截！)"
-                    else:
-                        each[1] = f"✅ 连接正常{ping_host(host_address)}"
-                elif name in ["avsex", "freejavbt", "airav_cc", "madouqu", "7mmtv"]:
-                    html_info, error = get_text_sync(each[0])
-                    if html_info is None:
-                        each[1] = "❌ 连接失败 请检查网络或代理设置！ " + error
-                    elif "Cloudflare" in html_info:
-                        each[1] = "❌ 连接失败 (被 Cloudflare 5 秒盾拦截！)"
-                    else:
-                        each[1] = f"✅ 连接正常{ping_host(host_address)}"
-                else:
-                    try:
-                        html_content, error = get_text_sync(each[0])
-                        if html_content is None:
-                            each[1] = "❌ 连接失败 请检查网络或代理设置！ " + str(error)
-                        else:
-                            if name == "dmm":
-                                if re.findall("このページはお住まいの地域からご利用になれません", html_content):
-                                    each[1] = "❌ 连接失败 地域限制, 请使用日本节点访问！"
-                                else:
-                                    each[1] = f"✅ 连接正常{ping_host(host_address)}"
-                            elif name == "mgstage":
-                                if not html_content.strip():
-                                    each[1] = "❌ 连接失败 地域限制, 请使用日本节点访问！"
-                                else:
-                                    each[1] = f"✅ 连接正常{ping_host(host_address)}"
-                            else:
-                                each[1] = f"✅ 连接正常{ping_host(host_address)}"
-                    except Exception as e:
-                        each[1] = "测试连接时出现异常！信息:" + str(e)
-                        signal_qt.show_traceback_log(traceback.format_exc())
-                        signal_qt.show_net_info(traceback.format_exc())
-                signal_qt.show_net_info("   " + name.ljust(12) + each[1])
-            signal_qt.show_net_info(f"\n🎉 网络检测已完成！用时 {get_used_time(start_time)} 秒！")
+            signal_qt.show_net_info("\n⛑ 开始检测网络...")
+            cancel_event = self.network_check_cancel_event or threading.Event()
+            self.network_check_cancel_event = cancel_event
+            self.network_check_future = executor.submit(
+                run_network_check(progress=signal_qt.show_net_info, cancel_event=cancel_event)
+            )
+            self.network_check_future.result()
+        except Exception as e:
+            signal_qt.show_net_info(f"\n⛔️ 网络检测出现异常：{e}")
             signal_qt.show_net_info(
                 "================================================================================\n"
             )
-        except Exception as e:
-            if signal_qt.stop:
-                signal_qt.show_net_info("\n⛔️ 当前有刮削任务正在停止中，请等待刮削停止后再进行检测！")
-                signal_qt.show_net_info(
-                    "================================================================================\n"
-                )
-            else:
-                signal_qt.show_net_info("\n⛔️ 网络检测出现异常！")
-                signal_qt.show_net_info(
-                    "================================================================================\n"
-                )
-                signal_qt.show_traceback_log(str(e))
-                signal_qt.show_traceback_log(traceback.format_exc())
+            signal_qt.show_traceback_log(str(e))
+            signal_qt.show_traceback_log(traceback.format_exc())
+        self.network_check_cancel_event = None
+        self.network_check_future = None
         self.Ui.pushButton_check_net.setEnabled(True)
         self.Ui.pushButton_check_net.setText("开始检测")
         self.Ui.pushButton_check_net.setStyleSheet(
@@ -3054,20 +2890,17 @@ class MyMAinWindow(QMainWindow):
         elif self.Ui.pushButton_check_net.text() == "停止检测":
             self.Ui.pushButton_check_net.setText(" 停止检测 ")
             self.Ui.pushButton_check_net.setText(" 停止检测 ")
-            t = threading.Thread(target=kill_a_thread, args=(self.t_net,))
-            t.start()
-            signal_qt.show_net_info("\n⛔️ 网络检测已手动停止！")
-            signal_qt.show_net_info(
-                "================================================================================\n"
-            )
+            if self.network_check_cancel_event:
+                self.network_check_cancel_event.set()
+            signal_qt.show_net_info("\n⛔️ 正在停止网络检测...")
             self.Ui.pushButton_check_net.setStyleSheet(
                 "QPushButton#pushButton_check_net{color: white;background-color:#4C6EFF;}QPushButton:hover#pushButton_check_net{color: white;background-color: rgba(76,110,255,240)}QPushButton:pressed#pushButton_check_net{color: white;background-color:#4C6EE0}"
             )
             self.Ui.pushButton_check_net.setText("开始检测")
         else:
             try:
-                if self.t_net is not None:
-                    _async_raise(self.t_net.ident, SystemExit)
+                if self.network_check_cancel_event:
+                    self.network_check_cancel_event.set()
             except Exception as e:
                 signal_qt.show_traceback_log(str(e))
                 signal_qt.show_traceback_log(traceback.format_exc())
@@ -3075,7 +2908,7 @@ class MyMAinWindow(QMainWindow):
     # 检测网络界面日志显示
     def show_net_info(self, text):
         try:
-            self.net_logs_show.emit(add_html(text))
+            self.net_logs_show.emit(add_html_plain_text(text))
         except Exception:
             signal_qt.show_traceback_log(traceback.format_exc())
             self.Ui.textBrowser_net_main.append(traceback.format_exc())
