@@ -3,6 +3,7 @@ import random
 from types import SimpleNamespace
 
 import pytest
+from curl_cffi.requests.exceptions import Timeout
 
 from mdcx.web_async import AsyncWebClient
 
@@ -28,6 +29,22 @@ def _default_try_kwargs():
         "allow_redirects": True,
         "use_proxy": False,
     }
+
+
+def _patch_session_request(client: AsyncWebClient, request):
+    class FakeSession:
+        closed = False
+
+        async def close(self):
+            self.closed = True
+
+        async def request(self, **kwargs):
+            result = request(**kwargs)
+            if asyncio.iscoroutine(result):
+                return await result
+            return result
+
+    client._pool_manager._session_factory = FakeSession  # type: ignore[assignment]
 
 
 @pytest.mark.asyncio
@@ -201,7 +218,7 @@ async def test_call_bypass_mirror_returns_error_on_http_status():
     async def fake_request(method, url, **kwargs):
         return _fake_response(status_code=404, headers={"Content-Type": "text/html"}, content=b"not found")
 
-    client.curl_session.request = fake_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_request)
 
     response, error = await client._call_bypass_mirror(
         method="GET",
@@ -232,7 +249,7 @@ async def test_call_bypass_mirror_follows_redirect_and_updates_final_url():
             )
         return _fake_response(status_code=200, headers={"Content-Type": "text/html"}, content=b"<html>ok</html>")
 
-    client.curl_session.request = fake_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_request)
 
     response, error = await client._call_bypass_mirror(
         method="GET",
@@ -268,7 +285,7 @@ async def test_call_bypass_mirror_sets_x_proxy_header_when_enabled():
         captured_headers = dict(kwargs.get("headers") or {})
         return _fake_response(status_code=200, headers={"Content-Type": "text/html"}, content=b"<html>ok</html>")
 
-    client.curl_session.request = fake_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_request)
 
     response, error = await client._call_bypass_mirror(
         method="GET",
@@ -295,7 +312,7 @@ async def test_call_bypass_mirror_sets_x_bypass_cache_header_when_forced():
         captured_headers = dict(kwargs.get("headers") or {})
         return _fake_response(status_code=200, headers={"Content-Type": "text/html"}, content=b"<html>ok</html>")
 
-    client.curl_session.request = fake_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_request)
 
     response, error = await client._call_bypass_mirror(
         method="GET",
@@ -310,6 +327,35 @@ async def test_call_bypass_mirror_sets_x_bypass_cache_header_when_forced():
     assert error == ""
     assert response is not None
     assert captured_headers.get("x-bypass-cache") == "true"
+
+
+@pytest.mark.asyncio
+async def test_call_bypass_mirror_resets_pool_on_transport_error(monkeypatch):
+    client = AsyncWebClient(timeout=1, cf_bypass_url="http://127.0.0.1:8000")
+    reset_keys: list[str] = []
+
+    async def fake_request(method, url, **kwargs):
+        raise Timeout("timed out")
+
+    _patch_session_request(client, fake_request)
+
+    async def fake_reset_connections(reason: str, *, pool_key: str | None = None):
+        reset_keys.append(pool_key or "")
+
+    monkeypatch.setattr(client, "reset_connections", fake_reset_connections)
+
+    response, error = await client._call_bypass_mirror(
+        method="GET",
+        target_url="https://missav.ws/SNOS-014/cn",
+        headers={"Accept": "text/html"},
+        cookies=None,
+        use_proxy=False,
+        allow_redirects=True,
+    )
+
+    assert response is None
+    assert error == "mirror 请求超时"
+    assert reset_keys == ["http://127.0.0.1:8000|proxy="]
 
 
 @pytest.mark.asyncio
@@ -481,7 +527,7 @@ async def test_request_returns_bypass_response_when_cf_challenge_hit():
             content=b"<html>just a moment cf-chl</html>",
         )
 
-    client.curl_session.request = fake_curl_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_curl_request)
 
     bypass_response = _fake_response(
         status_code=200,
@@ -517,7 +563,7 @@ async def test_request_enables_bypass_proxy_when_configured():
             content=b"<html>just a moment cf-chl</html>",
         )
 
-    client.curl_session.request = fake_curl_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_curl_request)
 
     captured_use_proxy: bool | None = None
     bypass_response = _fake_response(
@@ -568,7 +614,7 @@ async def test_request_retries_when_bypass_failed(monkeypatch):
             content=b"ok",
         )
 
-    client.curl_session.request = fake_curl_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_curl_request)
 
     sleep_calls: list[float] = []
 
@@ -608,7 +654,7 @@ async def test_request_stops_retry_when_bypass_failed_with_terminal_status(monke
             content=b"<html>just a moment cf-chl</html>",
         )
 
-    client.curl_session.request = fake_curl_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_curl_request)
 
     sleep_calls: list[float] = []
 
@@ -647,7 +693,7 @@ async def test_request_stops_retry_when_bypass_failed_with_http_terminal_status(
             content=b"<html>just a moment cf-chl</html>",
         )
 
-    client.curl_session.request = fake_curl_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_curl_request)
 
     sleep_calls: list[float] = []
 
@@ -693,7 +739,7 @@ async def test_request_acquires_limiter_for_each_attempt(monkeypatch):
             content=b"busy",
         )
 
-    client.curl_session.request = fake_curl_request  # type: ignore[method-assign]
+    _patch_session_request(client, fake_curl_request)
 
     sleep_calls: list[float] = []
 
@@ -710,6 +756,63 @@ async def test_request_acquires_limiter_for_each_attempt(monkeypatch):
     assert call_count == 3
     assert acquire_count == 3
     assert sleep_calls == [2.0, 5.0]
+
+
+@pytest.mark.asyncio
+async def test_request_does_not_use_cf_retry_semaphore_before_challenge(monkeypatch):
+    client = AsyncWebClient(timeout=1, cf_bypass_url="")
+
+    async def fail_if_called(host: str):
+        raise AssertionError("普通请求不应默认使用 CF retry semaphore")
+
+    monkeypatch.setattr(client, "_get_cf_host_retry_semaphore", fail_if_called)
+    _patch_session_request(
+        client,
+        lambda method, url, **kwargs: _fake_response(
+            status_code=200,
+            headers={"Content-Type": "text/html"},
+            content=b"ok",
+        ),
+    )
+
+    response, error = await client.request("GET", "https://missav.ws/SNOS-009/cn")
+
+    assert error == ""
+    assert response is not None
+
+
+@pytest.mark.asyncio
+async def test_request_uses_cf_retry_semaphore_after_challenge(monkeypatch):
+    client = AsyncWebClient(timeout=1, cf_bypass_url="")
+    client._cf_host_challenge_hits["missav.ws"] = 1
+    enter_count = 0
+
+    class FakeSemaphore:
+        async def __aenter__(self):
+            nonlocal enter_count
+            enter_count += 1
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+    async def fake_get_semaphore(host: str):
+        return FakeSemaphore()
+
+    monkeypatch.setattr(client, "_get_cf_host_retry_semaphore", fake_get_semaphore)
+    _patch_session_request(
+        client,
+        lambda method, url, **kwargs: _fake_response(
+            status_code=200,
+            headers={"Content-Type": "text/html"},
+            content=b"ok",
+        ),
+    )
+
+    response, error = await client.request("GET", "https://missav.ws/SNOS-009/cn")
+
+    assert error == ""
+    assert response is not None
+    assert enter_count == 1
 
 
 def test_sanitize_url_keeps_query_and_encodes_spaces():

@@ -17,6 +17,31 @@ def test_build_fanza_trailer_url_from_standard_playlist():
     assert trailer == "https://cc3001.dmm.co.jp/litevideo/freepv/s/ssi/ssis00497/ssis00497_sm_w.mp4"
 
 
+@pytest.mark.asyncio
+async def test_http_request_with_retry_uses_single_network_attempt_per_outer_attempt(monkeypatch):
+    crawler = DmmCrawler(client=AsyncWebClient(timeout=1))
+    monkeypatch.setattr(manager.config, "retry", 3)
+    calls: list[dict] = []
+
+    async def fake_sleep(delay: float):
+        return None
+
+    monkeypatch.setattr(dmm_module.asyncio, "sleep", fake_sleep)
+
+    async def fake_get_text(url: str, **kwargs):
+        calls.append(kwargs)
+        return None, "failed"
+
+    monkeypatch.setattr(crawler.async_client, "get_text", fake_get_text)
+
+    response, error = await crawler._http_request_with_retry("GET", "https://example.test/detail")
+
+    assert response is None
+    assert "已尝试 3 次" in error
+    assert len(calls) == 3
+    assert all(call["retry_count"] == 1 for call in calls)
+
+
 def test_build_fanza_trailer_url_from_temporary_pv_mp4():
     url = "https://cc3001.dmm.co.jp/pv/temporary_key/asfb00192_mhb_w.mp4"
     trailer = DmmCrawler._build_fanza_trailer_url(url)

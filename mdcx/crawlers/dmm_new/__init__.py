@@ -408,23 +408,25 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         Returns:
             (response, error) 元组
         """
-        max_retries = manager.config.retry  # 从配置获取重试次数
+        max_attempts = max(int(manager.config.retry), 1)  # 从配置获取尝试次数
+        request_kwargs = dict(kwargs)
+        request_kwargs["retry_count"] = 1
 
         last_error = None
 
-        for attempt in range(max_retries + 1):
+        for attempt in range(max_attempts):
             try:
                 if method.upper() == "POST":
-                    if "json_data" in kwargs:
-                        response, error = await self.async_client.post_json(url, **kwargs)
+                    if "json_data" in request_kwargs:
+                        response, error = await self.async_client.post_json(url, **request_kwargs)
                     else:
-                        response, error = await self.async_client.post_text(url, **kwargs)
+                        response, error = await self.async_client.post_text(url, **request_kwargs)
                 elif method.upper() == "GET":
-                    response, error = await self.async_client.get_text(url, **kwargs)
+                    response, error = await self.async_client.get_text(url, **request_kwargs)
                 elif method.upper() == "HEAD":
-                    response, error = await self.async_client.request("HEAD", url, **kwargs)
+                    response, error = await self.async_client.request("HEAD", url, **request_kwargs)
                 else:
-                    response, error = await self.async_client.request(method, url, **kwargs)
+                    response, error = await self.async_client.request(method, url, **request_kwargs)
 
                 # 如果请求成功，直接返回
                 if response is not None:
@@ -437,12 +439,12 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
                 last_error = str(e)
 
             # 重试前等待（指数退避）
-            if attempt < max_retries:
+            if attempt < max_attempts - 1:
                 wait_time = min(2**attempt, 10)  # 最多等待10秒
                 await asyncio.sleep(wait_time)
 
         # 所有重试都失败了
-        return None, f"请求失败，已重试 {max_retries} 次: {last_error}"
+        return None, f"请求失败，已尝试 {max_attempts} 次: {last_error}"
 
     @classmethod
     @override

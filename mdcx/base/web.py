@@ -252,7 +252,7 @@ async def _validate_dmm_image_url(url: str, length: bool = False, real_url: bool
 
     for retry_attempt in range(max_retries):
         try:
-            response, error = await manager.computed.async_client.request("GET", request_url)
+            response, error = await manager.computed.async_client.request("GET", request_url, retry_count=1)
             if response is None:
                 last_error = error
                 if retry_attempt < max_retries - 1 and _should_retry_link_error(error):
@@ -312,7 +312,7 @@ async def get_url_content_length(url: str) -> int | None:
 
     if is_dmm_image_url(normalized):
         for attempt, delay in enumerate(retry_delays, start=1):
-            response, error = await manager.computed.async_client.request("GET", normalized)
+            response, error = await manager.computed.async_client.request("GET", normalized, retry_count=1)
             if response is None:
                 if not _should_retry_link_error(error) or attempt == len(retry_delays):
                     return None
@@ -333,7 +333,7 @@ async def get_url_content_length(url: str) -> int | None:
         return None
 
     for attempt, delay in enumerate(retry_delays, start=1):
-        response, error = await manager.computed.async_client.request("HEAD", normalized)
+        response, error = await manager.computed.async_client.request("HEAD", normalized, retry_count=1)
         if response is not None:
             if content_length := _parse_content_length(response.headers.get("Content-Length")):
                 return content_length
@@ -346,7 +346,7 @@ async def get_url_content_length(url: str) -> int | None:
             await asyncio.sleep(delay)
 
     for attempt, delay in enumerate(retry_delays, start=1):
-        response, error = await manager.computed.async_client.request("GET", normalized)
+        response, error = await manager.computed.async_client.request("GET", normalized, retry_count=1)
         if response is None:
             if not _should_retry_link_error(error) or attempt == len(retry_delays):
                 return None
@@ -603,7 +603,9 @@ async def get_dmm_trailer(trailer_url: str) -> str:
                 for attempt in range(3):
                     try:
                         # 进行HEAD请求检测
-                        response, error = await manager.computed.async_client.request("HEAD", converted_url)
+                        response, error = await manager.computed.async_client.request(
+                            "HEAD", converted_url, retry_count=1
+                        )
 
                         if response is not None:
                             # 请求成功

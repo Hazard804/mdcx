@@ -39,6 +39,188 @@ class AsyncWebLimiters:
             del self.limiters[key]
 
 
+class HostConnectionPool:
+    def __init__(
+        self,
+        *,
+        key: str,
+        session_factory: Callable[[], AsyncSession],
+        log_fn: Callable[[str], None],
+    ):
+        self.key = key
+        self._session_factory = session_factory
+        self._log = log_fn
+        self.session = self._session_factory()
+        self._sessions: dict[int, AsyncSession] = {0: self.session}
+        self._active_by_generation: dict[int, int] = {}
+        self._retired_generations: set[int] = set()
+        self._session_lock = asyncio.Lock()
+        self._closed = False
+        self._generation = 0
+        self.last_used_at = time.monotonic()
+
+    async def begin_request(self) -> tuple[AsyncSession, int]:
+        sessions_to_close: list[AsyncSession] = []
+        async with self._session_lock:
+            if self._closed:
+                raise RuntimeError("网络连接池已关闭")
+            generation = self._generation
+            self._active_by_generation[generation] = self._active_by_generation.get(generation, 0) + 1
+            self.last_used_at = time.monotonic()
+            session = self.session
+        await self._close_sessions(sessions_to_close)
+        return session, generation
+
+    async def end_request(self, generation: int) -> None:
+        sessions_to_close: list[AsyncSession] = []
+        async with self._session_lock:
+            current_count = self._active_by_generation.get(generation, 0)
+            if current_count <= 1:
+                self._active_by_generation.pop(generation, None)
+                if generation in self._retired_generations:
+                    self._retired_generations.remove(generation)
+                    old_session = self._sessions.pop(generation, None)
+                    if old_session is not None:
+                        sessions_to_close.append(old_session)
+            else:
+                self._active_by_generation[generation] = current_count - 1
+            self.last_used_at = time.monotonic()
+        await self._close_sessions(sessions_to_close)
+
+    async def is_idle(self) -> bool:
+        async with self._session_lock:
+            return not self._active_by_generation
+
+    async def reset(self, reason: str) -> None:
+        if self._closed:
+            return
+        sessions_to_close: list[AsyncSession] = []
+        async with self._session_lock:
+            if self._closed:
+                return
+            sessions_to_close = self._rotate_locked(reason)
+        await self._close_sessions(sessions_to_close)
+
+    def _rotate_locked(self, reason: str) -> list[AsyncSession]:
+        old_generation = self._generation
+        self.session = self._session_factory()
+        self._generation += 1
+        self._sessions[self._generation] = self.session
+        self.last_used_at = time.monotonic()
+        self._log(f"♻️ 网络连接池已重建: {self.key.split('|', 1)[0]}")
+        old_session = self._sessions.get(old_generation)
+        if old_session is None:
+            return []
+        if self._active_by_generation.get(old_generation, 0) > 0:
+            self._retired_generations.add(old_generation)
+            return []
+        self._sessions.pop(old_generation, None)
+        self._retired_generations.discard(old_generation)
+        return [old_session]
+
+    async def _close_sessions(self, sessions: list[AsyncSession]) -> None:
+        for session in sessions:
+            with contextlib.suppress(Exception):
+                await session.close()
+
+    async def _close_all_sessions(self) -> None:
+        sessions = list(self._sessions.values())
+        self._sessions.clear()
+        self._active_by_generation.clear()
+        self._retired_generations.clear()
+        await self._close_sessions(sessions)
+
+    async def close(self) -> None:
+        if self._closed:
+            return
+        async with self._session_lock:
+            if self._closed:
+                return
+            self._closed = True
+            await self._close_all_sessions()
+
+
+class HostPoolManager:
+    def __init__(
+        self,
+        *,
+        session_factory: Callable[[], AsyncSession],
+        log_fn: Callable[[str], None],
+        idle_ttl: float = 600.0,
+    ):
+        self._session_factory = session_factory
+        self._log = log_fn
+        self._idle_ttl = idle_ttl
+        self._pools: dict[str, HostConnectionPool] = {}
+        self._lock = asyncio.Lock()
+        self._closed = False
+
+    @staticmethod
+    def key_for_url(url: str, proxy: str | None = None) -> str:
+        parsed = httpx.URL(url)
+        scheme = (parsed.scheme or "https").lower()
+        host = (parsed.host or "").lower()
+        port = parsed.port
+        default_port = 443 if scheme == "https" else 80
+        port_part = "" if port is None or port == default_port else f":{port}"
+        proxy_part = (proxy or "").strip()
+        return f"{scheme}://{host}{port_part}|proxy={proxy_part}"
+
+    async def get(self, key: str) -> HostConnectionPool:
+        if self._closed:
+            raise RuntimeError("网络连接池管理器已关闭")
+        async with self._lock:
+            if self._closed:
+                raise RuntimeError("网络连接池管理器已关闭")
+            await self._cleanup_idle_locked()
+            pool = self._pools.get(key)
+            if pool is None:
+                pool = HostConnectionPool(key=key, session_factory=self._session_factory, log_fn=self._log)
+                self._pools[key] = pool
+            return pool
+
+    async def reset(self, key: str, reason: str) -> None:
+        async with self._lock:
+            pool = self._pools.get(key)
+        if pool is not None:
+            await pool.reset(reason)
+
+    async def reset_all(self, reason: str) -> None:
+        async with self._lock:
+            pools = list(self._pools.values())
+        await asyncio.gather(*(pool.reset(reason) for pool in pools), return_exceptions=True)
+
+    async def is_idle(self) -> bool:
+        async with self._lock:
+            pools = list(self._pools.values())
+        results = await asyncio.gather(*(pool.is_idle() for pool in pools), return_exceptions=True)
+        return all(result is True for result in results)
+
+    async def close(self) -> None:
+        if self._closed:
+            return
+        async with self._lock:
+            if self._closed:
+                return
+            self._closed = True
+            pools = list(self._pools.values())
+            self._pools.clear()
+        await asyncio.gather(*(pool.close() for pool in pools), return_exceptions=True)
+
+    async def _cleanup_idle_locked(self) -> None:
+        now = time.monotonic()
+        expired: list[str] = []
+        for key, pool in self._pools.items():
+            if now - pool.last_used_at <= self._idle_ttl:
+                continue
+            if await pool.is_idle():
+                expired.append(key)
+        for key in expired:
+            pool = self._pools.pop(key, None)
+            if pool is not None:
+                await pool.close()
+
+
 class AsyncWebClient:
     def __init__(
         self,
@@ -64,20 +246,14 @@ class AsyncWebClient:
             "max_redirects": 20,
             "timeout": timeout,
         }
-        self.curl_session = self._new_curl_session()
         self._closed = False
         self._close_requested = False
-        self._reset_requested = False
-        self._active_requests = 0
-        self._active_lock = asyncio.Lock()
-        self._session_lock = asyncio.Lock()
         self._lease_lock = threading.Lock()
         self._leases = 0
-        self._transport_error_streak = 0
-        self._transport_error_reset_threshold = 5
 
         self.log_fn = log_fn if log_fn is not None else lambda _: None
         self.limiters = limiters if limiters is not None else AsyncWebLimiters()
+        self._pool_manager = HostPoolManager(session_factory=self._new_curl_session, log_fn=self._log)
 
         self.cf_bypass_url = cf_bypass_url.strip().rstrip("/")
         self.cf_bypass_proxy = (cf_bypass_proxy or "").strip()
@@ -130,25 +306,8 @@ class AsyncWebClient:
             return float(timeout) + 5.0
         return None
 
-    async def _begin_request(self) -> AsyncSession:
-        async with self._session_lock:
-            if self._closed or (self._close_requested and self._lease_count() == 0):
-                raise RuntimeError("网络客户端已关闭")
-            async with self._active_lock:
-                self._active_requests += 1
-            return self.curl_session
-
-    async def _end_request(self) -> None:
-        should_reset = False
-        async with self._active_lock:
-            self._active_requests = max(self._active_requests - 1, 0)
-            should_reset = self._active_requests == 0 and self._reset_requested and not self._close_requested
-        if should_reset:
-            await self.reset_connections("连续网络错误后重建连接池")
-
     async def _is_idle(self) -> bool:
-        async with self._active_lock:
-            return self._active_requests == 0 and self._lease_count() == 0
+        return self._lease_count() == 0 and await self._pool_manager.is_idle()
 
     async def _close_if_idle(self) -> bool:
         if not await self._is_idle():
@@ -168,47 +327,32 @@ class AsyncWebClient:
         if self._closed:
             return
         self._close_requested = True
-        async with self._session_lock:
-            if self._closed:
-                return
-            self._closed = True
-            with contextlib.suppress(Exception):
-                await self.curl_session.close()
+        self._closed = True
+        await self._pool_manager.close()
 
-    async def reset_connections(self, reason: str) -> None:
+    async def reset_connections(self, reason: str, *, pool_key: str | None = None) -> None:
         """重建底层连接池，用于代理/节点不稳定后丢弃可能失效的连接。"""
         if self._closed:
             return
+        if pool_key is None:
+            await self._pool_manager.reset_all(reason)
+        else:
+            await self._pool_manager.reset(pool_key, reason)
 
-        old_session: AsyncSession | None = None
-        async with self._session_lock:
-            if self._closed:
-                return
-            async with self._active_lock:
-                if self._active_requests > 0:
-                    self._reset_requested = True
-                    return
-                old_session = self.curl_session
-                self.curl_session = self._new_curl_session()
-                self._reset_requested = False
-                self._transport_error_streak = 0
-            self._log(f"♻️ 网络连接池已重建: {reason}")
+    async def _record_transport_failure(self, error_msg: str, *, pool_key: str) -> None:
+        await self.reset_connections(error_msg, pool_key=pool_key)
 
-        if old_session is not None:
-            with contextlib.suppress(Exception):
-                await old_session.close()
-
-    async def _record_transport_failure(self, error_msg: str) -> None:
-        self._transport_error_streak += 1
-        if self._transport_error_streak < self._transport_error_reset_threshold:
-            return
-        await self.reset_connections(error_msg)
-
-    async def _record_transport_success(self) -> None:
-        self._transport_error_streak = 0
+    async def _record_transport_success(self, *, pool_key: str) -> None:
+        return
 
     async def _curl_request(self, **kwargs) -> Response:
-        session = await self._begin_request()
+        url = str(kwargs.get("url") or "")
+        proxy = kwargs.get("proxy")
+        pool_key = HostPoolManager.key_for_url(url, str(proxy) if proxy else None)
+        if self._closed or (self._close_requested and self._lease_count() == 0):
+            raise RuntimeError("网络客户端已关闭")
+        pool = await self._pool_manager.get(pool_key)
+        session, generation = await pool.begin_request()
         release_now = True
         try:
             coro = session.request(**kwargs)
@@ -219,13 +363,13 @@ class AsyncWebClient:
                 response = await asyncio.wait_for(coro, timeout=timeout_seconds)
             if kwargs.get("stream"):
                 release_now = False
-                return self._attach_stream_release(response)
+                return self._attach_stream_release(response, pool=pool, generation=generation)
             return response
         finally:
             if release_now:
-                await self._end_request()
+                await pool.end_request(generation)
 
-    def _attach_stream_release(self, response: Response) -> Response:
+    def _attach_stream_release(self, response: Response, *, pool: HostConnectionPool, generation: int) -> Response:
         if getattr(response, "_mdcx_release_attached", False):
             return response
 
@@ -238,7 +382,7 @@ class AsyncWebClient:
             if released:
                 return
             released = True
-            await self._end_request()
+            await pool.end_request(generation)
 
         def close_wrapper(*args, **kwargs):
             try:
@@ -647,6 +791,7 @@ class AsyncWebClient:
                 use_proxy=use_proxy,
                 bypass_cache=bypass_cache,
             )
+            mirror_pool_key = HostPoolManager.key_for_url(mirror_url, None)
             try:
                 limiter = self.limiters.get("127.0.0.1")
                 await limiter.acquire()
@@ -665,15 +810,23 @@ class AsyncWebClient:
             except Timeout:
                 response = None
                 error = "mirror 请求超时"
+                await self._record_transport_failure(error, pool_key=mirror_pool_key)
             except ConnectionError as exc:
                 response = None
                 error = f"mirror 连接错误: {exc}"
+                await self._record_transport_failure(error, pool_key=mirror_pool_key)
             except RequestException as exc:
                 response = None
                 error = f"mirror 请求异常: {exc}"
+                await self._record_transport_failure(error, pool_key=mirror_pool_key)
+            except TimeoutError:
+                response = None
+                error = "mirror 请求等待超时"
+                await self._record_transport_failure(error, pool_key=mirror_pool_key)
             except Exception as exc:
                 response = None
                 error = f"mirror 未知错误: {exc}"
+                await self._record_transport_failure(error, pool_key=mirror_pool_key)
             if response is None:
                 return None, error
 
@@ -887,6 +1040,7 @@ class AsyncWebClient:
         stream: bool = False,
         allow_redirects: bool = True,
         enable_cf_bypass: bool = True,
+        retry_count: int | None = None,
     ) -> tuple[Response | None, str]:
         """
         执行请求的通用方法
@@ -913,10 +1067,11 @@ class AsyncWebClient:
             host = u.host or ""
             prepared_headers = self._prepare_headers(url, dict(headers or {}))
             limiter = self.limiters.get(u.host)
-            retry_count = self.retry
+            request_proxy = self.proxy if use_proxy else None
+            pool_key = HostPoolManager.key_for_url(url, request_proxy)
+            retry_count = max(int(self.retry if retry_count is None else retry_count), 1)
             error_msg = ""
             bypass_round = 0
-            host_retry_semaphore = await self._get_cf_host_retry_semaphore(host) if host else None
 
             for attempt in range(retry_count):
                 # 增强的重试策略: 对网络错误和特定状态码都进行重试
@@ -928,12 +1083,15 @@ class AsyncWebClient:
                     await limiter.acquire()
                     req_headers = dict(prepared_headers)
                     req_cookies = self._merge_cookies(cookies)
+                    host_retry_semaphore = None
+                    if host and self._cf_host_challenge_hits.get(host, 0) > 0:
+                        host_retry_semaphore = await self._get_cf_host_retry_semaphore(host)
                     if host_retry_semaphore is not None:
                         async with host_retry_semaphore:
                             resp = await self._curl_request(
                                 method=method,
                                 url=url,
-                                proxy=self.proxy if use_proxy else None,
+                                proxy=request_proxy,
                                 headers=req_headers,
                                 cookies=req_cookies,
                                 params=params,
@@ -947,7 +1105,7 @@ class AsyncWebClient:
                         resp = await self._curl_request(
                             method=method,
                             url=url,
-                            proxy=self.proxy if use_proxy else None,
+                            proxy=request_proxy,
                             headers=req_headers,
                             cookies=req_cookies,
                             params=params,
@@ -1028,27 +1186,28 @@ class AsyncWebClient:
                         self._log(f"✅ {method} {url} 成功")
                         if host:
                             self._cf_host_challenge_hits[host] = 0
-                        await self._record_transport_success()
+                        await self._record_transport_success(pool_key=pool_key)
                         return resp, ""
                 except Timeout:
                     error_msg = "连接超时"
                     retry = True  # 超时错误进行重试
-                    await self._record_transport_failure(error_msg)
+                    await self._record_transport_failure(error_msg, pool_key=pool_key)
                 except ConnectionError as e:
                     error_msg = f"连接错误: {str(e)}"
                     retry = True  # 连接错误进行重试
-                    await self._record_transport_failure(error_msg)
+                    await self._record_transport_failure(error_msg, pool_key=pool_key)
                 except RequestException as e:
-                    error_msg = f"请求异常: {str(e)} {e.code}"
+                    error_msg = f"请求异常: {str(e)} {getattr(e, 'code', '')}".strip()
                     retry = True  # 请求异常进行重试
-                    await self._record_transport_failure(error_msg)
+                    await self._record_transport_failure(error_msg, pool_key=pool_key)
                 except TimeoutError:
                     error_msg = "请求等待超时"
                     retry = True
-                    await self._record_transport_failure(error_msg)
+                    await self._record_transport_failure(error_msg, pool_key=pool_key)
                 except Exception as e:
                     error_msg = f"curl-cffi 异常: {str(e)}"
-                    retry = False  # 其他异常不重试，避免死循环
+                    retry = True
+                    await self._record_transport_failure(error_msg, pool_key=pool_key)
                 if not retry:
                     if stream:
                         await self._close_response(resp)
@@ -1076,9 +1235,12 @@ class AsyncWebClient:
         cookies: dict[str, str] | None = None,
         encoding: str = "utf-8",
         use_proxy: bool = True,
+        retry_count: int | None = None,
     ) -> tuple[str | None, str]:
         """请求文本内容"""
-        resp, error = await self.request("GET", url, headers=headers, cookies=cookies, use_proxy=use_proxy)
+        resp, error = await self.request(
+            "GET", url, headers=headers, cookies=cookies, use_proxy=use_proxy, retry_count=retry_count
+        )
         if resp is None:
             return None, error
         try:
@@ -1094,9 +1256,12 @@ class AsyncWebClient:
         headers: dict[str, str] | None = None,
         cookies: dict[str, str] | None = None,
         use_proxy: bool = True,
+        retry_count: int | None = None,
     ) -> tuple[bytes | None, str]:
         """请求二进制内容"""
-        resp, error = await self.request("GET", url, headers=headers, cookies=cookies, use_proxy=use_proxy)
+        resp, error = await self.request(
+            "GET", url, headers=headers, cookies=cookies, use_proxy=use_proxy, retry_count=retry_count
+        )
         if resp is None:
             return None, error
 
@@ -1109,9 +1274,12 @@ class AsyncWebClient:
         headers: dict[str, str] | None = None,
         cookies: dict[str, str] | None = None,
         use_proxy: bool = True,
+        retry_count: int | None = None,
     ) -> tuple[Any | None, str]:
         """请求JSON数据"""
-        response, error = await self.request("GET", url, headers=headers, cookies=cookies, use_proxy=use_proxy)
+        response, error = await self.request(
+            "GET", url, headers=headers, cookies=cookies, use_proxy=use_proxy, retry_count=retry_count
+        )
         if response is None:
             return None, error
         try:
@@ -1129,10 +1297,18 @@ class AsyncWebClient:
         cookies: dict[str, str] | None = None,
         encoding: str = "utf-8",
         use_proxy: bool = True,
+        retry_count: int | None = None,
     ) -> tuple[str | None, str]:
         """POST 请求, 返回响应文本内容"""
         response, error = await self.request(
-            "POST", url, data=data, json_data=json_data, headers=headers, cookies=cookies, use_proxy=use_proxy
+            "POST",
+            url,
+            data=data,
+            json_data=json_data,
+            headers=headers,
+            cookies=cookies,
+            use_proxy=use_proxy,
+            retry_count=retry_count,
         )
         if response is None:
             return None, error
@@ -1151,10 +1327,18 @@ class AsyncWebClient:
         headers: dict[str, str] | None = None,
         cookies: dict[str, str] | None = None,
         use_proxy: bool = True,
+        retry_count: int | None = None,
     ) -> tuple[Any | None, str]:
         """POST 请求, 返回响应JSON数据"""
         response, error = await self.request(
-            "POST", url, data=data, json_data=json_data, headers=headers, cookies=cookies, use_proxy=use_proxy
+            "POST",
+            url,
+            data=data,
+            json_data=json_data,
+            headers=headers,
+            cookies=cookies,
+            use_proxy=use_proxy,
+            retry_count=retry_count,
         )
         if error or response is None:
             return None, error
@@ -1173,10 +1357,18 @@ class AsyncWebClient:
         headers: dict[str, str] | None = None,
         cookies: dict[str, str] | None = None,
         use_proxy: bool = True,
+        retry_count: int | None = None,
     ) -> tuple[bytes | None, str]:
         """POST请求, 返回二进制响应"""
         response, error = await self.request(
-            "POST", url, data=data, json_data=json_data, headers=headers, cookies=cookies, use_proxy=use_proxy
+            "POST",
+            url,
+            data=data,
+            json_data=json_data,
+            headers=headers,
+            cookies=cookies,
+            use_proxy=use_proxy,
+            retry_count=retry_count,
         )
         if error or response is None:
             return None, error
@@ -1232,13 +1424,7 @@ class AsyncWebClient:
             self._log(f"🔴 下载失败: {url} {error}")
             return False
         if not webp:
-            try:
-                async with aiofiles.open(file_path, "wb") as f:
-                    await f.write(content)
-                return True
-            except Exception as e:
-                self._log(f"🔴 文件写入失败: {url} {file_path} {str(e)}")
-                return False
+            return await self._write_file_content(url, file_path, content)
         try:
             byte_stream = BytesIO(content)
             img: Image.Image = Image.open(byte_stream)
@@ -1250,6 +1436,32 @@ class AsyncWebClient:
         except Exception as e:
             self._log(f"🔴 WebP转换失败: {url} {file_path} {str(e)}")
             return False
+
+    async def _write_file_content(self, url: str, file_path: Path, content: bytes) -> bool:
+        try:
+            async with aiofiles.open(file_path, "wb") as f:
+                await f.write(content)
+            return True
+        except Exception as e:
+            self._log(f"🔴 文件写入失败: {url} {file_path} {str(e)}")
+            return False
+
+    async def _download_whole_file(
+        self,
+        url: str,
+        file_path: Path,
+        *,
+        use_proxy: bool,
+        expected_size: int | None = None,
+    ) -> bool:
+        content, error = await self.get_content(url, use_proxy=use_proxy)
+        if not content:
+            self._log(f"🔴 下载失败: {url} {error}")
+            return False
+        if expected_size is not None and len(content) != expected_size:
+            self._log(f"🔴 下载大小不匹配: {url} {len(content)}/{expected_size}")
+            return False
+        return await self._write_file_content(url, file_path, content)
 
     async def _download_chunks(self, url: str, file_path: Path, file_size: int, use_proxy: bool = True) -> bool:
         """分块下载大文件"""
@@ -1270,9 +1482,18 @@ class AsyncWebClient:
 
         # 创建下载任务
         semaphore = asyncio.Semaphore(10)  # 限制并发数
+        first_start, first_end = parts[0]
+        first_error = await self._download_chunk(semaphore, url, file_path, first_start, first_end, 0, use_proxy)
+        if first_error:
+            if self._is_range_unsupported_error(first_error):
+                self._log(f"🟡 服务器不支持分块下载，回退普通下载: {url}")
+                return await self._download_whole_file(url, file_path, use_proxy=use_proxy, expected_size=file_size)
+            self._log(f"🔴 分块 0 下载失败: {url} {first_error}")
+            return False
+
         tasks = []
 
-        for i, (start, end) in enumerate(parts):
+        for i, (start, end) in enumerate(parts[1:], start=1):
             task = self._download_chunk(semaphore, url, file_path, start, end, i, use_proxy)
             tasks.append(task)
 
@@ -1293,6 +1514,9 @@ class AsyncWebClient:
             self._log(f"🔴 并发下载异常: {url} {str(e)}")
             return False
 
+    def _is_range_unsupported_error(self, error: str) -> bool:
+        return "分块响应状态异常: HTTP 200" in str(error or "")
+
     async def _download_chunk(
         self,
         semaphore: asyncio.Semaphore,
@@ -1304,23 +1528,52 @@ class AsyncWebClient:
         use_proxy: bool = True,
     ) -> str | None:
         """下载单个分块"""
-        async with semaphore:
-            res, error = await self.request(
-                "GET",
-                url,
-                headers={"Range": f"bytes={start}-{end}"},
-                use_proxy=use_proxy,
-                stream=True,
-            )
-            if res is None:
-                return error
-            try:
-                content = await res.acontent()
-            finally:
-                await self._close_response(res)
+        retry_count = max(int(self.retry), 1)
+        last_error = ""
+        for attempt in range(retry_count):
+            async with semaphore:
+                success, last_error = await self._download_chunk_once(url, file_path, start, end, use_proxy)
+                if success:
+                    return ""
 
-        # 写入文件
-        async with aiofiles.open(file_path, "rb+") as fp:
-            await fp.seek(start)
-            await fp.write(content)
-        return ""
+            if attempt < retry_count - 1:
+                await asyncio.sleep(self._calc_retry_sleep_seconds(attempt))
+
+        return last_error
+
+    async def _download_chunk_once(
+        self,
+        url: str,
+        file_path: Path,
+        start: int,
+        end: int,
+        use_proxy: bool,
+    ) -> tuple[bool, str]:
+        expected_size = end - start + 1
+        res, error = await self.request(
+            "GET",
+            url,
+            headers={"Range": f"bytes={start}-{end}"},
+            use_proxy=use_proxy,
+            stream=True,
+            retry_count=1,
+        )
+        if res is None:
+            return False, error
+        try:
+            if res.status_code != 206:
+                return False, f"分块响应状态异常: HTTP {res.status_code}"
+            content = await res.acontent()
+            if len(content) != expected_size:
+                return False, f"分块大小不匹配: {len(content)}/{expected_size}"
+            async with aiofiles.open(file_path, "rb+") as fp:
+                await fp.seek(start)
+                await fp.write(content)
+            return True, ""
+        except Exception as exc:
+            error = f"读取分块响应失败: {exc}"
+            pool_key = HostPoolManager.key_for_url(url, self.proxy if use_proxy else None)
+            await self._record_transport_failure(error, pool_key=pool_key)
+            return False, error
+        finally:
+            await self._close_response(res)
