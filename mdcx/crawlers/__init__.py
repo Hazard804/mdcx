@@ -1,7 +1,6 @@
 from ..config.models import Website
 from . import (
     avbase_new,
-    avsex,
     avsox,
     cableav,
     cnmdb,
@@ -14,7 +13,6 @@ from . import (
     javday,
     javdbapi,
     kin8,
-    love6,
     lulubar,
     madouqu,
     mdtv,
@@ -25,7 +23,6 @@ from . import (
 )
 from .airav_cc import AiravCcCrawler
 from .avbase_new import AvbaseCrawler
-from .avsex import AvsexCrawler
 from .avsox import AvsoxCrawler
 from .base import get_crawler, get_registered_crawler_sites, register_crawler
 from .cableav import CableavCrawler
@@ -51,7 +48,6 @@ from .javday import JavdayCrawler
 from .javdb_new import JavdbCrawler
 from .javlibrary import JavlibraryCrawler
 from .kin8 import Kin8Crawler
-from .love6 import Love6Crawler
 from .lulubar import LulubarCrawler
 from .madouqu import MadouquCrawler
 from .mdtv import MdtvCrawler
@@ -79,11 +75,9 @@ register_crawler(AvsoxCrawler)
 register_crawler(CnmdbCrawler)
 register_crawler(HscangkuCrawler)
 register_crawler(Kin8Crawler)
-register_crawler(Love6Crawler)
 register_crawler(LulubarCrawler)
 register_crawler(XcityCrawler)
 register_crawler(GigaCrawler)
-register_crawler(AvsexCrawler)
 register_crawler(MdtvCrawler)
 register_crawler(MgstageCrawler)
 register_crawler(JavdayCrawler)

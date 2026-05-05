@@ -4,7 +4,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote_plus, urljoin
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from mdcx.web_async import AsyncWebClient
 
 
-class NetworkCheckStatus(str, Enum):
+class NetworkCheckStatus(StrEnum):
     OK = "ok"
     WARNING = "warning"
     FAILED = "failed"
