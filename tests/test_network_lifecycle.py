@@ -308,6 +308,44 @@ async def test_chunk_download_falls_back_to_whole_file_when_range_unsupported(
 
 
 @pytest.mark.asyncio
+async def test_chunk_download_uses_closed_range_boundaries(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    client = AsyncWebClient(timeout=1, retry=1)
+    target = tmp_path / "video.bin"
+    calls = []
+    chunk_size = 4 * 1024**2
+
+    async def fake_download_chunk(semaphore, url, file_path, start, end, chunk_id, use_proxy=True):
+        calls.append((start, end, chunk_id))
+        return ""
+
+    monkeypatch.setattr(client, "_download_chunk", fake_download_chunk)
+
+    assert await client._download_chunks("https://example.test/video.mp4", target, chunk_size + 3) is True
+
+    assert calls == [(0, chunk_size - 1, 0), (chunk_size, chunk_size + 2, 1)]
+
+
+@pytest.mark.asyncio
+async def test_chunk_download_keeps_target_untouched_until_success(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    client = AsyncWebClient(timeout=1, retry=1)
+    target = tmp_path / "video.bin"
+    target.write_bytes(b"old")
+
+    async def fake_download_chunk(semaphore, url, file_path, start, end, chunk_id, use_proxy=True):
+        async with aiofiles.open(file_path, "rb+") as fp:
+            await fp.seek(start)
+            await fp.write(b"abc")
+        return ""
+
+    monkeypatch.setattr(client, "_download_chunk", fake_download_chunk)
+
+    assert await client._download_chunks("https://example.test/video.mp4", target, 3) is True
+
+    assert target.read_bytes() == b"abc"
+    assert not target.with_name(f"{target.name}.part").exists()
+
+
+@pytest.mark.asyncio
 async def test_chunk_rejects_size_mismatch(monkeypatch: pytest.MonkeyPatch, tmp_path):
     client = AsyncWebClient(timeout=1, retry=1)
 

@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import os
 import random
 import re
 import sys
@@ -12,6 +13,7 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import aiofiles
+import aiofiles.os
 import httpx
 from aiolimiter import AsyncLimiter
 from curl_cffi import AsyncSession, Response
@@ -1465,54 +1467,64 @@ class AsyncWebClient:
 
     async def _download_chunks(self, url: str, file_path: Path, file_size: int, use_proxy: bool = True) -> bool:
         """分块下载大文件"""
-        # 分块，每块 1 MB
         MB = 1024**2
-        each_size = min(1 * MB, file_size)
-        parts = [(s, min(s + each_size, file_size)) for s in range(0, file_size, each_size)]
+        # Range 的 end 为闭区间，最后一块最大只能到 file_size - 1。
+        each_size = min(4 * MB, file_size)
+        parts = [(s, min(s + each_size - 1, file_size - 1)) for s in range(0, file_size, each_size)]
+        part_file_path = file_path.with_name(f"{file_path.name}.part")
 
         self._log(f"📦 分块下载: {url} {len(parts)} 个分块, 总大小: {file_size} bytes")
 
-        # 先创建文件并预分配空间
+        # 先写入临时分块文件，全部成功后再替换目标文件，避免留下不可播放的成品文件。
         try:
-            async with aiofiles.open(file_path, "wb") as f:
+            async with aiofiles.open(part_file_path, "wb") as f:
                 await f.truncate(file_size)
         except Exception as e:
             self._log(f"🔴 文件创建失败: {url} {str(e)}")
             return False
 
-        # 创建下载任务
-        semaphore = asyncio.Semaphore(10)  # 限制并发数
-        first_start, first_end = parts[0]
-        first_error = await self._download_chunk(semaphore, url, file_path, first_start, first_end, 0, use_proxy)
-        if first_error:
-            if self._is_range_unsupported_error(first_error):
-                self._log(f"🟡 服务器不支持分块下载，回退普通下载: {url}")
-                return await self._download_whole_file(url, file_path, use_proxy=use_proxy, expected_size=file_size)
-            self._log(f"🔴 分块 0 下载失败: {url} {first_error}")
-            return False
-
-        tasks = []
-
-        for i, (start, end) in enumerate(parts[1:], start=1):
-            task = self._download_chunk(semaphore, url, file_path, start, end, i, use_proxy)
-            tasks.append(task)
-
-        # 并发执行所有下载任务
         try:
+            # 创建下载任务
+            semaphore = asyncio.Semaphore(6)  # 限制并发数
+            first_start, first_end = parts[0]
+            first_error = await self._download_chunk(
+                semaphore, url, part_file_path, first_start, first_end, 0, use_proxy
+            )
+            if first_error:
+                if self._is_range_unsupported_error(first_error):
+                    self._log(f"🟡 服务器不支持分块下载，回退普通下载: {url}")
+                    with contextlib.suppress(Exception):
+                        await aiofiles.os.remove(part_file_path)
+                    return await self._download_whole_file(url, file_path, use_proxy=use_proxy, expected_size=file_size)
+                self._log(f"🔴 分块 0 下载失败: {url} {first_error}")
+                return False
+
+            tasks = []
+
+            for i, (start, end) in enumerate(parts[1:], start=1):
+                task = self._download_chunk(semaphore, url, part_file_path, start, end, i, use_proxy)
+                tasks.append(task)
+
+            # 并发执行所有下载任务
             errors = await asyncio.gather(*tasks, return_exceptions=True)
             # 检查所有任务是否成功
-            for i, err in enumerate(errors):
+            for i, err in enumerate(errors, start=1):
                 if isinstance(err, Exception):
                     self._log(f"🔴 分块 {i} 下载失败: {url} {str(err)}")
                     return False
                 elif err:
                     self._log(f"🔴 分块 {i} 下载失败: {url} {err}")
                     return False
+            await asyncio.to_thread(os.replace, part_file_path, file_path)
             self._log(f"✅ 多分块下载完成: {url} {file_path}")
             return True
         except Exception as e:
             self._log(f"🔴 并发下载异常: {url} {str(e)}")
             return False
+        finally:
+            if await aiofiles.os.path.exists(part_file_path):
+                with contextlib.suppress(Exception):
+                    await aiofiles.os.remove(part_file_path)
 
     def _is_range_unsupported_error(self, error: str) -> bool:
         return "分块响应状态异常: HTTP 200" in str(error or "")
@@ -1563,7 +1575,7 @@ class AsyncWebClient:
         try:
             if res.status_code != 206:
                 return False, f"分块响应状态异常: HTTP {res.status_code}"
-            content = await res.acontent()
+            content = await asyncio.wait_for(res.acontent(), timeout=self._request_timeout_seconds(None))
             if len(content) != expected_size:
                 return False, f"分块大小不匹配: {len(content)}/{expected_size}"
             async with aiofiles.open(file_path, "rb+") as fp:
