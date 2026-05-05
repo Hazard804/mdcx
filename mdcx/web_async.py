@@ -48,30 +48,54 @@ class HostConnectionPool:
         key: str,
         session_factory: Callable[[], AsyncSession],
         log_fn: Callable[[str], None],
+        max_clients: int,
     ):
         self.key = key
         self._session_factory = session_factory
         self._log = log_fn
+        self._request_slots = asyncio.BoundedSemaphore(max(int(max_clients), 1))
         self.session = self._session_factory()
         self._sessions: dict[int, AsyncSession] = {0: self.session}
         self._active_by_generation: dict[int, int] = {}
         self._retired_generations: set[int] = set()
+        self._waiting_requests = 0
         self._session_lock = asyncio.Lock()
         self._closed = False
         self._generation = 0
         self.last_used_at = time.monotonic()
 
     async def begin_request(self) -> tuple[AsyncSession, int]:
-        sessions_to_close: list[AsyncSession] = []
+        waiting_registered = False
+        slot_acquired = False
         async with self._session_lock:
             if self._closed:
                 raise RuntimeError("网络连接池已关闭")
-            generation = self._generation
-            self._active_by_generation[generation] = self._active_by_generation.get(generation, 0) + 1
-            self.last_used_at = time.monotonic()
-            session = self.session
-        await self._close_sessions(sessions_to_close)
-        return session, generation
+            self._waiting_requests += 1
+            waiting_registered = True
+
+        try:
+            await self._request_slots.acquire()
+            slot_acquired = True
+
+            async with self._session_lock:
+                if waiting_registered:
+                    self._waiting_requests -= 1
+                    waiting_registered = False
+                if self._closed:
+                    raise RuntimeError("网络连接池已关闭")
+                generation = self._generation
+                self._active_by_generation[generation] = self._active_by_generation.get(generation, 0) + 1
+                self.last_used_at = time.monotonic()
+                session = self.session
+            return session, generation
+        except BaseException:
+            if slot_acquired:
+                self._request_slots.release()
+            if waiting_registered:
+                async with self._session_lock:
+                    self._waiting_requests = max(self._waiting_requests - 1, 0)
+                    self.last_used_at = time.monotonic()
+            raise
 
     async def end_request(self, generation: int) -> None:
         sessions_to_close: list[AsyncSession] = []
@@ -87,11 +111,12 @@ class HostConnectionPool:
             else:
                 self._active_by_generation[generation] = current_count - 1
             self.last_used_at = time.monotonic()
+        self._request_slots.release()
         await self._close_sessions(sessions_to_close)
 
     async def is_idle(self) -> bool:
         async with self._session_lock:
-            return not self._active_by_generation
+            return not self._active_by_generation and self._waiting_requests == 0
 
     async def reset(self, reason: str) -> None:
         if self._closed:
@@ -147,10 +172,12 @@ class HostPoolManager:
         *,
         session_factory: Callable[[], AsyncSession],
         log_fn: Callable[[str], None],
+        max_clients: int,
         idle_ttl: float = 600.0,
     ):
         self._session_factory = session_factory
         self._log = log_fn
+        self._max_clients = max(int(max_clients), 1)
         self._idle_ttl = idle_ttl
         self._pools: dict[str, HostConnectionPool] = {}
         self._lock = asyncio.Lock()
@@ -176,7 +203,12 @@ class HostPoolManager:
             await self._cleanup_idle_locked()
             pool = self._pools.get(key)
             if pool is None:
-                pool = HostConnectionPool(key=key, session_factory=self._session_factory, log_fn=self._log)
+                pool = HostConnectionPool(
+                    key=key,
+                    session_factory=self._session_factory,
+                    log_fn=self._log,
+                    max_clients=self._max_clients,
+                )
                 self._pools[key] = pool
             return pool
 
@@ -239,7 +271,7 @@ class AsyncWebClient:
         self.proxy = proxy
         self.timeout = timeout
         self.loop = loop
-        self.max_clients = 50
+        self.max_clients = 100
         self._session_kwargs = {
             "loop": loop,
             "max_clients": self.max_clients,
@@ -254,7 +286,11 @@ class AsyncWebClient:
 
         self.log_fn = log_fn if log_fn is not None else lambda _: None
         self.limiters = limiters if limiters is not None else AsyncWebLimiters()
-        self._pool_manager = HostPoolManager(session_factory=self._new_curl_session, log_fn=self._log)
+        self._pool_manager = HostPoolManager(
+            session_factory=self._new_curl_session,
+            log_fn=self._log,
+            max_clients=self.max_clients,
+        )
 
         self.cf_bypass_url = cf_bypass_url.strip().rstrip("/")
         self.cf_bypass_proxy = (cf_bypass_proxy or "").strip()

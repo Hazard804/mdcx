@@ -191,6 +191,61 @@ async def test_transport_error_retry_uses_rotated_host_pool(monkeypatch: pytest.
 
 
 @pytest.mark.asyncio
+async def test_pool_slot_wait_is_not_counted_by_request_watchdog(monkeypatch: pytest.MonkeyPatch):
+    client = AsyncWebClient(timeout=1, retry=1)
+    client._pool_manager._max_clients = 1
+    monkeypatch.setattr(client, "_request_timeout_seconds", lambda timeout: 0.05)
+    monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
+
+    fake_session = _FakeSession()
+    client._pool_manager._session_factory = lambda: fake_session  # type: ignore[assignment]
+
+    first_response, first_error = await client.request("GET", "https://example.test/hold.jpg", stream=True)
+
+    assert first_error == ""
+    assert first_response is not None
+    assert len(fake_session.requests) == 1
+
+    second_task = asyncio.create_task(client.request("GET", "https://example.test/next.jpg"))
+    await asyncio.sleep(0.1)
+
+    assert not second_task.done()
+    assert len(fake_session.requests) == 1
+
+    await first_response.aclose()
+    second_response, second_error = await asyncio.wait_for(second_task, timeout=1)
+
+    assert second_error == ""
+    assert second_response is not None
+    assert len(fake_session.requests) == 2
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_request_watchdog_still_applies_after_pool_slot_is_acquired(monkeypatch: pytest.MonkeyPatch):
+    client = AsyncWebClient(timeout=1, retry=1)
+    client._pool_manager._max_clients = 1
+    monkeypatch.setattr(client, "_request_timeout_seconds", lambda timeout: 0.05)
+    monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
+
+    class HangingSession(_FakeSession):
+        async def request(self, **kwargs):
+            self.requests.append(kwargs)
+            await asyncio.Event().wait()
+            return _FakeResponse()
+
+    fake_session = HangingSession()
+    client._pool_manager._session_factory = lambda: fake_session  # type: ignore[assignment]
+
+    response, error = await client.request("GET", "https://example.test/hang.jpg")
+
+    assert response is None
+    assert "请求等待超时" in error
+    assert len(fake_session.requests) == 1
+    await client.close()
+
+
+@pytest.mark.asyncio
 async def test_chunk_read_error_retries_same_range(monkeypatch: pytest.MonkeyPatch, tmp_path):
     client = AsyncWebClient(timeout=1, retry=2)
     monkeypatch.setattr(client, "_calc_retry_sleep_seconds", lambda attempt: 0)
