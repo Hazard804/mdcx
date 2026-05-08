@@ -13,11 +13,12 @@ def get_text_sync(
     encoding: str = "utf-8",
 ):
     try:
-        return executor.run(
-            manager.computed.async_client.get_text(
-                url, headers=headers, cookies=cookies, encoding=encoding, use_proxy=use_proxy
+        with manager.acquire_computed() as computed:
+            return executor.run(
+                computed.async_client.get_text(
+                    url, headers=headers, cookies=cookies, encoding=encoding, use_proxy=use_proxy
+                )
             )
-        )
     except CancelledError:
         return None, "任务已取消"
 
@@ -30,8 +31,9 @@ def get_json_sync(
     use_proxy=True,
 ):
     try:
-        return executor.run(
-            manager.computed.async_client.get_json(url, headers=headers, cookies=cookies, use_proxy=use_proxy)
-        )
+        with manager.acquire_computed() as computed:
+            return executor.run(
+                computed.async_client.get_json(url, headers=headers, cookies=cookies, use_proxy=use_proxy)
+            )
     except CancelledError:
         return None, "任务已取消"

@@ -59,7 +59,8 @@ async def _get_actor_detail(actor: dict) -> tuple[dict | None, str]:
 
     _, actor_person, _, _, _, _ = _generate_server_url(actor)
     headers = _build_jellyfin_headers() if _is_jellyfin_server() else None
-    return await manager.computed.async_client.get_json(actor_person, headers=headers, use_proxy=False)
+    async with manager.acquire_computed() as computed:
+        return await computed.async_client.get_json(actor_person, headers=headers, use_proxy=False)
 
 
 async def update_emby_actor_photo() -> None:
@@ -115,7 +116,8 @@ async def _get_emby_actor_list() -> list[dict]:
         signal.show_log_text("================================================================================")
         return []
 
-    response, error = await manager.computed.async_client.get_json(url, headers=headers, use_proxy=False)
+    async with manager.acquire_computed() as computed:
+        response, error = await computed.async_client.get_json(url, headers=headers, use_proxy=False)
     _raise_if_stop_requested()
     if response is None:
         signal.show_log_text(f"🔴 {server_name} 连接失败！请检查 {server_name} 地址 和 API 密钥是否正确填写！ {error}")
@@ -137,9 +139,8 @@ async def _upload_actor_photo(url: str, pic_path: Path) -> tuple[bool, str]:
         header = {"Content-Type": "image/jpeg" if pic_path.suffix in (".jpg", ".jpeg") else "image/png"}
         if _is_jellyfin_server():
             header = _build_jellyfin_headers(header)
-        r, err = await manager.computed.async_client.post_content(
-            url=url, data=content, headers=header, use_proxy=False
-        )
+        async with manager.acquire_computed() as computed:
+            r, err = await computed.async_client.post_content(url=url, data=content, headers=header, use_proxy=False)
         return r is not None, err
     except Exception as e:
         signal.show_log_text(traceback.format_exc())
@@ -182,7 +183,8 @@ async def _get_gfriends_actor_data() -> dict[str, str] | Literal[False] | None:
         update_data = False
         signal.show_log_text("⏳ 连接 Gfriends 网络头像库...")
         net_url = f"{gfriends_github}/commits/master/Filetree.json"
-        response, error = await manager.computed.async_client.get_text(net_url)
+        async with manager.acquire_computed() as computed:
+            response, error = await computed.async_client.get_text(net_url)
         _raise_if_stop_requested()
         if response is None:
             signal.show_log_text("🔴 Gfriends 查询最新数据更新时间失败！")
@@ -228,7 +230,8 @@ async def _get_gfriends_actor_data() -> dict[str, str] | Literal[False] | None:
         if update_data:
             signal.show_log_text("⏳ 开始缓存 Gfriends 最新数据表...")
             filetree_url = f"{raw_url}/master/Filetree.json"
-            response, error = await manager.computed.async_client.get_content(filetree_url)
+            async with manager.acquire_computed() as computed:
+                response, error = await computed.async_client.get_content(filetree_url)
             _raise_if_stop_requested()
             if response is None:
                 signal.show_log_text("🔴 Gfriends 数据表获取失败！补全已停止！")
@@ -314,7 +317,8 @@ async def _get_graphis_pic(actor_name: str) -> tuple[Path | None, Path | None, s
         return pic_path, backdrop_path, ""
 
     # 请求图片
-    res, error = await manager.computed.async_client.get_text(url)
+    async with manager.acquire_computed() as computed:
+        res, error = await computed.async_client.get_text(url)
     _raise_if_stop_requested()
     if res is None:
         logs += f"🔴 graphis.ne.jp 请求失败！\n{error}"
@@ -442,7 +446,8 @@ async def _update_emby_actor_photo_execute(actor_list: list[dict], gfriends_acto
         if actor_backdrop_imagetages:
             for _ in range(len(actor_backdrop_imagetages)):
                 headers = _build_jellyfin_headers() if _is_jellyfin_server() else None
-                await manager.computed.async_client.request("DELETE", backdrop_url_0, headers=headers, use_proxy=False)
+                async with manager.acquire_computed() as computed:
+                    await computed.async_client.request("DELETE", backdrop_url_0, headers=headers, use_proxy=False)
 
         # 头像和背景分别上传，避免头像成功时背景被跳过。
         pic_ok, pic_err = await _upload_actor_photo(pic_url, pic_path)

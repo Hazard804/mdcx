@@ -175,9 +175,10 @@ async def _process_actor_async(actor: dict, emby_on: list[EmbyAction]) -> tuple[
         summary = "\n    " + "\n".join(logs) if logs else ""
         if db_exist or wiki_found:
             headers = _build_jellyfin_headers() if _is_jellyfin_server() else None
-            res, error = await manager.computed.async_client.post_text(
-                update_url, json_data=actor_info.dump(), headers=headers, use_proxy=False
-            )
+            async with manager.acquire_computed() as computed:
+                res, error = await computed.async_client.post_text(
+                    update_url, json_data=actor_info.dump(), headers=headers, use_proxy=False
+                )
             _raise_if_stop_requested()
             if res is not None:
                 return (

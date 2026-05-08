@@ -251,53 +251,55 @@ async def _validate_dmm_image_url(url: str, length: bool = False, real_url: bool
     max_retries = max(int(manager.config.retry), 1)
     last_error = ""
 
-    for retry_attempt in range(max_retries):
-        try:
-            response, error = await manager.computed.async_client.request("GET", request_url, retry_count=1)
-            if response is None:
-                last_error = error
-                if retry_attempt < max_retries - 1 and _should_retry_link_error(error):
-                    signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {error}")
+    async with manager.acquire_computed() as computed:
+        client = computed.async_client
+        for retry_attempt in range(max_retries):
+            try:
+                response, error = await client.request("GET", request_url, retry_count=1)
+                if response is None:
+                    last_error = error
+                    if retry_attempt < max_retries - 1 and _should_retry_link_error(error):
+                        signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {error}")
+                        await asyncio.sleep(0.6 * (retry_attempt + 1))
+                        continue
+                    signal.add_log(f"🔴 检测链接失败: {error}")
+                    return
+
+                true_url = normalize_media_url(str(response.url), strip_dmm_probe_params=added_probe)
+                if real_url:
+                    return true_url
+
+                if "login" in true_url:
+                    signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
+                    return
+
+                if _is_invalid_image_redirect_url(true_url):
+                    signal.add_log(f"🔴 检测链接失败: 图片已被网站删除 {true_url}")
+                    return
+
+                if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                    signal.add_log(f"✅ 检测链接通过: 返回大小({content_length}) {true_url}")
+                    return content_length if length else true_url
+
+                if response.content and len(response.content) > 0:
+                    signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
+                    return len(response.content) if length else true_url
+
+                last_error = f"未返回大小且预下载失败 {true_url}"
+                if retry_attempt < max_retries - 1:
+                    signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {last_error}")
                     await asyncio.sleep(0.6 * (retry_attempt + 1))
                     continue
-                signal.add_log(f"🔴 检测链接失败: {error}")
+                signal.add_log(f"🔴 检测链接失败: {last_error}")
                 return
-
-            true_url = normalize_media_url(str(response.url), strip_dmm_probe_params=added_probe)
-            if real_url:
-                return true_url
-
-            if "login" in true_url:
-                signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
+            except Exception as e:
+                last_error = str(e)
+                if retry_attempt < max_retries - 1:
+                    signal.add_log(f"🟡 检测链接异常，正在重试 ({retry_attempt + 1}/{max_retries}): {e}")
+                    await asyncio.sleep(0.6 * (retry_attempt + 1))
+                    continue
+                signal.add_log(f"🔴 检测链接失败: 未知异常 {e} {normalized}")
                 return
-
-            if _is_invalid_image_redirect_url(true_url):
-                signal.add_log(f"🔴 检测链接失败: 图片已被网站删除 {true_url}")
-                return
-
-            if content_length := _parse_content_length(response.headers.get("Content-Length")):
-                signal.add_log(f"✅ 检测链接通过: 返回大小({content_length}) {true_url}")
-                return content_length if length else true_url
-
-            if response.content and len(response.content) > 0:
-                signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
-                return len(response.content) if length else true_url
-
-            last_error = f"未返回大小且预下载失败 {true_url}"
-            if retry_attempt < max_retries - 1:
-                signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {last_error}")
-                await asyncio.sleep(0.6 * (retry_attempt + 1))
-                continue
-            signal.add_log(f"🔴 检测链接失败: {last_error}")
-            return
-        except Exception as e:
-            last_error = str(e)
-            if retry_attempt < max_retries - 1:
-                signal.add_log(f"🟡 检测链接异常，正在重试 ({retry_attempt + 1}/{max_retries}): {e}")
-                await asyncio.sleep(0.6 * (retry_attempt + 1))
-                continue
-            signal.add_log(f"🔴 检测链接失败: 未知异常 {e} {normalized}")
-            return
 
     if last_error:
         signal.add_log(f"🔴 检测链接失败: {last_error}")
@@ -311,18 +313,50 @@ async def get_url_content_length(url: str) -> int | None:
 
     retry_delays = [0.5, 1.0, 1.5]
 
-    if is_dmm_image_url(normalized):
+    async with manager.acquire_computed() as computed:
+        client = computed.async_client
+        if is_dmm_image_url(normalized):
+            for attempt, delay in enumerate(retry_delays, start=1):
+                response, error = await client.request("GET", normalized, retry_count=1)
+                if response is None:
+                    if not _should_retry_link_error(error) or attempt == len(retry_delays):
+                        return None
+                    await asyncio.sleep(delay)
+                    continue
+
+                true_url = normalize_media_url(str(response.url))
+                if _is_invalid_image_redirect_url(true_url):
+                    return None
+
+                if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                    return content_length
+                if response.content and len(response.content) > 0:
+                    return len(response.content)
+
+                if attempt < len(retry_delays):
+                    await asyncio.sleep(delay)
+            return None
+
         for attempt, delay in enumerate(retry_delays, start=1):
-            response, error = await manager.computed.async_client.request("GET", normalized, retry_count=1)
+            response, error = await client.request("HEAD", normalized, retry_count=1)
+            if response is not None:
+                if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                    return content_length
+            elif "HTTP 405" in str(error):
+                break
+            elif not _should_retry_link_error(error) or attempt == len(retry_delays):
+                return None
+
+            if attempt < len(retry_delays):
+                await asyncio.sleep(delay)
+
+        for attempt, delay in enumerate(retry_delays, start=1):
+            response, error = await client.request("GET", normalized, retry_count=1)
             if response is None:
                 if not _should_retry_link_error(error) or attempt == len(retry_delays):
                     return None
                 await asyncio.sleep(delay)
                 continue
-
-            true_url = normalize_media_url(str(response.url))
-            if _is_invalid_image_redirect_url(true_url):
-                return None
 
             if content_length := _parse_content_length(response.headers.get("Content-Length")):
                 return content_length
@@ -331,36 +365,6 @@ async def get_url_content_length(url: str) -> int | None:
 
             if attempt < len(retry_delays):
                 await asyncio.sleep(delay)
-        return None
-
-    for attempt, delay in enumerate(retry_delays, start=1):
-        response, error = await manager.computed.async_client.request("HEAD", normalized, retry_count=1)
-        if response is not None:
-            if content_length := _parse_content_length(response.headers.get("Content-Length")):
-                return content_length
-        elif "HTTP 405" in str(error):
-            break
-        elif not _should_retry_link_error(error) or attempt == len(retry_delays):
-            return None
-
-        if attempt < len(retry_delays):
-            await asyncio.sleep(delay)
-
-    for attempt, delay in enumerate(retry_delays, start=1):
-        response, error = await manager.computed.async_client.request("GET", normalized, retry_count=1)
-        if response is None:
-            if not _should_retry_link_error(error) or attempt == len(retry_delays):
-                return None
-            await asyncio.sleep(delay)
-            continue
-
-        if content_length := _parse_content_length(response.headers.get("Content-Length")):
-            return content_length
-        if response.content and len(response.content) > 0:
-            return len(response.content)
-
-        if attempt < len(retry_delays):
-            await asyncio.sleep(delay)
     return None
 
 
@@ -390,74 +394,77 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
 
     max_retries = 1
 
-    for retry_attempt in range(max_retries):
-        try:
-            response, error = await manager.computed.async_client.request("HEAD", normalized_url)
+    async with manager.acquire_computed() as computed:
+        client = computed.async_client
+        for retry_attempt in range(max_retries):
+            try:
+                response, error = await client.request("HEAD", normalized_url)
 
-            # 处理请求失败的情况
-            if response is None:
+                # 处理请求失败的情况
+                if response is None:
+                    if retry_attempt < max_retries - 1:
+                        signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {error}")
+                        await asyncio.sleep(1 + retry_attempt)  # 指数退避
+                        continue
+                    else:
+                        signal.add_log(f"🔴 检测链接失败: {error}")
+                        return
+
+                # 不输出获取 dmm预览视频(trailer) 最高分辨率的测试结果到日志中
+                if response.status_code == 404 and "_w.mp4" in url:
+                    return
+
+                # 返回重定向的url
+                true_url = normalize_media_url(str(response.url))
+                if real_url:
+                    return true_url
+
+                # 检查是否需要登录
+                if "login" in true_url:
+                    signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
+                    return
+
+                # 检查是否带有图片不存在的关键词
+                bad_url_keys = ["now_printing", "nowprinting", "noimage", "nopic", "media_violation"]
+                for each_key in bad_url_keys:
+                    if each_key in true_url:
+                        signal.add_log(f"🔴 检测链接失败: 图片已被网站删除 {url}")
+                        return
+
+                # 获取文件大小
+                content_length = response.headers.get("Content-Length")
+                if not content_length:
+                    # 如果没有获取到文件大小，尝试下载数据
+                    content, error = await client.get_content(true_url)
+
+                    if content is not None and len(content) > 0:
+                        signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
+                        return 10240 if length else true_url
+                    else:
+                        signal.add_log(f"🔴 检测链接失败: 未返回大小且预下载失败 {true_url}")
+                        return
+                # 如果返回内容的文件大小 < 8k，视为不可用
+                elif int(content_length) < 8192:
+                    signal.add_log(f"🔴 检测链接失败: 返回大小({content_length}) < 8k {true_url}")
+                    return
+
+                signal.add_log(f"✅ 检测链接通过: 返回大小({content_length}) {true_url}")
+                return int(content_length) if length else true_url
+
+            except Exception as e:
                 if retry_attempt < max_retries - 1:
-                    signal.add_log(f"🟡 检测链接失败，正在重试 ({retry_attempt + 1}/{max_retries}): {error}")
-                    await asyncio.sleep(1 + retry_attempt)  # 指数退避
+                    signal.add_log(f"🟡 检测链接异常，正在重试 ({retry_attempt + 1}/{max_retries}): {e}")
+                    await asyncio.sleep(1 + retry_attempt)
                     continue
                 else:
-                    signal.add_log(f"🔴 检测链接失败: {error}")
+                    signal.add_log(f"🔴 检测链接失败: 未知异常 {e} {url}")
                     return
-
-            # 不输出获取 dmm预览视频(trailer) 最高分辨率的测试结果到日志中
-            if response.status_code == 404 and "_w.mp4" in url:
-                return
-
-            # 返回重定向的url
-            true_url = normalize_media_url(str(response.url))
-            if real_url:
-                return true_url
-
-            # 检查是否需要登录
-            if "login" in true_url:
-                signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
-                return
-
-            # 检查是否带有图片不存在的关键词
-            bad_url_keys = ["now_printing", "nowprinting", "noimage", "nopic", "media_violation"]
-            for each_key in bad_url_keys:
-                if each_key in true_url:
-                    signal.add_log(f"🔴 检测链接失败: 图片已被网站删除 {url}")
-                    return
-
-            # 获取文件大小
-            content_length = response.headers.get("Content-Length")
-            if not content_length:
-                # 如果没有获取到文件大小，尝试下载数据
-                content, error = await manager.computed.async_client.get_content(true_url)
-
-                if content is not None and len(content) > 0:
-                    signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
-                    return 10240 if length else true_url
-                else:
-                    signal.add_log(f"🔴 检测链接失败: 未返回大小且预下载失败 {true_url}")
-                    return
-            # 如果返回内容的文件大小 < 8k，视为不可用
-            elif int(content_length) < 8192:
-                signal.add_log(f"🔴 检测链接失败: 返回大小({content_length}) < 8k {true_url}")
-                return
-
-            signal.add_log(f"✅ 检测链接通过: 返回大小({content_length}) {true_url}")
-            return int(content_length) if length else true_url
-
-        except Exception as e:
-            if retry_attempt < max_retries - 1:
-                signal.add_log(f"🟡 检测链接异常，正在重试 ({retry_attempt + 1}/{max_retries}): {e}")
-                await asyncio.sleep(1 + retry_attempt)
-                continue
-            else:
-                signal.add_log(f"🔴 检测链接失败: 未知异常 {e} {url}")
-                return
 
 
 async def get_avsox_domain() -> str:
     issue_url = "https://tellme.pw/avsox"
-    response, error = await manager.computed.async_client.get_text(issue_url)
+    async with manager.acquire_computed() as computed:
+        response, error = await computed.async_client.get_text(issue_url)
     domain = "https://avsox.click"
     if response is not None:
         res = re.findall(r'(https://[^"]+)', response)
@@ -486,9 +493,7 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
 
     async def _request_with_amazon_throttle(request_headers: dict[str, str]) -> tuple[str | None, str]:
         waited = await _amazon_request_throttle.wait_turn()
-        html_info, error = await manager.computed.async_client.get_text(
-            req_url, headers=request_headers, encoding="utf-8"
-        )
+        html_info, error = await client.get_text(req_url, headers=request_headers, encoding="utf-8")
         throttled = _is_amazon_rate_limited(html_info, error)
         cooldown, penalty_level, escalated = await _amazon_request_throttle.register_result(throttled=throttled)
         if throttled:
@@ -500,66 +505,70 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
             signal.add_log(f"🟡 Amazon 请求自适应等待 {waited:.2f}s {req_url}")
         return html_info, error
 
-    headers = {
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Host": "www.amazon.co.jp",
-    }
-    html_info, error = await _request_with_amazon_throttle(headers)
-    if html_info is None:
-        html_info, error = await _request_with_amazon_throttle(headers)
-    if html_info is None:
-        session_id = ""
-        ubid_acbjp = ""
-        if x := re.findall(r'sessionId: "([^"]+)', html_info or ""):
-            session_id = x[0]
-        if x := re.findall(r"ubid-acbjp=([^ ]+)", html_info or ""):
-            ubid_acbjp = x[0]
-        headers_o = {
-            "cookie": f"session-id={session_id}; ubid_acbjp={ubid_acbjp}",
-        }
-        headers.update(headers_o)
-        html_info, error = await _request_with_amazon_throttle(headers)
-    if html_info is None:
-        return False, error
-    if "HTTP 503" in html_info:
+    async with manager.acquire_computed() as computed:
+        client = computed.async_client
         headers = {
+            "accept-encoding": "gzip, deflate, br",
             "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
             "Host": "www.amazon.co.jp",
         }
         html_info, error = await _request_with_amazon_throttle(headers)
-    if html_info is None:
-        return False, error
-    return True, html_info
+        if html_info is None:
+            html_info, error = await _request_with_amazon_throttle(headers)
+        if html_info is None:
+            session_id = ""
+            ubid_acbjp = ""
+            if x := re.findall(r'sessionId: "([^"]+)', html_info or ""):
+                session_id = x[0]
+            if x := re.findall(r"ubid-acbjp=([^ ]+)", html_info or ""):
+                ubid_acbjp = x[0]
+            headers_o = {
+                "cookie": f"session-id={session_id}; ubid_acbjp={ubid_acbjp}",
+            }
+            headers.update(headers_o)
+            html_info, error = await _request_with_amazon_throttle(headers)
+        if html_info is None:
+            return False, error
+        if "HTTP 503" in html_info:
+            headers = {
+                "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Host": "www.amazon.co.jp",
+            }
+            html_info, error = await _request_with_amazon_throttle(headers)
+        if html_info is None:
+            return False, error
+        return True, html_info
 
 
 async def get_imgsize(url) -> tuple[int, int]:
-    response, _ = await manager.computed.async_client.request("GET", url, stream=True)
-    if response is None:
-        return 0, 0
-    file_head = BytesIO()
-    chunk_size = 1024 * 10
-    try:
-        if response.status_code != 200:
+    async with manager.acquire_computed() as computed:
+        client = computed.async_client
+        response, _ = await client.request("GET", url, stream=True)
+        if response is None:
             return 0, 0
-        for chunk in response.iter_content(chunk_size):
-            file_head.write(await chunk)
-            try:
+        file_head = BytesIO()
+        chunk_size = 1024 * 10
+        try:
+            if response.status_code != 200:
+                return 0, 0
+            for chunk in response.iter_content(chunk_size):
+                file_head.write(await chunk)
+                try:
 
-                def _get_size():
-                    with Image.open(file_head) as img:
-                        return img.size
+                    def _get_size():
+                        with Image.open(file_head) as img:
+                            return img.size
 
-                return await asyncio.to_thread(_get_size)
-            except Exception:
-                # 如果解析失败，继续下载更多数据
-                continue
-    except Exception:
+                    return await asyncio.to_thread(_get_size)
+                except Exception:
+                    # 如果解析失败，继续下载更多数据
+                    continue
+        except Exception:
+            return 0, 0
+        finally:
+            await client._close_response(response)
+
         return 0, 0
-    finally:
-        await manager.computed.async_client._close_response(response)
-
-    return 0, 0
 
 
 async def get_dmm_trailer(trailer_url: str) -> str:
@@ -601,64 +610,64 @@ async def get_dmm_trailer(trailer_url: str) -> str:
                 )
                 signal.add_log(f"📝 转换后的URL: {converted_url}")
                 # 尝试验证转换后的URL，最多重试3次（仅对非404错误重试）
-                for attempt in range(3):
-                    try:
-                        # 进行HEAD请求检测
-                        response, error = await manager.computed.async_client.request(
-                            "HEAD", converted_url, retry_count=1
-                        )
+                async with manager.acquire_computed() as computed:
+                    client = computed.async_client
+                    for attempt in range(3):
+                        try:
+                            # 进行HEAD请求检测
+                            response, error = await client.request("HEAD", converted_url, retry_count=1)
 
-                        if response is not None:
-                            # 请求成功
-                            if response.status_code == 404:
-                                # 404错误说明转换后的URL不存在，回退到原始URL
-                                signal.add_log("⚠️ 转换后的URL返回404，回退到原始链接")
-                                break
-                            elif 200 <= response.status_code < 300:
-                                # 2xx成功，使用转换后的URL
-                                signal.add_log(f"✅ 转换后的URL验证成功 (HTTP {response.status_code})")
-                                trailer_url = converted_url
-                                break
-                            else:
-                                # 其他4xx/5xx错误，继续重试
-                                retry_msg = (
-                                    f"🟡 转换后的URL检测失败 (HTTP {response.status_code})，"
-                                    f"准备重试 ({attempt + 1}/3)..."
-                                )
-                                signal.add_log(retry_msg)
-                                if attempt < 2:
-                                    await asyncio.sleep(0.5 * (attempt + 1))
-                                    continue
-                                else:
-                                    # 重试3次仍失败，回退到原始URL
-                                    signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                            if response is not None:
+                                # 请求成功
+                                if response.status_code == 404:
+                                    # 404错误说明转换后的URL不存在，回退到原始URL
+                                    signal.add_log("⚠️ 转换后的URL返回404，回退到原始链接")
                                     break
-                        else:
-                            # 检查是否为 404 错误
-                            if "404" in str(error):
-                                # 404错误说明转换后的URL不存在，直接回退
-                                signal.add_log("⚠️ 转换后的URL返回404，回退到原始链接")
-                                break
-                            else:
-                                # 其他网络错误、超时等，重试
-                                signal.add_log(f"🟡 转换后的URL网络错误: {error}，准备重试 ({attempt + 1}/3)...")
-                                if attempt < 2:
-                                    await asyncio.sleep(0.5 * (attempt + 1))
-                                    continue
-                                else:
-                                    # 重试3次仍失败，回退到原始URL
-                                    signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                                elif 200 <= response.status_code < 300:
+                                    # 2xx成功，使用转换后的URL
+                                    signal.add_log(f"✅ 转换后的URL验证成功 (HTTP {response.status_code})")
+                                    trailer_url = converted_url
                                     break
-                    except Exception as e:
-                        # 异常处理，继续重试
-                        signal.add_log(f"🟡 转换后的URL异常: {e}，准备重试 ({attempt + 1}/3)...")
-                        if attempt < 2:
-                            await asyncio.sleep(0.5 * (attempt + 1))
-                            continue
-                        else:
-                            # 重试3次仍失败，回退到原始URL
-                            signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
-                            break
+                                else:
+                                    # 其他4xx/5xx错误，继续重试
+                                    retry_msg = (
+                                        f"🟡 转换后的URL检测失败 (HTTP {response.status_code})，"
+                                        f"准备重试 ({attempt + 1}/3)..."
+                                    )
+                                    signal.add_log(retry_msg)
+                                    if attempt < 2:
+                                        await asyncio.sleep(0.5 * (attempt + 1))
+                                        continue
+                                    else:
+                                        # 重试3次仍失败，回退到原始URL
+                                        signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                                        break
+                            else:
+                                # 检查是否为 404 错误
+                                if "404" in str(error):
+                                    # 404错误说明转换后的URL不存在，直接回退
+                                    signal.add_log("⚠️ 转换后的URL返回404，回退到原始链接")
+                                    break
+                                else:
+                                    # 其他网络错误、超时等，重试
+                                    signal.add_log(f"🟡 转换后的URL网络错误: {error}，准备重试 ({attempt + 1}/3)...")
+                                    if attempt < 2:
+                                        await asyncio.sleep(0.5 * (attempt + 1))
+                                        continue
+                                    else:
+                                        # 重试3次仍失败，回退到原始URL
+                                        signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                                        break
+                        except Exception as e:
+                            # 异常处理，继续重试
+                            signal.add_log(f"🟡 转换后的URL异常: {e}，准备重试 ({attempt + 1}/3)...")
+                            if attempt < 2:
+                                await asyncio.sleep(0.5 * (attempt + 1))
+                                continue
+                            else:
+                                # 重试3次仍失败，回退到原始URL
+                                signal.add_log("⚠️ 重试3次后仍失败，回退到原始链接")
+                                break
 
     """
     DMM 预览片分辨率对应关系（旧格式）:
@@ -815,7 +824,8 @@ def check_theporndb_api_token() -> str:
     if not api_token:
         tips = "❌ 未填写 API Token，影响欧美刮削！可在「设置」-「网络」添加！"
     else:
-        response, err = executor.run(manager.computed.async_client.request("GET", url, headers=headers))
+        with manager.acquire_computed() as computed:
+            response, err = executor.run(computed.async_client.request("GET", url, headers=headers))
         if response is None:
             tips = f"❌ ThePornDB 连接失败: {err}"
             signal.show_log_text(tips)
@@ -834,22 +844,24 @@ ImageSizeGetter = Callable[[str], Awaitable[tuple[int, int]]]
 
 
 async def _get_pic_by_google(pic_url, image_size_getter: ImageSizeGetter | None = None):
-    google_keyused = manager.computed.google_keyused
-    google_keyword = manager.computed.google_keyword
-    req_url = f"https://www.google.com/searchbyimage?sbisrc=2&image_url={pic_url}"
-    # req_url = f'https://lens.google.com/uploadbyurl?url={pic_url}&hl=zh-CN&re=df&ep=gisbubu'
-    response, error = await manager.computed.async_client.get_text(req_url)
-    big_pic = True
-    if response is None:
-        return "", (0, 0), False
-    url_list = re.findall(r'a href="([^"]+isz:l[^"]+)">', response)
-    url_list_middle = re.findall(r'a href="([^"]+isz:m[^"]+)">', response)
-    if not url_list and url_list_middle:
-        url_list = url_list_middle
-        big_pic = False
-    if url_list:
-        req_url = "https://www.google.com" + url_list[0].replace("amp;", "")
-        response, error = await manager.computed.async_client.get_text(req_url)
+    async with manager.acquire_computed() as computed:
+        google_keyused = computed.google_keyused
+        google_keyword = computed.google_keyword
+        client = computed.async_client
+        req_url = f"https://www.google.com/searchbyimage?sbisrc=2&image_url={pic_url}"
+        # req_url = f'https://lens.google.com/uploadbyurl?url={pic_url}&hl=zh-CN&re=df&ep=gisbubu'
+        response, error = await client.get_text(req_url)
+        big_pic = True
+        if response is None:
+            return "", (0, 0), False
+        url_list = re.findall(r'a href="([^"]+isz:l[^"]+)">', response)
+        url_list_middle = re.findall(r'a href="([^"]+isz:m[^"]+)">', response)
+        if not url_list and url_list_middle:
+            url_list = url_list_middle
+            big_pic = False
+        if url_list:
+            req_url = "https://www.google.com" + url_list[0].replace("amp;", "")
+            response, error = await client.get_text(req_url)
     if response is None:
         return "", (0, 0), False
     url_list = re.findall(r'\["(http[^"]+)",(\d{3,4}),(\d{3,4})\],[^[]', response)
@@ -923,7 +935,8 @@ async def get_big_pic_by_google(
 async def get_actorname(number: str) -> tuple[bool, str]:
     # 获取真实演员名字
     url = f"https://av-wiki.net/?s={number}"
-    res, error = await manager.computed.async_client.get_text(url)
+    async with manager.acquire_computed() as computed:
+        res, error = await computed.async_client.get_text(url)
     if res is None:
         return False, f"Error: {error}"
     html_detail = etree.fromstring(res, etree.HTMLParser(encoding="utf-8"))
@@ -941,7 +954,8 @@ async def get_actorname(number: str) -> tuple[bool, str]:
 async def get_yesjav_title(movie_number: str) -> str:
     yesjav_url = f"http://www.yesjav101.com/search.asp?q={movie_number}&"
     movie_title = ""
-    response, error = await manager.computed.async_client.get_text(yesjav_url)
+    async with manager.acquire_computed() as computed:
+        response, error = await computed.async_client.get_text(yesjav_url)
     if response is not None:
         parser = etree.HTMLParser(encoding="utf-8")
         html = etree.HTML(response, parser)
@@ -964,8 +978,9 @@ async def download_file_with_filepath(url: str, file_path: Path, folder_new_path
     if not await aiofiles.os.path.exists(folder_new_path):
         await aiofiles.os.makedirs(folder_new_path)
     try:
-        if await manager.computed.async_client.download(url, file_path):
-            return True
+        async with manager.acquire_computed() as computed:
+            if await computed.async_client.download(url, file_path):
+                return True
     except Exception:
         pass
     LogBuffer.log().write(f"\n 🥺 Download failed! {url}")
@@ -980,7 +995,8 @@ async def download_content_with_filepath(url: str, file_path: Path, folder_new_p
         await aiofiles.os.makedirs(folder_new_path)
 
     try:
-        content, error = await manager.computed.async_client.get_content(url)
+        async with manager.acquire_computed() as computed:
+            content, error = await computed.async_client.get_content(url)
         if not content:
             LogBuffer.log().write(f"\n 🥺 Download failed! {url} {error}")
             return False
@@ -1020,7 +1036,8 @@ async def download_dmm_extrafanart_with_filepath(url: str, file_path: Path, fold
         return False
 
     try:
-        response, error = await manager.computed.async_client.request("GET", normalized_url)
+        async with manager.acquire_computed() as computed:
+            response, error = await computed.async_client.request("GET", normalized_url)
         if response is None:
             LogBuffer.log().write(f"\n 🥺 Download failed! {url} {error}")
             return False

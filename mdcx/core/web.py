@@ -200,7 +200,8 @@ async def _download_image_to_memory(url: str, media_context: MediaResourceContex
         if img is None:
             LogBuffer.log().write("\n 🟡 Amazon图片校验：读取参考图失败")
         return img
-    content, error = await manager.computed.async_client.get_content(url)
+    async with manager.acquire_computed() as computed:
+        content, error = await computed.async_client.get_content(url)
     if not content:
         if error:
             LogBuffer.log().write(f"\n 🟡 Amazon图片校验：读取参考图失败 {error}")
@@ -453,7 +454,8 @@ async def _get_big_thumb(
         # faleno.jp 番号检查
         if re.findall(r"F[A-Z]{2}SS", number):
             req_url = f"https://faleno.jp/top/works/{number_lower_no_line}/"
-            response, error = await manager.computed.async_client.get_text(req_url)
+            async with manager.acquire_computed() as computed:
+                response, error = await computed.async_client.get_text(req_url)
             if response is not None:
                 temp_url = re.findall(
                     r'src="((https://cdn.faleno.net/top/wp-content/uploads/[^_]+_)([^?]+))\?output-quality=', response
@@ -591,20 +593,23 @@ async def _get_big_poster(
     # 通过番号去 官网 查询获取稍微大一些的封面图，以便去 Google 搜索
     if not hd_pic_url and HDPicSource.OFFICIAL in manager.config.download_hd_pics and result.poster_from != "Amazon":
         letters = result.letters.upper()
-        official_url = manager.computed.official_websites.get(letters)
-        if official_url:
-            url_search = official_url + "/search/list?keyword=" + number.replace("-", "")
-            html_search, error = await manager.computed.async_client.get_text(url_search)
-            if html_search is not None:
-                poster_url_list = re.findall(r'img class="c-main-bg lazyload" data-src="([^"]+)"', html_search)
-                if poster_url_list:
-                    # 使用官网图作为封面去 google 搜索
-                    poster_url = poster_url_list[0]
-                    result.poster = poster_url
-                    result.poster_from = official_url.split(".")[-2].replace("https://", "")
-                    # vr作品或者官网图片高度大于500时，下载封面图开
-                    if "VR" in number.upper() or (await _get_image_size(poster_url, media_context))[1] > 500:
-                        result.image_download = True
+        async with manager.acquire_computed() as computed:
+            official_url = computed.official_websites.get(letters)
+            if official_url:
+                url_search = official_url + "/search/list?keyword=" + number.replace("-", "")
+                html_search, error = await computed.async_client.get_text(url_search)
+            else:
+                html_search = None
+        if official_url and html_search is not None:
+            poster_url_list = re.findall(r'img class="c-main-bg lazyload" data-src="([^"]+)"', html_search)
+            if poster_url_list:
+                # 使用官网图作为封面去 google 搜索
+                poster_url = poster_url_list[0]
+                result.poster = poster_url
+                result.poster_from = official_url.split(".")[-2].replace("https://", "")
+                # vr作品或者官网图片高度大于500时，下载封面图开
+                if "VR" in number.upper() or (await _get_image_size(poster_url, media_context))[1] > 500:
+                    result.image_download = True
 
     # 使用google以图搜图，放在最后是因为有时有错误，比如 kawd-943
     poster_url = result.poster

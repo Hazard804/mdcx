@@ -75,6 +75,29 @@ async def test_async_web_client_close_when_idle_waits_for_lease():
 
 
 @pytest.mark.asyncio
+async def test_async_web_client_lease_allows_requests_after_close_requested(monkeypatch: pytest.MonkeyPatch):
+    client = AsyncWebClient(timeout=1)
+    fake_session = _FakeSession()
+    client._pool_manager._session_factory = lambda: fake_session  # type: ignore[assignment]
+    monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
+
+    client.retain()
+    close_task = asyncio.create_task(client.close_when_idle(poll_interval=0.01))
+    await asyncio.sleep(0.03)
+
+    response, error = await client.request("GET", "https://example.test/image.jpg")
+
+    assert response is not None
+    assert error == ""
+    assert fake_session.closed is False
+
+    await client.release()
+    await asyncio.wait_for(close_task, timeout=1)
+
+    assert fake_session.closed is True
+
+
+@pytest.mark.asyncio
 async def test_crawler_provider_retains_client_until_close():
     client = AsyncWebClient(timeout=1)
     provider = CrawlerProvider(Config(), client)

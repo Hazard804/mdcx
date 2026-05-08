@@ -95,7 +95,8 @@ async def _deepl_translate(text: str, source_lang: Literal["JA", "EN"] = "JA") -
         "target_lang": "ZH",
         "model_type": "quality_optimized",
     }
-    res, error = await manager.computed.async_client.post_json(url, json_data=data, headers=headers)
+    async with manager.acquire_computed() as computed:
+        res, error = await computed.async_client.post_json(url, json_data=data, headers=headers)
     if res is None:
         signal.add_log(f"DeepL API 请求失败: {error}")
         return None
@@ -127,7 +128,8 @@ async def _deeplx_translate(text: str, source_lang: Literal["JA", "EN"] = "JA") 
     headers = {"Content-Type": "application/json"}
     data = {"text": text, "source_lang": source_lang, "target_lang": "ZH"}
 
-    res, error = await manager.computed.async_client.post_json(url, json_data=data, headers=headers)
+    async with manager.acquire_computed() as computed:
+        res, error = await computed.async_client.post_json(url, json_data=data, headers=headers)
     if res is None:
         signal.add_log(f"DeepLX API 请求失败: {error}")
         return None
@@ -158,14 +160,15 @@ async def _llm_translate(text: str, prompt_template: str, target_language: str =
     """调用 LLM 翻译文本"""
     if not text:
         return ""
-    translated = await manager.computed.llm_client.ask(
-        model=manager.config.translate_config.llm_model,
-        system_prompt="You are a professional translator.",
-        user_prompt=prompt_template.replace("{content}", text).replace("{lang}", target_language),
-        temperature=manager.config.translate_config.llm_temperature,
-        max_try=manager.config.translate_config.llm_max_try,
-        log_fn=signal.add_log,
-    )
+    async with manager.acquire_computed() as computed:
+        translated = await computed.llm_client.ask(
+            model=manager.config.translate_config.llm_model,
+            system_prompt="You are a professional translator.",
+            user_prompt=prompt_template.replace("{content}", text).replace("{lang}", target_language),
+            temperature=manager.config.translate_config.llm_temperature,
+            max_try=manager.config.translate_config.llm_max_try,
+            log_fn=signal.add_log,
+        )
     if translated is None:
         return None
     return _normalize_translated_linebreaks(translated)
@@ -246,7 +249,8 @@ async def _google_translate(msg: str) -> tuple[str | None, str]:
         return "", ""
     msg_unquote = quote(msg)
     url = f"https://translate.google.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q={msg_unquote}"
-    response, error = await manager.computed.async_client.get_json(url)
+    async with manager.acquire_computed() as computed:
+        response, error = await computed.async_client.get_json(url)
     if response is None:
         return None, error
     translated = "".join([sen[0] for sen in response[0]])
@@ -308,10 +312,11 @@ async def _baidu_translate_message(msg: str, target_lang: str) -> tuple[list[str
         "salt": salt,
         "sign": sign,
     }
-    response, error = await manager.computed.async_client.post_json(
-        "https://fanyi-api.baidu.com/api/trans/vip/translate",
-        data=data,
-    )
+    async with manager.acquire_computed() as computed:
+        response, error = await computed.async_client.post_json(
+            "https://fanyi-api.baidu.com/api/trans/vip/translate",
+            data=data,
+        )
     if response is None:
         return None, f"百度翻译请求失败: {error}"
 

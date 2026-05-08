@@ -46,7 +46,8 @@ class MediaResourceContext:
 
         # 完整下载不能使用 DMM 探测参数，否则会把 120x90 探测图写入封面缓存。
         request_url, added_probe = normalized_url, False
-        response, error = await manager.computed.async_client.request("GET", request_url)
+        async with manager.acquire_computed() as computed:
+            response, error = await computed.async_client.request("GET", request_url)
         if response is None:
             if error:
                 LogBuffer.log().write(f"\n 🟡 图片读取失败: {error}")
@@ -85,20 +86,22 @@ class MediaResourceContext:
             return cached.size
 
         request_url, added_probe = self._build_request_url(normalized_url)
-        response, error = await manager.computed.async_client.request("GET", request_url, stream=True)
-        if response is None:
-            if error:
-                LogBuffer.log().write(f"\n 🟡 图片尺寸探测失败: {error}")
-            return 0, 0
-
-        true_url = normalize_media_url(str(response.url), strip_dmm_probe_params=added_probe)
-        try:
-            if self._is_invalid_image_url(normalized_url, true_url):
-                LogBuffer.log().write(f"\n 💡 图片已失效: {true_url}")
+        async with manager.acquire_computed() as computed:
+            client = computed.async_client
+            response, error = await client.request("GET", request_url, stream=True)
+            if response is None:
+                if error:
+                    LogBuffer.log().write(f"\n 🟡 图片尺寸探测失败: {error}")
                 return 0, 0
-            return await self._read_stream_size(response)
-        finally:
-            await manager.computed.async_client._close_response(response)
+
+            true_url = normalize_media_url(str(response.url), strip_dmm_probe_params=added_probe)
+            try:
+                if self._is_invalid_image_url(normalized_url, true_url):
+                    LogBuffer.log().write(f"\n 💡 图片已失效: {true_url}")
+                    return 0, 0
+                return await self._read_stream_size(response)
+            finally:
+                await client._close_response(response)
 
     async def open_rgb_image(self, url: str) -> Image.Image | None:
         image = await self.fetch_image(url)

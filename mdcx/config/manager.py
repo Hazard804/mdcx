@@ -2,7 +2,9 @@ import json
 import os
 import os.path
 import sys
+import threading
 from pathlib import Path
+from types import TracebackType
 
 from ..consts import IS_PYINSTALLER, MAIN_PATH, MARK_FILE
 from ..utils import executor
@@ -13,6 +15,7 @@ from .v1 import ConfigV1, load_v1
 
 class ConfigManager:
     def __init__(self):
+        self._computed_lock = threading.RLock()
         if not MARK_FILE.is_file():  # 标记文件不存在
             self.path = MAIN_PATH / "config.json"  # 默认配置文件路径
         else:
@@ -38,18 +41,14 @@ class ConfigManager:
     def load(self) -> list[str]:
         if self._path.suffix == ".ini":  # handle v1 config
             return self.handle_v1()
-        old_computed = getattr(self, "computed", None)
         try:
             d = json.loads(self._path.read_text(encoding="UTF-8"))
             errors = Config.update(d)
-            self.config = Config.model_validate(d)
-            self.computed = Computed(self.config)
-            self._close_old_computed(old_computed)
+            config = Config.model_validate(d)
+            self._replace_config(config)
             return errors
         except Exception as e:
-            self.config = Config()
-            self.computed = Computed(self.config)
-            self._close_old_computed(old_computed)
+            self._replace_config(Config())
             msg = f" 配置文件 {self._path} 验证失败. 错误信息: \n{str(e)}"
             return msg.splitlines()
 
@@ -68,12 +67,21 @@ class ConfigManager:
         ] + errors
         config_v1 = ConfigV1(**d)
         config_v1.init()
-        old_computed = getattr(self, "computed", None)
-        self.config = config_v1.to_pydantic_model()
-        self.computed = Computed(self.config)
-        self._close_old_computed(old_computed)
+        self._replace_config(config_v1.to_pydantic_model())
         self.save()
         return errors
+
+    def _replace_config(self, config: Config) -> None:
+        """热切换配置派生对象，旧对象等待持有方释放后再关闭。"""
+        computed = Computed(config)
+        with self._computed_lock:
+            old_computed = getattr(self, "computed", None)
+            self.config = config
+            self.computed = computed
+        self._close_old_computed(old_computed)
+
+    def acquire_computed(self) -> "ComputedLease":
+        return ComputedLease(self)
 
     def _close_old_computed(self, old_computed: Computed | None):
         if old_computed is None:
@@ -126,6 +134,51 @@ class ConfigManager:
         """读取 MARK_FILE"""
         with open(MARK_FILE, encoding="UTF-8") as f:
             return f.read().strip()
+
+
+class ComputedLease:
+    def __init__(self, manager: ConfigManager):
+        self._manager = manager
+        self._computed: Computed | None = None
+        self._entered = False
+
+    def _enter(self) -> Computed:
+        if self._entered:
+            raise RuntimeError("Computed 租约不能重复进入")
+        with self._manager._computed_lock:
+            computed = self._manager.computed
+            computed.retain()
+        self._computed = computed
+        self._entered = True
+        return computed
+
+    def __enter__(self) -> Computed:
+        return self._enter()
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        computed = self._computed
+        if computed is not None:
+            self._computed = None
+            executor.run(computed.release())
+
+    async def __aenter__(self) -> Computed:
+        return self._enter()
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        computed = self._computed
+        if computed is not None:
+            self._computed = None
+            await computed.release()
 
 
 manager = ConfigManager()

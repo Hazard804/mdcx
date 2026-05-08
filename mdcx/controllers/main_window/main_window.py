@@ -3010,15 +3010,16 @@ class MyMAinWindow(QMainWindow):
             tips = "❌ Cookie 无效！缺少 fc2ppvdb_session"
         else:
             cookies = cookie_str_to_dict(input_cookie)
-            response, error = executor.run(
-                fetch_article_info_with_warmup(
-                    manager.computed.async_client,
-                    base_url="https://fc2ppvdb.com",
-                    number="3259498",
-                    cookies=cookies,
-                    use_proxy=manager.config.use_proxy,
+            with manager.acquire_computed() as computed:
+                response, error = executor.run(
+                    fetch_article_info_with_warmup(
+                        computed.async_client,
+                        base_url="https://fc2ppvdb.com",
+                        number="3259498",
+                        cookies=cookies,
+                        use_proxy=manager.config.use_proxy,
+                    )
                 )
-            )
             if response is None:
                 tips = f"❌ Cookie 检查失败：{error}"
             elif not response.get("article"):

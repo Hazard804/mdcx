@@ -547,7 +547,8 @@ async def try_get_amazon_barcodes_from_covers(
             if media_context is not None:
                 content = await media_context.fetch_bytes(cover)
             else:
-                content, error = await manager.computed.async_client.get_content(cover)
+                async with manager.acquire_computed() as computed:
+                    content, error = await computed.async_client.get_content(cover)
         else:
             cover_path = Path(cover)
             if cover_path.is_file():

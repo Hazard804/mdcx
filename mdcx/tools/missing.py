@@ -22,7 +22,8 @@ from ..utils import get_used_time
 
 
 async def _scraper_web(url):
-    html, error = await manager.computed.async_client.get_text(url)
+    async with manager.acquire_computed() as computed:
+        html, error = await computed.async_client.get_text(url)
     if html is None:
         signal.show_log_text(f"请求错误: {error}")
         return ""
@@ -45,9 +46,10 @@ async def _get_actor_numbers(actor_url, actor_single_url):
     i = 1
     while next_page:
         page_url = f"{actor_url}?page={i}&t=s"
-        html, error = await manager.computed.async_client.get_text(page_url)
-        if html is None:
-            html, error = await manager.computed.async_client.get_text(page_url)
+        async with manager.acquire_computed() as computed:
+            html, error = await computed.async_client.get_text(page_url)
+            if html is None:
+                html, error = await computed.async_client.get_text(page_url)
         if html is None:
             return
         if "pagination-next" not in html or i >= 60:

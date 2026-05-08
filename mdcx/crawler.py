@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Never, Protocol
 
 from .config.enums import Website
@@ -15,9 +16,10 @@ class CrawlerProviderProtocol(Protocol):
 
 
 class CrawlerProvider:
-    def __init__(self, config: "Config", client: "AsyncWebClient"):
+    def __init__(self, config: "Config", client: "AsyncWebClient", config_getter: Callable[[], "Config"] | None = None):
         self.instances: dict[Website, GenericBaseCrawler[Never]] = {}
         self.config = config
+        self._config_getter = config_getter or (lambda: config)
         self.client = client
         self.lock = asyncio.Lock()
         self.client.retain()
@@ -31,9 +33,10 @@ class CrawlerProvider:
                 crawler_cls = get_crawler(site)
                 if crawler_cls is None:
                     raise ValueError(f"未找到 {site} 的刮削器")
+                config = self._config_getter()
                 self.instances[site] = crawler_cls(
                     client=self.client,
-                    base_url=self.config.get_site_url(site),
+                    base_url=config.get_site_url(site),
                     browser=None,
                 )
         return self.instances[site]

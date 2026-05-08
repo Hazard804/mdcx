@@ -889,7 +889,10 @@ def start_new_scrape(file_mode: FileMode, movie_list: list[Path] | None = None) 
     signal.exec_set_processbar.emit(0)
     try:
         Flags.start_time = time.time()
-        crawler_provider = CrawlerProvider(manager.config, manager.computed.async_client)
+        with manager.acquire_computed() as computed:
+            crawler_provider = CrawlerProvider(
+                manager.config, computed.async_client, config_getter=lambda: manager.config
+            )
         scraper = Scraper(crawler_provider)
         executor.submit(scraper.run(file_mode, movie_list))
     except Exception:

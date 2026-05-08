@@ -46,7 +46,8 @@ async def search_wiki(actor_info: EMbyActressInfo) -> tuple[str | None, str]:
 
         # 请求维基百科搜索页接口
         url = f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={actor_name}&language=zh&format=json"
-        res, error = await manager.computed.async_client.get_json(url, headers=manager.computed.random_headers)
+        async with manager.acquire_computed() as computed:
+            res, error = await computed.async_client.get_json(url, headers=computed.random_headers)
         if res is None:
             return None, f"维基百科搜索结果请求失败: {error}"
 
@@ -57,7 +58,8 @@ async def search_wiki(actor_info: EMbyActressInfo) -> tuple[str | None, str]:
             if not actor_name_tw:
                 return None, "维基百科暂未收录"
             url = f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={actor_name_tw}&language=zh&format=json"
-            res, error = await manager.computed.async_client.get_json(url)
+            async with manager.acquire_computed() as computed:
+                res, error = await computed.async_client.get_json(url)
             if res is None:
                 return None, f"维基百科搜索结果请求失败: {error}"
             search_results = res.get("search")
@@ -84,7 +86,8 @@ async def search_wiki(actor_info: EMbyActressInfo) -> tuple[str | None, str]:
             # 通过id请求数据，获取 wiki url
             wiki_id = each_result.get("id")
             url = f"https://m.wikidata.org/wiki/Special:EntityData/{wiki_id}.json"
-            res, error = await manager.computed.async_client.get_json(url, headers=manager.computed.random_headers)
+            async with manager.acquire_computed() as computed:
+                res, error = await computed.async_client.get_json(url, headers=computed.random_headers)
             if res is None:
                 continue
             # 获取详细信息并返回URL
@@ -103,7 +106,8 @@ async def get_detail(url: str, url_log: str, actor_info: EMbyActressInfo) -> tup
     try:
         ja = "ja." in url
         emby_on = manager.config.emby_on
-        res, error = await manager.computed.async_client.get_text(url, headers=manager.computed.random_headers)
+        async with manager.acquire_computed() as computed:
+            res, error = await computed.async_client.get_text(url, headers=computed.random_headers)
         if res is None:
             return False, f"维基百科演员页请求失败: {error}"
         if "noarticletext mw-content-ltr" in res:
