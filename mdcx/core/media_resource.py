@@ -44,7 +44,8 @@ class MediaResourceContext:
         if cached is not None:
             return cached
 
-        request_url, added_probe = self._build_request_url(normalized_url)
+        # 完整下载不能使用 DMM 探测参数，否则会把 120x90 探测图写入封面缓存。
+        request_url, added_probe = normalized_url, False
         response, error = await manager.computed.async_client.request("GET", request_url)
         if response is None:
             if error:

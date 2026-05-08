@@ -535,10 +535,8 @@ async def _get_big_poster(
             series_raw,
             media_context=media_context,
         )
-        if result.poster_from == "Amazon":
-            amazon_url = result.poster
-        else:
-            amazon_url = hd_pic_url
+        amazon_url = hd_pic_url or (result.poster if result.poster_from == "Amazon" else "")
+        amazon_is_hd = bool(hd_pic_url)
         if amazon_url:
             if is_amazon_hard_match(result) or await _verify_soft_amazon_poster(
                 amazon_url,
@@ -550,7 +548,7 @@ async def _get_big_poster(
                 result.poster = amazon_url
                 result.poster_from = "Amazon"
                 result.image_download = True
-                hd_pic_url = amazon_url
+                hd_pic_url = amazon_url if amazon_is_hd else ""
             else:
                 hd_pic_url = ""
                 if result.poster_from == "Amazon":

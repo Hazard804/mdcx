@@ -131,14 +131,14 @@ async def test_media_resource_context_rejects_invalid_dmm_redirect(monkeypatch: 
         context.close()
 
     assert calls == [
-        "https://awsimgsrc.dmm.co.jp/digital/video/pred00816/pred00816pl.jpg?w=120&h=90",
-        "https://awsimgsrc.dmm.co.jp/digital/video/pred00816/pred00816pl.jpg?w=120&h=90",
+        "https://awsimgsrc.dmm.co.jp/digital/video/pred00816/pred00816pl.jpg",
+        "https://awsimgsrc.dmm.co.jp/digital/video/pred00816/pred00816pl.jpg",
     ]
     assert not (tmp_path / "poster.jpg").exists()
 
 
 @pytest.mark.asyncio
-async def test_media_resource_context_adds_probe_params_for_dmm_aws_image(monkeypatch: pytest.MonkeyPatch):
+async def test_media_resource_context_adds_probe_params_for_dmm_aws_image_probe(monkeypatch: pytest.MonkeyPatch):
     calls: list[str] = []
 
     async def fake_request(method: str, url: str, **kwargs):
@@ -152,11 +152,46 @@ async def test_media_resource_context_adds_probe_params_for_dmm_aws_image(monkey
     try:
         url = "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg"
 
-        assert await context.fetch_bytes(url)
+        assert await context.probe_size(url) == (12, 18)
     finally:
         context.close()
 
     assert calls == ["https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg?w=120&h=90"]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_saves_original_dmm_image_after_probe(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    calls: list[tuple[str, bool]] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append((url, bool(kwargs.get("stream"))))
+        if "w=120" in url:
+            return _FakeResponse(url, _jpeg_bytes((12, 18))), ""
+        return _FakeResponse(url, _jpeg_bytes((80, 120))), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg"
+        file_path = tmp_path / "cover.jpg"
+
+        assert await context.probe_size(url) == (12, 18)
+        assert await context.save_image(url, file_path, tmp_path) is True
+
+        with Image.open(file_path) as img:
+            assert img.size == (80, 120)
+    finally:
+        context.close()
+
+    assert calls == [
+        ("https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg?w=120&h=90", True),
+        ("https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg", False),
+    ]
 
 
 @pytest.mark.asyncio

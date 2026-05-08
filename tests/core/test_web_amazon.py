@@ -173,6 +173,43 @@ async def test_get_big_poster_accepts_soft_amazon_when_image_similarity_passes(m
 
 
 @pytest.mark.asyncio
+async def test_get_big_poster_continues_google_after_low_res_amazon_match(monkeypatch: pytest.MonkeyPatch):
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
+        result.poster = "https://m.media-amazon.com/images/I/51lowres.jpg"
+        result.poster_from = "Amazon"
+        result.amazon_match_is_hard = True
+        return ""
+
+    async def fake_get_big_pic_by_google(pic_url: str, **kwargs):
+        assert pic_url == "https://m.media-amazon.com/images/I/51lowres.jpg"
+        return "https://cdn.example.test/81google.jpg", (1200, 1800)
+
+    async def fake_get_image_size(url: str, media_context=None):
+        assert url == "https://m.media-amazon.com/images/I/51lowres.jpg"
+        return (500, 750)
+
+    monkeypatch.setattr(
+        manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON, HDPicSource.GOOGLE]
+    )
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_google", fake_get_big_pic_by_google)
+    monkeypatch.setattr("mdcx.core.web._get_image_size", fake_get_image_size)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "有码"
+    result.originaltitle_amazon = "测试标题"
+    result.poster = "https://example.test/original.jpg"
+    result.poster_from = "crawler"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert result.poster == "https://cdn.example.test/81google.jpg"
+    assert result.poster_from == "Google(cdn.example.test)"
+    assert result.image_download is True
+
+
+@pytest.mark.asyncio
 async def test_get_big_pic_by_amazon_supports_new_search_card_selector(monkeypatch: pytest.MonkeyPatch):
     html_search = """
     <html>
