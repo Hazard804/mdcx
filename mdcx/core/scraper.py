@@ -40,6 +40,7 @@ from ..utils.path import is_descendant
 from .file import creat_folder, deal_old_files, get_file_info_v2, get_output_name, move_movie
 from .file_crawler import FileScraper
 from .image import add_mark
+from .media_resource import MediaResourceContext
 from .nfo import get_nfo_data, write_nfo
 from .translate import translate_actor, translate_info, translate_title_outline
 from .utils import (
@@ -786,15 +787,23 @@ class Scraper:
         # 如果 final_pic_path 没处理过，这时才需要下载和加水印
         if pic_final_catched and file_can_download:
             # 下载thumb
-            if not await thumb_download(res, other, file_info.cd_part, folder_new_path, thumb_final_path):
-                return None, None
+            media_context = MediaResourceContext()
+            try:
+                if not await thumb_download(
+                    res, other, file_info.cd_part, folder_new_path, thumb_final_path, media_context
+                ):
+                    return None, None
 
-            # 下载艺术图
-            await fanart_download(res.number, other, file_info.cd_part, fanart_final_path)
+                # 下载艺术图
+                await fanart_download(res.number, other, file_info.cd_part, fanart_final_path)
 
-            # 下载poster
-            if not await poster_download(res, other, file_info.cd_part, folder_new_path, poster_final_path):
-                return None, None
+                # 下载poster
+                if not await poster_download(
+                    res, other, file_info.cd_part, folder_new_path, poster_final_path, media_context
+                ):
+                    return None, None
+            finally:
+                media_context.close()
 
             # 清理冗余图片
             await pic_some_deal(res.number, thumb_final_path, fanart_final_path)

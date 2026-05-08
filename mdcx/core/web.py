@@ -7,10 +7,12 @@ import re
 import shutil
 import time
 from asyncio import to_thread
+from io import BytesIO
 from pathlib import Path
 
 import aiofiles
 import aiofiles.os
+from PIL import Image
 
 from ..base.web import (
     check_url,
@@ -35,10 +37,12 @@ from .amazon import (
     _extract_amazon_barcode_label_roi,
     _get_amazon_barcode_detector_skip_reason,
     get_big_pic_by_amazon,
+    is_amazon_hard_match,
     try_get_amazon_barcode_from_covers,
     try_get_amazon_barcodes_from_covers,
 )
 from .image import cut_thumb_to_poster
+from .media_resource import MediaResourceContext
 
 __all__ = [
     "_beam_search_amazon_ean13_from_ranked_digits",
@@ -54,6 +58,172 @@ __all__ = [
 async def _cleanup_download_part_files(*file_paths: Path) -> None:
     for file_path in file_paths:
         await delete_file_async(file_path.with_name(f"{file_path.name}.part"))
+
+
+async def _get_image_size(url: str, media_context: MediaResourceContext | None = None) -> tuple[int, int]:
+    if media_context is not None:
+        return await media_context.probe_size(url)
+    return await get_imgsize(url)
+
+
+def _open_rgb_image_from_bytes(content: bytes) -> Image.Image | None:
+    try:
+        img = Image.open(BytesIO(content))
+        img.load()
+        return img.convert("RGB")
+    except Exception:
+        return None
+
+
+def _load_rgb_image_from_path(pic_path: Path) -> Image.Image | None:
+    try:
+        with Image.open(pic_path) as img:
+            img.load()
+            return img.convert("RGB")
+    except Exception:
+        return None
+
+
+def _cut_thumb_right_image(thumb_img: Image.Image) -> Image.Image:
+    w, h = thumb_img.size
+    ax, ay, bx, by = w / 1.9, 0, w, h
+    if w == 800:
+        if h == 439:
+            ax, ay, bx, by = 420, 0, w, h
+        elif 499 <= h <= 503:
+            ax, ay, bx, by = 437, 0, w, h
+        else:
+            ax, ay, bx, by = 421, 0, w, h
+    elif w == 840 and h == 472:
+        ax, ay, bx, by = 473, 0, 788, h
+    return thumb_img.crop((ax, ay, bx, by)).convert("RGB")
+
+
+def _prepare_similarity_image(img: Image.Image) -> Image.Image:
+    target_ratio = 2 / 3
+    w, h = img.size
+    if w <= 0 or h <= 0:
+        return img.resize((160, 240))
+    ratio = w / h
+    if ratio > target_ratio:
+        new_w = max(1, int(h * target_ratio))
+        left = max(0, (w - new_w) // 2)
+        img = img.crop((left, 0, left + new_w, h))
+    elif ratio < target_ratio:
+        new_h = max(1, int(w / target_ratio))
+        top = max(0, (h - new_h) // 2)
+        img = img.crop((0, top, w, top + new_h))
+    return img.resize((160, 240), Image.Resampling.LANCZOS).convert("RGB")
+
+
+def _average_hash(img: Image.Image, hash_size: int = 8) -> int:
+    gray = img.convert("L").resize((hash_size, hash_size), Image.Resampling.LANCZOS)
+    pixels = list(gray.getdata())
+    average = sum(pixels) / len(pixels)
+    result = 0
+    for index, pixel in enumerate(pixels):
+        if pixel >= average:
+            result |= 1 << index
+    return result
+
+
+def _histogram_similarity(img_a: Image.Image, img_b: Image.Image) -> float:
+    hist_a = img_a.histogram()
+    hist_b = img_b.histogram()
+    if not hist_a or not hist_b:
+        return 0.0
+    intersection = sum(min(a, b) for a, b in zip(hist_a, hist_b, strict=False))
+    total = min(sum(hist_a), sum(hist_b))
+    return intersection / total if total else 0.0
+
+
+def _cover_similarity(img_a: Image.Image, img_b: Image.Image) -> tuple[float, float, float]:
+    prepared_a = _prepare_similarity_image(img_a)
+    prepared_b = _prepare_similarity_image(img_b)
+    hash_a = _average_hash(prepared_a)
+    hash_b = _average_hash(prepared_b)
+    hash_bits = 64
+    hash_similarity = 1 - ((hash_a ^ hash_b).bit_count() / hash_bits)
+    hist_similarity = _histogram_similarity(prepared_a, prepared_b)
+    score = hash_similarity * 0.7 + hist_similarity * 0.3
+    return score, hash_similarity, hist_similarity
+
+
+async def _download_image_to_memory(url: str, media_context: MediaResourceContext | None = None) -> Image.Image | None:
+    if not url or not re.match(r"^https?://", url, flags=re.I):
+        return None
+    if media_context is not None:
+        img = await media_context.open_rgb_image(url)
+        if img is None:
+            LogBuffer.log().write("\n 🟡 Amazon图片校验：读取参考图失败")
+        return img
+    content, error = await manager.computed.async_client.get_content(url)
+    if not content:
+        if error:
+            LogBuffer.log().write(f"\n 🟡 Amazon图片校验：读取参考图失败 {error}")
+        return None
+    return await to_thread(_open_rgb_image_from_bytes, content)
+
+
+async def _verify_soft_amazon_poster(
+    amazon_url: str,
+    *,
+    thumb_path: Path | None,
+    original_poster_url: str,
+    original_poster_from: str,
+    media_context: MediaResourceContext | None = None,
+) -> bool:
+    LogBuffer.log().write("\n 🔎 Amazon图片校验：软匹配，开始与已获取图片比对")
+    amazon_img = await _download_image_to_memory(amazon_url, media_context)
+    if amazon_img is None:
+        LogBuffer.log().write("\n 🟡 Amazon图片校验未通过：Amazon图片读取失败")
+        return False
+
+    reference_images: list[tuple[str, Image.Image]] = []
+    if thumb_path and await aiofiles.os.path.exists(thumb_path):
+        thumb_img = await to_thread(_load_rgb_image_from_path, thumb_path)
+        if thumb_img is not None:
+            reference_images.append(("thumb right", await to_thread(_cut_thumb_right_image, thumb_img)))
+            thumb_img.close()
+
+    if (
+        original_poster_url
+        and not original_poster_from.startswith("Amazon")
+        and "media-amazon.com" not in original_poster_url
+        and original_poster_url != amazon_url
+    ):
+        poster_img = await _download_image_to_memory(original_poster_url, media_context)
+        if poster_img is not None:
+            reference_images.append(("poster", poster_img))
+
+    if not reference_images:
+        amazon_img.close()
+        LogBuffer.log().write("\n 🟡 Amazon图片校验跳过：没有可用参考图，已放弃软匹配图片")
+        return False
+
+    best: tuple[float, str, float, float] = (0.0, "", 0.0, 0.0)
+    try:
+        for source, reference_img in reference_images:
+            score, hash_similarity, hist_similarity = await to_thread(_cover_similarity, amazon_img, reference_img)
+            if score > best[0]:
+                best = (score, source, hash_similarity, hist_similarity)
+            if score >= 0.82 and hash_similarity >= 0.86 and hist_similarity >= 0.70:
+                LogBuffer.log().write(
+                    f"\n 🟢 Amazon图片校验通过：参考({source}) "
+                    f"相似度({score:.2f}) hash({hash_similarity:.2f}) hist({hist_similarity:.2f})"
+                )
+                return True
+    finally:
+        amazon_img.close()
+        for _, reference_img in reference_images:
+            reference_img.close()
+
+    score, source, hash_similarity, hist_similarity = best
+    LogBuffer.log().write(
+        f"\n 🟡 Amazon图片校验未通过：最高参考({source or 'none'}) "
+        f"相似度({score:.2f}) hash({hash_similarity:.2f}) hist({hist_similarity:.2f})，已放弃软匹配图片"
+    )
+    return False
 
 
 async def trailer_download(
@@ -203,7 +373,11 @@ async def trailer_download(
         return True
 
 
-async def _get_big_thumb(result: CrawlersResult, other: OtherInfo):
+async def _get_big_thumb(
+    result: CrawlersResult,
+    other: OtherInfo,
+    media_context: MediaResourceContext | None = None,
+):
     """
     获取背景大图：
     1，官网图片
@@ -229,7 +403,7 @@ async def _get_big_thumb(result: CrawlersResult, other: OtherInfo):
     # prestige 图片有的是大图，需要检测图片分辨率
     elif result.thumb_from in ["prestige", "mgstage"]:
         if result.thumb:
-            thumb_width, h = await get_imgsize(result.thumb)
+            thumb_width, h = await _get_image_size(result.thumb, media_context)
 
     # 片商官网查询
     elif HDPicSource.OFFICIAL in manager.config.download_hd_pics:
@@ -260,7 +434,12 @@ async def _get_big_thumb(result: CrawlersResult, other: OtherInfo):
         prestige_key = ["abp", "abw", "aka", "prdvr", "pvrbst", "sdvr", "docvr"]
         if number_letter in kmp_key:
             req_url = f"https://km-produce.com/img/title1/{number_lower_line}.jpg"
-            real_url = await check_url(req_url)
+            real_url = ""
+            if media_context is not None:
+                if (await media_context.get_size(req_url))[0]:
+                    real_url = req_url
+            else:
+                real_url = await check_url(req_url) or ""
             if real_url:
                 result.thumb = real_url
                 result.thumb_from = "km-produce"
@@ -276,7 +455,7 @@ async def _get_big_thumb(result: CrawlersResult, other: OtherInfo):
                 req_url = f"https://www.prestige-av.com/api/media/goods/prestige/{number_letter}/{number_num}/pb_{number_lower_line}.jpg"
                 if number_letter == "docvr":
                     req_url = f"https://www.prestige-av.com/api/media/goods/doc/{number_letter}/{number_num}/pb_{number_lower_line}.jpg"
-                if (await get_imgsize(req_url))[0] >= 800:
+                if (await _get_image_size(req_url, media_context))[0] >= 800:
                     result.thumb = req_url
                     result.poster = req_url.replace("/pb_", "/pf_")
                     result.thumb_from = "prestige"
@@ -288,7 +467,10 @@ async def _get_big_thumb(result: CrawlersResult, other: OtherInfo):
     # 使用google以图搜图
     pic_url = result.thumb
     if HDPicSource.GOOGLE in manager.config.download_hd_pics and pic_url and result.thumb_from != "theporndb":
-        thumb_url, cover_size = await get_big_pic_by_google(pic_url)
+        thumb_url, cover_size = await get_big_pic_by_google(
+            pic_url,
+            image_size_getter=media_context.probe_size if media_context is not None else None,
+        )
         if thumb_url and cover_size[0] > thumb_width:
             other.thumb_size = cover_size
             pic_domain = re.findall(r"://([^/]+)", thumb_url)[0]
@@ -299,7 +481,11 @@ async def _get_big_thumb(result: CrawlersResult, other: OtherInfo):
     return result
 
 
-async def _get_big_poster(result: CrawlersResult, other: OtherInfo):
+async def _get_big_poster(
+    result: CrawlersResult,
+    other: OtherInfo,
+    media_context: MediaResourceContext | None = None,
+):
     start_time = time.time()
 
     # 未勾选下载高清图poster时，返回
@@ -307,7 +493,7 @@ async def _get_big_poster(result: CrawlersResult, other: OtherInfo):
         return
 
     # 如果有大图时，直接下载
-    if other.poster_big and (await get_imgsize(result.poster))[1] > 600:
+    if other.poster_big and (await _get_image_size(result.poster, media_context))[1] > 600:
         result.image_download = True
         LogBuffer.log().write(f"\n 🖼 HD Poster found! ({result.poster_from})({get_used_time(start_time)}s)")
         return
@@ -315,6 +501,7 @@ async def _get_big_poster(result: CrawlersResult, other: OtherInfo):
     # 初始化数据
     number = result.number
     poster_url = result.poster
+    poster_from_before_amazon = result.poster_from
     hd_pic_url = ""
     poster_width = 0
 
@@ -346,12 +533,29 @@ async def _get_big_poster(result: CrawlersResult, other: OtherInfo):
             series_replaced,
             originaltitle_amazon_raw,
             series_raw,
+            media_context=media_context,
         )
-        if hd_pic_url:
-            result.poster = hd_pic_url
-            result.poster_from = "Amazon"
         if result.poster_from == "Amazon":
-            result.image_download = True
+            amazon_url = result.poster
+        else:
+            amazon_url = hd_pic_url
+        if amazon_url:
+            if is_amazon_hard_match(result) or await _verify_soft_amazon_poster(
+                amazon_url,
+                thumb_path=other.thumb_path,
+                original_poster_url=poster_url,
+                original_poster_from=poster_from_before_amazon,
+                media_context=media_context,
+            ):
+                result.poster = amazon_url
+                result.poster_from = "Amazon"
+                result.image_download = True
+                hd_pic_url = amazon_url
+            else:
+                hd_pic_url = ""
+                if result.poster_from == "Amazon":
+                    result.poster = poster_url
+                    result.poster_from = poster_from_before_amazon
 
     # 通过番号去 官网 查询获取稍微大一些的封面图，以便去 Google 搜索
     if not hd_pic_url and HDPicSource.OFFICIAL in manager.config.download_hd_pics and result.poster_from != "Amazon":
@@ -368,7 +572,7 @@ async def _get_big_poster(result: CrawlersResult, other: OtherInfo):
                     result.poster = poster_url
                     result.poster_from = official_url.split(".")[-2].replace("https://", "")
                     # vr作品或者官网图片高度大于500时，下载封面图开
-                    if "VR" in number.upper() or (await get_imgsize(poster_url))[1] > 500:
+                    if "VR" in number.upper() or (await _get_image_size(poster_url, media_context))[1] > 500:
                         result.image_download = True
 
     # 使用google以图搜图，放在最后是因为有时有错误，比如 kawd-943
@@ -379,10 +583,14 @@ async def _get_big_poster(result: CrawlersResult, other: OtherInfo):
         and HDPicSource.GOOGLE in manager.config.download_hd_pics
         and result.poster_from != "theporndb"
     ):
-        hd_pic_url, poster_size = await get_big_pic_by_google(poster_url, poster=True)
+        hd_pic_url, poster_size = await get_big_pic_by_google(
+            poster_url,
+            poster=True,
+            image_size_getter=media_context.probe_size if media_context is not None else None,
+        )
         if hd_pic_url:
             if "prestige" in result.poster or result.poster_from == "Amazon":
-                poster_width, _ = await get_imgsize(poster_url)
+                poster_width, _ = await _get_image_size(poster_url, media_context)
             if poster_size[0] > poster_width:
                 result.poster = hd_pic_url
                 other.poster_size = poster_size
@@ -403,6 +611,7 @@ async def thumb_download(
     cd_part: str,
     folder_new_path: Path,
     thumb_final_path: Path,
+    media_context: MediaResourceContext | None = None,
 ) -> bool:
     start_time = time.time()
     poster_path = other.poster_path
@@ -441,7 +650,7 @@ async def thumb_download(
             return True
 
     # 获取高清背景图
-    await _get_big_thumb(result, other)
+    await _get_big_thumb(result, other, media_context)
 
     # 下载图片
     cover_url = result.thumb
@@ -465,7 +674,11 @@ async def thumb_download(
                 )
                 continue
             result.thumb_from = cover_from
-            if await download_file_with_filepath(cover_url, thumb_final_path_temp, folder_new_path):
+            if media_context is not None:
+                downloaded = await media_context.save_image(cover_url, thumb_final_path_temp, folder_new_path)
+            else:
+                downloaded = await download_file_with_filepath(cover_url, thumb_final_path_temp, folder_new_path)
+            if downloaded:
                 cover_size = await check_pic_async(thumb_final_path_temp)
                 if cover_size:
                     if (
@@ -522,6 +735,7 @@ async def poster_download(
     cd_part: str,
     folder_new_path: Path,
     poster_final_path: Path,
+    media_context: MediaResourceContext | None = None,
 ) -> bool:
     start_time = time.time()
     download_files = manager.config.download_files
@@ -597,7 +811,7 @@ async def poster_download(
         LogBuffer.log().write("\n 🖼 有码封面策略: 已启用「有码优先使用 Poster」，不走 SOD/VR 裁剪判定")
 
     # 获取高清 poster
-    await _get_big_poster(result, other)
+    await _get_big_poster(result, other, media_context)
 
     # 下载图片
     poster_url = result.poster
@@ -607,7 +821,11 @@ async def poster_download(
         poster_final_path_temp = poster_final_path.with_suffix(".[DOWNLOAD].jpg")
     if result.image_download:
         start_time = time.time()
-        if await download_file_with_filepath(poster_url, poster_final_path_temp, folder_new_path):
+        if media_context is not None:
+            downloaded = await media_context.save_image(poster_url, poster_final_path_temp, folder_new_path)
+        else:
+            downloaded = await download_file_with_filepath(poster_url, poster_final_path_temp, folder_new_path)
+        if downloaded:
             poster_size = await check_pic_async(poster_final_path_temp)
             if poster_size:
                 if (

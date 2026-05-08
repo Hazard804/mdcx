@@ -31,9 +31,10 @@ def _normalize_search_query(query: str) -> str:
 async def test_get_big_poster_uses_amazon_only_for_non_suren_censored(monkeypatch: pytest.MonkeyPatch):
     called = False
 
-    async def fake_get_big_pic_by_amazon(*args, **kwargs):
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
         nonlocal called
         called = True
+        result.amazon_match_is_hard = True
         return "https://m.media-amazon.com/images/I/81poster.jpg"
 
     monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
@@ -55,9 +56,10 @@ async def test_get_big_poster_uses_amazon_only_for_non_suren_censored(monkeypatc
 async def test_get_big_poster_keeps_original_amazon_whitelist(monkeypatch: pytest.MonkeyPatch):
     called = False
 
-    async def fake_get_big_pic_by_amazon(*args, **kwargs):
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
         nonlocal called
         called = True
+        result.amazon_match_is_hard = True
         return "https://m.media-amazon.com/images/I/81poster.jpg"
 
     monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
@@ -122,6 +124,52 @@ async def test_get_big_poster_skips_amazon_for_non_censored(monkeypatch: pytest.
     assert called is False
     assert result.poster == ""
     assert result.poster_from == ""
+
+
+@pytest.mark.asyncio
+async def test_get_big_poster_rejects_soft_amazon_without_reference(monkeypatch: pytest.MonkeyPatch):
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
+        result.amazon_match_is_hard = False
+        return "https://m.media-amazon.com/images/I/81soft.jpg"
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "有码"
+    result.originaltitle_amazon = "测试标题"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert result.poster == ""
+    assert result.poster_from == ""
+    assert result.image_download is False
+
+
+@pytest.mark.asyncio
+async def test_get_big_poster_accepts_soft_amazon_when_image_similarity_passes(monkeypatch: pytest.MonkeyPatch):
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
+        result.amazon_match_is_hard = False
+        return "https://m.media-amazon.com/images/I/81soft.jpg"
+
+    async def fake_verify(*args, **kwargs):
+        return True
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+    monkeypatch.setattr("mdcx.core.web._verify_soft_amazon_poster", fake_verify)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "有码"
+    result.originaltitle_amazon = "测试标题"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert result.poster == "https://m.media-amazon.com/images/I/81soft.jpg"
+    assert result.poster_from == "Amazon"
+    assert result.image_download is True
 
 
 @pytest.mark.asyncio
@@ -1148,7 +1196,7 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_skips_title_search(monkey
     """
     queries: list[str] = []
 
-    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult, *_args, **_kwargs):
         return [barcode]
 
     async def fake_get_amazon_data(req_url: str):
@@ -1209,7 +1257,7 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_prefers_dvd_over_bluray(m
     </html>
     """
 
-    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult, *_args, **_kwargs):
         return [barcode]
 
     async def fake_get_amazon_data(req_url: str):
@@ -1273,7 +1321,7 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_falls_back_to_title_searc
     """
     queries: list[str] = []
 
-    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult, *_args, **_kwargs):
         return [barcode]
 
     async def fake_get_amazon_data(req_url: str):
@@ -1340,7 +1388,7 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_tries_next_barcode_candid
     """
     queries: list[str] = []
 
-    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult, *_args, **_kwargs):
         return [first_barcode, second_barcode]
 
     async def fake_get_amazon_data(req_url: str):
@@ -1420,6 +1468,42 @@ async def test_try_get_amazon_barcode_from_covers_logs_ocr_fallback_hit(monkeypa
     assert "Amazon条码识别：OCR回退命中 EAN/JAN 4549831546432 (dmm) 候选2个" in logs
 
 
+@pytest.mark.asyncio
+async def test_try_get_amazon_barcode_from_covers_reuses_media_context(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.core.media_resource import MediaResourceContext
+
+    class _FakeResponse:
+        def __init__(self, url: str, content: bytes):
+            self.url = url
+            self.content = content
+
+    calls: list[str] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append(url)
+        return _FakeResponse(url, b"fake-image"), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+    monkeypatch.setattr(
+        "mdcx.core.amazon._detect_amazon_barcode_candidates_from_image_bytes_with_reason",
+        lambda _content: (["4549831546432"], "direct"),
+    )
+
+    result = CrawlersResult.empty()
+    result.thumb_from = "dmm"
+    result.thumb = "https://example.com/club00614pl.jpg"
+
+    context = MediaResourceContext()
+    try:
+        assert await try_get_amazon_barcode_from_covers(result, context) == "4549831546432"
+        assert await try_get_amazon_barcode_from_covers(result, context) == "4549831546432"
+    finally:
+        context.close()
+
+    assert calls == ["https://example.com/club00614pl.jpg"]
+
+
 def test_beam_search_amazon_ean13_prefers_checksum_valid_candidate():
     target = "4549831546432"
     ranked_digits: list[list[tuple[float, str]]] = [[(0.95, digit), (0.90, "0")] for digit in target]
@@ -1451,7 +1535,7 @@ async def test_get_big_pic_by_amazon_logs_barcode_skip_before_title_fallback(mon
     """
     queries: list[str] = []
 
-    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult, *_args, **_kwargs):
         return []
 
     async def fake_get_amazon_data(req_url: str):
@@ -1635,7 +1719,7 @@ async def test_get_big_pic_by_amazon_rejects_multi_actor_compilation_without_num
     </html>
     """
 
-    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult):
+    async def fake_try_get_amazon_barcodes_from_covers(_result: CrawlersResult, *_args, **_kwargs):
         return []
 
     async def fake_get_amazon_data(req_url: str):

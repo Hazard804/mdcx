@@ -18,6 +18,17 @@ from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 from ..models.types import CrawlersResult
 from ..utils import convert_half
+from .media_resource import MediaResourceContext
+
+
+def _set_amazon_match_state(result: CrawlersResult, *, is_hard: bool, reason: str, url: str = "") -> None:
+    result.amazon_match_is_hard = is_hard
+    result.amazon_match_reason = reason
+    result.amazon_match_url = url
+
+
+def is_amazon_hard_match(result: CrawlersResult) -> bool:
+    return bool(getattr(result, "amazon_match_is_hard", False))
 
 
 def _normalize_amazon_barcode(barcode: str) -> str:
@@ -500,7 +511,10 @@ def _detect_amazon_barcode_from_image_bytes(image_bytes: bytes) -> str:
     return barcode
 
 
-async def try_get_amazon_barcodes_from_covers(result: CrawlersResult) -> list[str]:
+async def try_get_amazon_barcodes_from_covers(
+    result: CrawlersResult,
+    media_context: MediaResourceContext | None = None,
+) -> list[str]:
     cover_candidates: list[tuple[str, str]] = []
     seen_cover_keys: set[str] = set()
     primary_cover = (result.thumb_from, result.thumb)
@@ -530,7 +544,10 @@ async def try_get_amazon_barcodes_from_covers(result: CrawlersResult) -> list[st
         content: bytes | None = None
         error = ""
         if re.match(r"^https?://", cover, flags=re.I):
-            content, error = await manager.computed.async_client.get_content(cover)
+            if media_context is not None:
+                content = await media_context.fetch_bytes(cover)
+            else:
+                content, error = await manager.computed.async_client.get_content(cover)
         else:
             cover_path = Path(cover)
             if cover_path.is_file():
@@ -560,8 +577,11 @@ async def try_get_amazon_barcodes_from_covers(result: CrawlersResult) -> list[st
     return []
 
 
-async def try_get_amazon_barcode_from_covers(result: CrawlersResult) -> str:
-    barcodes = await try_get_amazon_barcodes_from_covers(result)
+async def try_get_amazon_barcode_from_covers(
+    result: CrawlersResult,
+    media_context: MediaResourceContext | None = None,
+) -> str:
+    barcodes = await try_get_amazon_barcodes_from_covers(result, media_context)
     return barcodes[0] if barcodes else ""
 
 
@@ -572,7 +592,9 @@ async def get_big_pic_by_amazon(
     series: str = "",
     originaltitle_amazon_raw: str = "",
     series_raw: str = "",
+    media_context: MediaResourceContext | None = None,
 ) -> str:
+    _set_amazon_match_state(result, is_hard=False, reason="", url="")
     if not originaltitle_amazon and not originaltitle_amazon_raw:
         return ""
     hd_pic_url = ""
@@ -1120,6 +1142,12 @@ async def get_big_pic_by_amazon(
                     f"\n 🟢 Amazon兜底命中：演员({matched_actor}) 置信度({confidence:.2f}) "
                     f"番号命中({bool(number_match)}) 标题({matched_title})"
                 )
+                _set_amazon_match_state(
+                    result,
+                    is_hard=bool(number_match),
+                    reason="number" if number_match else "actor_fallback",
+                    url=matched_url,
+                )
                 return matched_url
 
         if best_fallback_match is None:
@@ -1131,6 +1159,12 @@ async def get_big_pic_by_amazon(
         )
         result.poster = matched_url
         result.poster_from = "Amazon"
+        _set_amazon_match_state(
+            result,
+            is_hard=bool(number_match),
+            reason="number" if number_match else "actor_fallback",
+            url=matched_url,
+        )
         return ""
 
     def normalize_detail_url(detail_url: str) -> str:
@@ -1333,6 +1367,30 @@ async def get_big_pic_by_amazon(
     def is_hd_candidate_width(width: int) -> bool:
         return width >= 1770 or 1750 > width > 600 or not width
 
+    def candidate_is_hard_match(candidate: dict[str, object]) -> bool:
+        if bool(candidate.get("detail_barcode_match")):
+            return True
+        if candidate_number_match(candidate):
+            return True
+        return bool(
+            has_valid_actor
+            and expected_actor_count > 0
+            and candidate_actor_match_count(candidate) >= expected_actor_count
+        )
+
+    def candidate_match_reason(candidate: dict[str, object]) -> str:
+        if bool(candidate.get("detail_barcode_match")):
+            return "barcode"
+        if candidate_number_match(candidate):
+            return "number"
+        if (
+            has_valid_actor
+            and expected_actor_count > 0
+            and candidate_actor_match_count(candidate) >= expected_actor_count
+        ):
+            return "all_actors"
+        return "soft"
+
     def barcode_candidate_sort_key(
         candidate: dict[str, object],
     ) -> tuple[int, int, int, int, int, int, float, int, int]:
@@ -1349,7 +1407,7 @@ async def get_big_pic_by_amazon(
         )
 
     async def try_get_big_pic_by_amazon_via_barcode() -> str:
-        barcodes = (await try_get_amazon_barcodes_from_covers(result))[:3]
+        barcodes = (await try_get_amazon_barcodes_from_covers(result, media_context))[:3]
         if not barcodes:
             LogBuffer.log().write("\n 🟡 Amazon条码快路径跳过：未获取到条码，回退标题搜索")
             return ""
@@ -1465,9 +1523,11 @@ async def get_big_pic_by_amazon(
                         f"\n 🟢 Amazon条码快路径命中：EAN/JAN({barcode}) "
                         f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
                     )
+                    _set_amazon_match_state(result, is_hard=True, reason="barcode", url=str(best_candidate["url"]))
                     return str(best_candidate["url"])
                 result.poster = str(best_candidate["url"])
                 result.poster_from = "Amazon"
+                _set_amazon_match_state(result, is_hard=True, reason="barcode", url=str(best_candidate["url"]))
                 LogBuffer.log().write(
                     f"\n 🟡 Amazon条码快路径命中低清图：EAN/JAN({barcode}) "
                     f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
@@ -1482,9 +1542,21 @@ async def get_big_pic_by_amazon(
                         f"番号命中({candidate_number_match(best_candidate)}) "
                         f"介质({best_candidate['pic_ver'] or 'unknown'}) 标题({best_candidate['pic_title']})"
                     )
+                    _set_amazon_match_state(
+                        result,
+                        is_hard=candidate_number_match(best_candidate),
+                        reason="number" if candidate_number_match(best_candidate) else "barcode_weak",
+                        url=str(best_candidate["url"]),
+                    )
                     return str(best_candidate["url"])
                 result.poster = str(best_candidate["url"])
                 result.poster_from = "Amazon"
+                _set_amazon_match_state(
+                    result,
+                    is_hard=candidate_number_match(best_candidate),
+                    reason="number" if candidate_number_match(best_candidate) else "barcode_weak",
+                    url=str(best_candidate["url"]),
+                )
                 LogBuffer.log().write(
                     f"\n 🟡 Amazon条码快路径弱确认低清图：标题置信度({float(best_candidate['title_confidence']):.2f}) "
                     f"番号命中({candidate_number_match(best_candidate)}) "
@@ -1619,10 +1691,22 @@ async def get_big_pic_by_amazon(
                         f"演员命中({candidate_actor_match_count(each_candidate)}/{expected_actor_count or 0}) "
                         f"介质({each_candidate['pic_ver'] or 'unknown'}) 标题({each_candidate['pic_title']})"
                     )
+                    _set_amazon_match_state(
+                        result,
+                        is_hard=candidate_is_hard_match(each_candidate),
+                        reason=candidate_match_reason(each_candidate),
+                        url=str(each_candidate["url"]),
+                    )
                     return str(each_candidate["url"])
             if best_fallback_candidate:
                 result.poster = str(best_fallback_candidate["url"])
                 result.poster_from = "Amazon"
+                _set_amazon_match_state(
+                    result,
+                    is_hard=candidate_is_hard_match(best_fallback_candidate),
+                    reason=candidate_match_reason(best_fallback_candidate),
+                    url=str(best_fallback_candidate["url"]),
+                )
                 LogBuffer.log().write(
                     f"\n 🟡 Amazon命中低清图：标题置信度({float(best_fallback_candidate['title_confidence']):.2f}) "
                     f"番号命中({candidate_number_match(best_fallback_candidate)}) "
