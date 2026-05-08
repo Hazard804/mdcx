@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from ..config.enums import Language, Website
+from ..config.enums import FixedScrapingType, Language, Website
 from ..gen.field_enums import CrawlerResultFields
 
 
@@ -339,7 +339,8 @@ class CrawlersResult(BaseCrawlerResult):
     """
 
     # 以下用于后续下载资源
-    is_suren: bool  # 是否按素人番号处理，用于跳过 Amazon 搜图
+    scraping_type: FixedScrapingType  # 实际使用的网站分类，保持与“锁定刮削类型”一致
+    scraping_type_source: str  # fixed/auto，用于区分用户锁定和自动识别
     actor_amazon: list[str]  # 用于 Amazon 搜索的演员名称
     amazon_orginaltitle_actor: str  # 用于 Amazon 搜索的原始标题中的演员
     thumb_list: list[tuple[str, str]]  # 所有来源的缩略图URL列表
@@ -368,7 +369,8 @@ class CrawlersResult(BaseCrawlerResult):
         """
         return cls(
             **BaseCrawlerResult.empty().__dict__,
-            is_suren=False,
+            scraping_type=FixedScrapingType.AUTO,
+            scraping_type_source="",
             actor_amazon=[],
             amazon_orginaltitle_actor="",
             thumb_list=[],

@@ -4,7 +4,7 @@ import urllib.parse
 import numpy as np
 import pytest
 
-from mdcx.config.enums import HDPicSource
+from mdcx.config.enums import FixedScrapingType, HDPicSource
 from mdcx.config.manager import manager
 from mdcx.core.web import (
     _beam_search_amazon_ean13_from_ranked_digits,
@@ -42,6 +42,7 @@ async def test_get_big_poster_uses_amazon_only_for_non_suren_censored(monkeypatc
 
     result = CrawlersResult.empty()
     result.mosaic = "有码"
+    result.scraping_type = FixedScrapingType.YOUMA
     result.originaltitle_amazon = "测试标题"
     other = OtherInfo.empty()
 
@@ -66,8 +67,8 @@ async def test_get_big_poster_keeps_original_amazon_whitelist(monkeypatch: pytes
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
 
     result = CrawlersResult.empty()
-    result.mosaic = "流出"
-    result.originaltitle_amazon = "流出标题"
+    result.mosaic = "里番"
+    result.originaltitle_amazon = "里番标题"
     other = OtherInfo.empty()
 
     await _get_big_poster(result, other)
@@ -91,8 +92,36 @@ async def test_get_big_poster_skips_amazon_for_suren(monkeypatch: pytest.MonkeyP
 
     result = CrawlersResult.empty()
     result.mosaic = "有码"
-    result.is_suren = True
+    result.scraping_type = FixedScrapingType.SUREN
     result.originaltitle_amazon = "素人标题"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert called is False
+    assert result.poster == ""
+    assert result.poster_from == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scraping_type", [FixedScrapingType.FC2, FixedScrapingType.WUMA])
+async def test_get_big_poster_skips_amazon_for_fc2_and_wuma(
+    monkeypatch: pytest.MonkeyPatch, scraping_type: FixedScrapingType
+):
+    called = False
+
+    async def fake_get_big_pic_by_amazon(*args, **kwargs):
+        nonlocal called
+        called = True
+        return "https://m.media-amazon.com/images/I/81poster.jpg"
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "无码" if scraping_type == FixedScrapingType.WUMA else "有码"
+    result.scraping_type = scraping_type
+    result.originaltitle_amazon = "测试标题"
     other = OtherInfo.empty()
 
     await _get_big_poster(result, other)
@@ -116,6 +145,7 @@ async def test_get_big_poster_skips_amazon_for_non_censored(monkeypatch: pytest.
 
     result = CrawlersResult.empty()
     result.mosaic = "无码"
+    result.scraping_type = FixedScrapingType.WUMA
     result.originaltitle_amazon = "无码标题"
     other = OtherInfo.empty()
 
@@ -137,6 +167,7 @@ async def test_get_big_poster_rejects_soft_amazon_without_reference(monkeypatch:
 
     result = CrawlersResult.empty()
     result.mosaic = "有码"
+    result.scraping_type = FixedScrapingType.YOUMA
     result.originaltitle_amazon = "测试标题"
     other = OtherInfo.empty()
 
@@ -162,6 +193,7 @@ async def test_get_big_poster_accepts_soft_amazon_when_image_similarity_passes(m
 
     result = CrawlersResult.empty()
     result.mosaic = "有码"
+    result.scraping_type = FixedScrapingType.YOUMA
     result.originaltitle_amazon = "测试标题"
     other = OtherInfo.empty()
 
@@ -197,6 +229,7 @@ async def test_get_big_poster_continues_google_after_low_res_amazon_match(monkey
 
     result = CrawlersResult.empty()
     result.mosaic = "有码"
+    result.scraping_type = FixedScrapingType.YOUMA
     result.originaltitle_amazon = "测试标题"
     result.poster = "https://example.test/original.jpg"
     result.poster_from = "crawler"

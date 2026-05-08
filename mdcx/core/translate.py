@@ -10,7 +10,7 @@ from ..base.translate import (
     translate_with_engine,
 )
 from ..base.web import get_actorname, get_yesjav_title
-from ..config.enums import FieldRule, Language, TagInclude
+from ..config.enums import FieldRule, FixedScrapingType, Language, TagInclude
 from ..config.manager import manager
 from ..config.resources import resources
 from ..gen.field_enums import CrawlerResultFields
@@ -20,6 +20,26 @@ from ..number import get_number_letters
 from ..signals import signal
 from ..utils import clean_list, get_used_time
 from ..utils.language import is_japanese, is_probably_english_for_translation
+
+AVWIKI_SCRAPING_TYPES = {
+    FixedScrapingType.YOUMA,
+    FixedScrapingType.SUREN,
+    FixedScrapingType.FC2,
+}
+
+
+def _has_unknown_or_empty_actor(res: CrawlersResult) -> bool:
+    unknown_actor = manager.config.actor_no_name.strip()
+    actors = [actor.strip() for actor in res.actors if actor.strip()]
+    if not actors:
+        return True
+    return len(actors) == 1 and actors[0] == unknown_actor
+
+
+def _should_query_avwiki_actor(res: CrawlersResult) -> bool:
+    if res.scraping_type == FixedScrapingType.YOUMA:
+        return _has_unknown_or_empty_actor(res)
+    return res.scraping_type in AVWIKI_SCRAPING_TYPES
 
 
 def translate_info(json_data: CrawlersResult, has_sub: bool):
@@ -171,15 +191,11 @@ def translate_info(json_data: CrawlersResult, has_sub: bool):
 async def translate_actor(res: CrawlersResult):
     # 网络请求真实的演员名字
     actor_realname = manager.config.actor_realname
-    mosaic = res.mosaic
-    number = res.number
 
     # 非读取模式，勾选了使用真实名字时; 读取模式，勾选了允许更新真实名字时
     if actor_realname:
         start_time = time.time()
-        if mosaic != "国产" and (
-            number.startswith("FC2") or number.startswith("SIRO") or re.search(r"\d{3,}[A-Z]{3,}-", number)
-        ):
+        if _should_query_avwiki_actor(res):
             result, temp_actor = await get_actorname(res.number)
             if result:
                 actor: str = res.actor

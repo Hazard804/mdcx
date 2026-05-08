@@ -22,7 +22,7 @@ from ..base.web import (
     get_dmm_trailer,
     get_imgsize,
 )
-from ..config.enums import DownloadableFile, HDPicSource
+from ..config.enums import DownloadableFile, FixedScrapingType, HDPicSource
 from ..config.manager import manager
 from ..manual import ManualConfig
 from ..models.flags import Flags
@@ -44,6 +44,10 @@ from .amazon import (
 from .image import cut_thumb_to_poster
 from .media_resource import MediaResourceContext
 
+AMAZON_SEARCH_SCRAPING_TYPES = {FixedScrapingType.YOUMA}
+AMAZON_SEARCH_VARIANT_MOSAICS = {"流出", "无码破解", "無碼破解"}
+AMAZON_SEARCH_SPECIAL_MOSAICS = {"里番", "裏番", "动漫", "動漫"}
+
 __all__ = [
     "_beam_search_amazon_ean13_from_ranked_digits",
     "_detect_amazon_barcode_candidates_from_image_bytes_with_reason",
@@ -53,6 +57,26 @@ __all__ = [
     "try_get_amazon_barcode_from_covers",
     "try_get_amazon_barcodes_from_covers",
 ]
+
+
+def _should_search_amazon(result: CrawlersResult) -> bool:
+    if result.scraping_type in {FixedScrapingType.SUREN, FixedScrapingType.FC2, FixedScrapingType.WUMA}:
+        return False
+    if result.scraping_type in AMAZON_SEARCH_SCRAPING_TYPES:
+        return True
+    return result.mosaic in AMAZON_SEARCH_VARIANT_MOSAICS | AMAZON_SEARCH_SPECIAL_MOSAICS
+
+
+def _get_poster_copy_policy(result: CrawlersResult, download_files: list[DownloadableFile]) -> tuple[bool, str]:
+    if result.scraping_type == FixedScrapingType.FC2:
+        return DownloadableFile.IGNORE_FC2 in download_files, "center"
+    if result.scraping_type == FixedScrapingType.GUOCHAN:
+        return DownloadableFile.IGNORE_GUOCHAN in download_files, "right"
+    if result.scraping_type == FixedScrapingType.WUMA:
+        return DownloadableFile.IGNORE_WUMA in download_files, "center"
+    if result.scraping_type == FixedScrapingType.YOUMA:
+        return DownloadableFile.IGNORE_YOUMA in download_files, ""
+    return False, ""
 
 
 async def _cleanup_download_part_files(*file_paths: Path) -> None:
@@ -525,19 +549,9 @@ async def _get_big_poster(
     poster_width = 0
 
     # 保持原有类型白名单，仅额外排除素人番号
-    if HDPicSource.AMAZON in manager.config.download_hd_pics and result.is_suren:
+    if HDPicSource.AMAZON in manager.config.download_hd_pics and result.scraping_type == FixedScrapingType.SUREN:
         LogBuffer.log().write("\n 🔎 Amazon搜索：检测为素人番号，已跳过")
-    elif HDPicSource.AMAZON in manager.config.download_hd_pics and result.mosaic in [
-        "有码",
-        "有碼",
-        "流出",
-        "无码破解",
-        "無碼破解",
-        "里番",
-        "裏番",
-        "动漫",
-        "動漫",
-    ]:
+    elif HDPicSource.AMAZON in manager.config.download_hd_pics and _should_search_amazon(result):
         originaltitle_amazon_raw = result.originaltitle_amazon
         originaltitle_amazon_replaced = originaltitle_amazon_raw
         series_raw = result.series
@@ -793,24 +807,7 @@ async def poster_download(
 
     # 勾选复制 thumb时：国产，复制thumb；无码，勾选不裁剪时，也复制thumb
     if thumb_path:
-        mosaic = result.mosaic
-        number = result.number
-        copy_flag = False
-        if number.startswith("FC2"):
-            image_cut = "center"
-            if DownloadableFile.IGNORE_FC2 in download_files:
-                copy_flag = True
-        elif mosaic == "国产" or mosaic == "國產":
-            image_cut = "right"
-            if DownloadableFile.IGNORE_GUOCHAN in download_files:
-                copy_flag = True
-        elif mosaic == "无码" or mosaic == "無碼" or mosaic == "無修正":
-            image_cut = "center"
-            if DownloadableFile.IGNORE_WUMA in download_files:
-                copy_flag = True
-        elif mosaic == "有码" or mosaic == "有碼":
-            if DownloadableFile.IGNORE_YOUMA in download_files:
-                copy_flag = True
+        copy_flag, image_cut = _get_poster_copy_policy(result, download_files)
         if copy_flag:
             await copy_file_async(thumb_path, poster_final_path)
             other.poster_marked = other.thumb_marked
@@ -820,7 +817,7 @@ async def poster_download(
             return True
 
     if (
-        result.mosaic in ["有码", "有碼"]
+        result.scraping_type == FixedScrapingType.YOUMA
         and DownloadableFile.YOUMA_USE_POSTER in download_files
         and DownloadableFile.IGNORE_YOUMA not in download_files
     ):

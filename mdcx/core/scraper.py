@@ -21,7 +21,7 @@ from ..base.file import (
     save_success_list,
 )
 from ..base.image import extrafanart_copy2, extrafanart_extras_copy
-from ..config.enums import DownloadableFile, EmbyAction, ReadMode, Switch
+from ..config.enums import DownloadableFile, EmbyAction, FixedScrapingType, ReadMode, Switch
 from ..config.extend import get_movie_path_setting
 from ..config.manager import manager
 from ..config.resources import resources
@@ -38,7 +38,7 @@ from ..utils.dataclass import update
 from ..utils.file import copy_file_async, move_file_async
 from ..utils.path import is_descendant
 from .file import creat_folder, deal_old_files, get_file_info_v2, get_output_name, move_movie
-from .file_crawler import FileScraper
+from .file_crawler import FileScraper, classify_scrape_task
 from .image import add_mark
 from .media_resource import MediaResourceContext
 from .nfo import get_nfo_data, write_nfo
@@ -587,7 +587,8 @@ class Scraper:
 
         # 刮削json_data
         # 获取已刮削的json_data
-        enable_shared_json = "." not in movie_number and file_info.mosaic not in ["国产"]
+        file_classification = classify_scrape_task(file_info.crawl_task(), manager.config)
+        enable_shared_json = "." not in movie_number and file_classification.scraping_type != FixedScrapingType.GUOCHAN
         if enable_shared_json:
             if movie_number not in Flags.json_get_status:
                 # 第一次遇到该番号，标记为“正在刮削”
