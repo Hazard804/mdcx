@@ -1,8 +1,16 @@
+from pathlib import Path
+
 import pytest
 
 from mdcx.config.enums import FixedScrapingType, Website
 from mdcx.config.models import FieldConfig
-from mdcx.core.file_crawler import FileScraper, _deal_res, _is_suren_number, classify_scrape_task
+from mdcx.core.file_crawler import (
+    FileScraper,
+    _deal_res,
+    _is_suren_number,
+    classify_existing_scrape_result,
+    classify_scrape_task,
+)
 from mdcx.core.translate import AVWIKI_SCRAPING_TYPES, _should_query_avwiki_actor
 from mdcx.gen.field_enums import CrawlerResultFields
 from mdcx.manual import ManualConfig
@@ -136,10 +144,15 @@ def test_is_suren_number_matches_current_scrape_branch(file_number: str, short_n
         ("SIRO-5533", "", "", FixedScrapingType.SUREN, {Website.MGSTAGE}),
         ("FC2-123456", "", "", FixedScrapingType.FC2, {Website.FC2}),
         ("100225_100", "无码", "", FixedScrapingType.WUMA, {Website.JAVBUS}),
-        ("ABF-131", "无码破解", "", FixedScrapingType.WUMA, {Website.JAVBUS}),
-        ("ABF-132", "无码流出", "", FixedScrapingType.WUMA, {Website.JAVBUS}),
+        ("100225_101", "無修正", "", FixedScrapingType.WUMA, {Website.JAVBUS}),
+        ("ABF-131", "无码破解", "", FixedScrapingType.YOUMA, {Website.DMM}),
+        ("ABF-132", "无码流出", "", FixedScrapingType.YOUMA, {Website.DMM}),
+        ("ABF-133", "流出", "", FixedScrapingType.YOUMA, {Website.DMM}),
+        ("ABF-134", "無碼破解", "", FixedScrapingType.YOUMA, {Website.DMM}),
+        ("ABF-135", "無碼流出", "", FixedScrapingType.YOUMA, {Website.DMM}),
         ("MD-1234", "", "", FixedScrapingType.GUOCHAN, {Website.MDTV}),
         ("DANDY-732", "", "", FixedScrapingType.YOUMA, {Website.DMM}),
+        ("SSNI00321", "", "", FixedScrapingType.YOUMA, {Website.DMM}),
     ],
 )
 def test_classify_scrape_task_keeps_existing_type_branches(
@@ -159,6 +172,40 @@ def test_classify_scrape_task_keeps_existing_type_branches(
     assert classification.scraping_type == expected_type
     assert classification.scraping_type_source == "auto"
     assert classification.sites == expected_sites
+
+
+@pytest.mark.parametrize(
+    ("number", "file_path", "expected_website"),
+    [
+        ("KIN8-4188", "", Website.KIN8),
+        ("MYWIFE-1500", "D:/test/mywife/MYWIFE-1500.mp4", Website.MYWIFE),
+    ],
+)
+def test_classify_scrape_task_marks_youma_specific_crawlers(number: str, file_path: str, expected_website: Website):
+    task = CrawlTask.empty()
+    task.number = number
+    if file_path:
+        task.file_path = Path(file_path)
+
+    classification = classify_scrape_task(task, _ClassificationConfig())
+
+    assert classification.scraping_type == FixedScrapingType.YOUMA
+    assert classification.website == expected_website
+
+
+def test_classify_existing_scrape_result_uses_nfo_mosaic_without_substring_wuma_match():
+    task = CrawlTask.empty()
+    task.number = "ABF-131"
+
+    result = CrawlersResult.empty()
+    result.number = "ABF-131"
+    result.mosaic = "无码破解"
+
+    classification = classify_existing_scrape_result(task, result, _ClassificationConfig())
+
+    assert classification.scraping_type == FixedScrapingType.YOUMA
+    assert result.scraping_type == FixedScrapingType.YOUMA
+    assert result.scraping_type_source == "auto"
 
 
 def test_classify_scrape_task_fixed_type_overrides_auto_detection():

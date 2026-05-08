@@ -38,7 +38,7 @@ from ..utils.dataclass import update
 from ..utils.file import copy_file_async, move_file_async
 from ..utils.path import is_descendant
 from .file import creat_folder, deal_old_files, get_file_info_v2, get_output_name, move_movie
-from .file_crawler import FileScraper, classify_scrape_task
+from .file_crawler import FileScraper, classify_existing_scrape_result, classify_scrape_task
 from .image import add_mark
 from .media_resource import MediaResourceContext
 from .nfo import get_nfo_data, write_nfo
@@ -538,6 +538,7 @@ class Scraper:
 
         is_nfo_existed = False
         res = CrawlersResult.empty()  # todo 保证所有路径上均有 res 值
+        file_classification = None
         # 读取模式
         file_can_download = True
         if manager.config.main_mode == 4:
@@ -546,6 +547,7 @@ class Scraper:
                 is_nfo_existed = True
                 res = nfo_data
                 movie_number = nfo_data.number
+                file_classification = classify_existing_scrape_result(file_info.crawl_task(), res, manager.config)
                 if "has_nfo_update" not in read_mode:  # 不更新并返回
                     show_result(res, start_time)
                     show_movie_info(file_info, nfo_data)
@@ -587,7 +589,8 @@ class Scraper:
 
         # 刮削json_data
         # 获取已刮削的json_data
-        file_classification = classify_scrape_task(file_info.crawl_task(), manager.config)
+        if file_classification is None:
+            file_classification = classify_scrape_task(file_info.crawl_task(), manager.config)
         enable_shared_json = "." not in movie_number and file_classification.scraping_type != FixedScrapingType.GUOCHAN
         if enable_shared_json:
             if movie_number not in Flags.json_get_status:

@@ -27,7 +27,7 @@ MULTI_LANGUAGE_WEBSITES = [  # 支持多语言, language 参数有意义
 ]
 
 GUOCHAN_MOSAIC_VALUES = {"国产", "國產"}
-WUMA_MOSAIC_VALUES = {"无码", "無碼", "無修正", "无码破解", "無碼破解", "无码流出", "無碼流出", "流出"}
+WUMA_MOSAIC_VALUES = {"无码", "無碼", "無修正"}
 
 
 def sprint_source(website: Website, language: Language) -> str:
@@ -89,7 +89,7 @@ def classify_scrape_task(task_input: CrawlTask, config: "Config", use_fixed_type
         return ScrapeClassification(FixedScrapingType.GUOCHAN, "auto", sites=config.website_guochan, mosaic="国产")
 
     if file_number.startswith("KIN8"):
-        return ScrapeClassification(FixedScrapingType.AUTO, "auto", website=Website.KIN8)
+        return ScrapeClassification(FixedScrapingType.YOUMA, "auto", website=Website.KIN8)
 
     if file_number.startswith("DLID"):
         return ScrapeClassification(FixedScrapingType.AUTO, "auto", website=Website.GETCHU)
@@ -98,7 +98,7 @@ def classify_scrape_task(task_input: CrawlTask, config: "Config", use_fixed_type
         return ScrapeClassification(FixedScrapingType.AUTO, "auto", website=Website.GETCHU_DMM)
 
     if "mywife" in file_path_str:
-        return ScrapeClassification(FixedScrapingType.AUTO, "auto", website=Website.MYWIFE)
+        return ScrapeClassification(FixedScrapingType.YOUMA, "auto", website=Website.MYWIFE)
 
     if "FC2" in file_number.upper():
         file_number_1 = re.search(r"\d{5,}", file_number)
@@ -120,9 +120,30 @@ def classify_scrape_task(task_input: CrawlTask, config: "Config", use_fixed_type
         return ScrapeClassification(FixedScrapingType.SUREN, "auto", sites=config.website_suren)
 
     if re.match(r"\D{2,}00\d{3,}", file_number) and "-" not in file_number and "_" not in file_number:
-        return ScrapeClassification(FixedScrapingType.AUTO, "auto", sites={Website.DMM})
+        return ScrapeClassification(FixedScrapingType.YOUMA, "auto", sites={Website.DMM})
 
     return ScrapeClassification(FixedScrapingType.YOUMA, "auto", sites=config.website_youma)
+
+
+def apply_scrape_classification(result: CrawlersResult, classification: ScrapeClassification) -> None:
+    result.scraping_type = classification.scraping_type
+    result.scraping_type_source = classification.scraping_type_source
+
+
+def classify_existing_scrape_result(
+    task_input: CrawlTask, result: CrawlersResult, config: "Config", use_fixed_type: bool = True
+) -> ScrapeClassification:
+    # 读取已有 NFO 时保留文件上下文，只用 NFO 中更可信的番号和马赛克覆盖分类输入。
+    classification_input = update(
+        task_input,
+        {
+            "number": result.number or task_input.number,
+            "mosaic": result.mosaic or task_input.mosaic,
+        },
+    )
+    classification = classify_scrape_task(classification_input, config, use_fixed_type=use_fixed_type)
+    apply_scrape_classification(result, classification)
+    return classification
 
 
 def _deal_res(res: CrawlersResult) -> CrawlersResult:
@@ -475,8 +496,7 @@ class FileScraper:
         if appoint_number:
             number = appoint_number
         res.number = number  # 此处设置
-        res.scraping_type = classification.scraping_type
-        res.scraping_type_source = classification.scraping_type_source
+        apply_scrape_classification(res, classification)
 
         # 从res获取mosaic
         if res.mosaic == "无码":

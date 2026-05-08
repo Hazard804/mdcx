@@ -54,6 +54,32 @@ async def test_get_big_poster_uses_amazon_only_for_non_suren_censored(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_get_big_poster_uses_amazon_for_youma_restored(monkeypatch: pytest.MonkeyPatch):
+    called = False
+
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
+        nonlocal called
+        called = True
+        result.amazon_match_is_hard = True
+        return "https://m.media-amazon.com/images/I/81restored.jpg"
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "无码破解"
+    result.scraping_type = FixedScrapingType.YOUMA
+    result.originaltitle_amazon = "破解标题"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert called is True
+    assert result.poster == "https://m.media-amazon.com/images/I/81restored.jpg"
+    assert result.poster_from == "Amazon"
+
+
+@pytest.mark.asyncio
 async def test_get_big_poster_keeps_original_amazon_whitelist(monkeypatch: pytest.MonkeyPatch):
     called = False
 
