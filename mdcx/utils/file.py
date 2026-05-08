@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import traceback
+from collections.abc import Iterable
 from pathlib import Path
 
 import aiofiles.os
@@ -10,6 +11,35 @@ from PIL import Image
 
 from ..consts import IS_MAC, IS_WINDOWS
 from ..signals import signal
+
+
+def _build_file_name_index_sync(folder: Path) -> dict[str, Path]:
+    file_name_index: dict[str, Path] = {}
+    for root, dirs, files in folder.walk(top_down=True):
+        dirs.sort()
+        for file in sorted(files):
+            file_name_index.setdefault(file.lower(), root / file)
+    return file_name_index
+
+
+async def build_file_name_index(folder: str | Path) -> dict[str, Path]:
+    """递归索引目录内文件名，用于在字幕包等外部目录中快速匹配文件。"""
+    folder = Path(folder)
+    if not await aiofiles.os.path.isdir(folder):
+        return {}
+    return await asyncio.to_thread(_build_file_name_index_sync, folder)
+
+
+def find_file_from_index(file_name_index: dict[str, Path], file_names: Iterable[str]) -> Path | None:
+    for file_name in file_names:
+        if file_path := file_name_index.get(file_name.lower()):
+            return file_path
+    return None
+
+
+async def find_file_in_folder(folder: str | Path, file_names: Iterable[str]) -> Path | None:
+    file_name_index = await build_file_name_index(folder)
+    return find_file_from_index(file_name_index, file_names)
 
 
 def delete_file_sync(p: str | Path):
