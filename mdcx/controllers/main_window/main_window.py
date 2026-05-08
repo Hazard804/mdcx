@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
 from PyQt6.QtCore import QEvent, QItemSelectionModel, QPoint, QPointF, Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QAction, QCursor, QGuiApplication, QHoverEvent, QIcon, QKeySequence, QShortcut
+from PyQt6.QtGui import QAction, QCursor, QGuiApplication, QHoverEvent, QIcon, QKeySequence, QPixmap, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -51,7 +51,7 @@ from mdcx.core.network_check import run_network_check
 from mdcx.core.nfo import write_nfo
 from mdcx.core.scraper import again_search, get_remain_list, start_new_scrape
 from mdcx.crawlers.fc2ppvdb import cookie_str_to_dict, fetch_article_info_with_warmup
-from mdcx.image import get_pixmap
+from mdcx.image import PreviewImageLoader
 from mdcx.models.enums import FileMode
 from mdcx.models.flags import Flags
 from mdcx.models.log_buffer import LogBuffer
@@ -157,6 +157,7 @@ class MyMAinWindow(QMainWindow):
         self.network_check_future = None
         self.file_main_open_path = Path()  # 主界面打开的文件路径
         self.json_array: dict[str, ShowData] = {}  # 主界面右侧结果树状数据
+        self.preview_request_id = 0  # 主界面图片预览请求序号，用于丢弃过期加载结果
 
         self.window_radius = 0  # 窗口四角弧度，为0时表示显示窗口标题栏
         self.window_border = 0  # 窗口描边，为0时表示显示窗口标题栏
@@ -202,6 +203,8 @@ class MyMAinWindow(QMainWindow):
         self._setup_fc2ppvdb_cookie_ui()
         self._setup_baidu_translate_ui()
         self.cutwindow = CutWindow(self)
+        self.preview_image_loader = PreviewImageLoader(self)
+        self.preview_image_loader.loaded.connect(self._apply_preview_images)
         self.Init_Singal()  # 信号连接
         self.Init_Ui()  # 设置Ui初始状态
         self.load_config()  # 加载配置
@@ -722,6 +725,8 @@ class MyMAinWindow(QMainWindow):
                 manager.save()
             except Exception:
                 signal_qt.show_traceback_log(traceback.format_exc())
+        if hasattr(self, "preview_image_loader"):
+            self.preview_image_loader.shutdown()
         if hasattr(self, "tray_icon"):
             self.tray_icon.hide()
         signal_qt.show_traceback_log("\n\n\n\n************ 程序正常退出！************\n")
@@ -1160,44 +1165,59 @@ class MyMAinWindow(QMainWindow):
                     thumb_path = fanart_path
                 poster_from = data.poster_from
                 cover_from = data.thumb_from
-                if poster_path and thumb_path:
-                    executor.submit(self._set_pixmap(poster_path, thumb_path, poster_from, cover_from))
+                self._request_preview_images(poster_path, thumb_path, poster_from, cover_from)
         except Exception:
             if not signal_qt.stop:
                 signal_qt.show_traceback_log(traceback.format_exc())
 
+    def _request_preview_images(
+        self,
+        poster_path: Path | None,
+        thumb_path: Path | None,
+        poster_from="",
+        cover_from="",
+    ) -> None:
+        self.preview_request_id += 1
+        self.Ui.label_poster_size.setText("")
+        self.resize_label_and_setpixmap(
+            [False, "", "加载中...", 156, 220] if poster_path else [False, "", "暂无封面图", 156, 220],
+            [False, "", "加载中...", 328, 220] if thumb_path else [False, "", "暂无缩略图", 328, 220],
+        )
+        self.preview_image_loader.load(self.preview_request_id, poster_path, thumb_path, poster_from, cover_from)
+
     async def _set_pixmap(
         self,
-        poster_path: Path,
-        thumb_path: Path,
+        poster_path: Path | None,
+        thumb_path: Path | None,
         poster_from="",
         cover_from="",
     ):
-        poster_pix = [False, "", "暂无封面图", 156, 220]
-        thumb_pix = [False, "", "暂无缩略图", 328, 220]
-        if os.path.exists(poster_path):
-            poster_pix = await get_pixmap(poster_path, poster=True, pic_from=poster_from)
-        if os.path.exists(thumb_path):
-            thumb_pix = await get_pixmap(thumb_path, poster=False, pic_from=cover_from)
+        self._request_preview_images(poster_path, thumb_path, poster_from, cover_from)
 
-        # self.Ui.label_poster_size.setText(poster_pix[2] + '  ' + thumb_pix[2])
+    def _apply_preview_images(self, request_id: int, poster_pix: list, thumb_pix: list) -> None:
+        if request_id != self.preview_request_id:
+            return
         poster_text = poster_pix[2] if poster_pix[2] != "暂无封面图" else ""
         thumb_text = thumb_pix[2] if thumb_pix[2] != "暂无缩略图" else ""
-        self.set_pic_text.emit((poster_text + " " + thumb_text).strip())
-        self.set_pic_pixmap.emit(poster_pix, thumb_pix)
+        self.Ui.label_poster_size.setText((poster_text + " " + thumb_text).strip())
+        self.resize_label_and_setpixmap(poster_pix, thumb_pix)
 
     def resize_label_and_setpixmap(self, poster_pix, thumb_pix):
         self.Ui.label_poster.resize(poster_pix[3], poster_pix[4])
         self.Ui.label_thumb.resize(thumb_pix[3], thumb_pix[4])
 
         if poster_pix[0]:
-            self.Ui.label_poster.setPixmap(poster_pix[1])
+            poster_pixmap = poster_pix[1] if isinstance(poster_pix[1], QPixmap) else QPixmap.fromImage(poster_pix[1])
+            self.Ui.label_poster.setPixmap(poster_pixmap)
         else:
+            self.Ui.label_poster.clear()
             self.Ui.label_poster.setText(poster_pix[2])
 
         if thumb_pix[0]:
-            self.Ui.label_thumb.setPixmap(thumb_pix[1])
+            thumb_pixmap = thumb_pix[1] if isinstance(thumb_pix[1], QPixmap) else QPixmap.fromImage(thumb_pix[1])
+            self.Ui.label_thumb.setPixmap(thumb_pixmap)
         else:
+            self.Ui.label_thumb.clear()
             self.Ui.label_thumb.setText(thumb_pix[2])
 
     # endregion
