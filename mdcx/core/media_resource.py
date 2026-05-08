@@ -105,9 +105,9 @@ class MediaResourceContext:
         if image is None:
             return None
         try:
-            img = Image.open(BytesIO(image.content))
-            img.load()
-            return img.convert("RGB")
+            with Image.open(BytesIO(image.content)) as img:
+                img.load()
+                return img.convert("RGB")
         except Exception:
             return None
 
@@ -165,9 +165,15 @@ class MediaResourceContext:
     async def _save_converted_jpg(image: FetchedImage, file_path: Path) -> bool:
         try:
             with Image.open(BytesIO(image.content)) as img:
+                converted = None
                 if img.mode == "RGBA":
-                    img = img.convert("RGB")
-                img.save(file_path, quality=95, subsampling=0)
+                    converted = img.convert("RGB")
+                save_img = converted or img
+                try:
+                    save_img.save(file_path, quality=95, subsampling=0)
+                finally:
+                    if converted is not None:
+                        converted.close()
             return True
         except Exception as e:
             LogBuffer.log().write(f"\n 🔴 WebP转换失败: {image.url} {file_path} {str(e)}")

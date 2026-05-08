@@ -87,6 +87,31 @@ async def test_media_resource_context_reuses_image_bytes_for_open_and_save(
 
 
 @pytest.mark.asyncio
+async def test_media_resource_context_close_clears_cached_image_bytes(monkeypatch: pytest.MonkeyPatch):
+    calls: list[str] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append(url)
+        return _FakeResponse(url, _jpeg_bytes()), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    url = "https://example.test/poster.jpg"
+
+    assert await context.fetch_bytes(url)
+    context.close()
+    assert await context.fetch_bytes(url)
+    context.close()
+
+    assert calls == [
+        "https://example.test/poster.jpg",
+        "https://example.test/poster.jpg",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_media_resource_context_does_not_cache_failed_fetch(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     calls: list[str] = []
 

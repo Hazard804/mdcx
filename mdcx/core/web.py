@@ -68,9 +68,9 @@ async def _get_image_size(url: str, media_context: MediaResourceContext | None =
 
 def _open_rgb_image_from_bytes(content: bytes) -> Image.Image | None:
     try:
-        img = Image.open(BytesIO(content))
-        img.load()
-        return img.convert("RGB")
+        with Image.open(BytesIO(content)) as img:
+            img.load()
+            return img.convert("RGB")
     except Exception:
         return None
 
@@ -96,7 +96,11 @@ def _cut_thumb_right_image(thumb_img: Image.Image) -> Image.Image:
             ax, ay, bx, by = 421, 0, w, h
     elif w == 840 and h == 472:
         ax, ay, bx, by = 473, 0, 788, h
-    return thumb_img.crop((ax, ay, bx, by)).convert("RGB")
+    cropped = thumb_img.crop((ax, ay, bx, by))
+    try:
+        return cropped.convert("RGB")
+    finally:
+        cropped.close()
 
 
 def _prepare_similarity_image(img: Image.Image) -> Image.Image:
@@ -105,26 +109,37 @@ def _prepare_similarity_image(img: Image.Image) -> Image.Image:
     if w <= 0 or h <= 0:
         return img.resize((160, 240))
     ratio = w / h
+    cropped = None
     if ratio > target_ratio:
         new_w = max(1, int(h * target_ratio))
         left = max(0, (w - new_w) // 2)
-        img = img.crop((left, 0, left + new_w, h))
+        cropped = img.crop((left, 0, left + new_w, h))
     elif ratio < target_ratio:
         new_h = max(1, int(w / target_ratio))
         top = max(0, (h - new_h) // 2)
-        img = img.crop((0, top, w, top + new_h))
-    return img.resize((160, 240), Image.Resampling.LANCZOS).convert("RGB")
+        cropped = img.crop((0, top, w, top + new_h))
+    source_img = cropped or img
+    resized = source_img.resize((160, 240), Image.Resampling.LANCZOS)
+    try:
+        return resized.convert("RGB")
+    finally:
+        resized.close()
+        if cropped is not None:
+            cropped.close()
 
 
 def _average_hash(img: Image.Image, hash_size: int = 8) -> int:
     gray = img.convert("L").resize((hash_size, hash_size), Image.Resampling.LANCZOS)
-    pixels = list(gray.getdata())
-    average = sum(pixels) / len(pixels)
-    result = 0
-    for index, pixel in enumerate(pixels):
-        if pixel >= average:
-            result |= 1 << index
-    return result
+    try:
+        pixels = list(gray.getdata())
+        average = sum(pixels) / len(pixels)
+        result = 0
+        for index, pixel in enumerate(pixels):
+            if pixel >= average:
+                result |= 1 << index
+        return result
+    finally:
+        gray.close()
 
 
 def _histogram_similarity(img_a: Image.Image, img_b: Image.Image) -> float:
@@ -140,13 +155,17 @@ def _histogram_similarity(img_a: Image.Image, img_b: Image.Image) -> float:
 def _cover_similarity(img_a: Image.Image, img_b: Image.Image) -> tuple[float, float, float]:
     prepared_a = _prepare_similarity_image(img_a)
     prepared_b = _prepare_similarity_image(img_b)
-    hash_a = _average_hash(prepared_a)
-    hash_b = _average_hash(prepared_b)
-    hash_bits = 64
-    hash_similarity = 1 - ((hash_a ^ hash_b).bit_count() / hash_bits)
-    hist_similarity = _histogram_similarity(prepared_a, prepared_b)
-    score = hash_similarity * 0.7 + hist_similarity * 0.3
-    return score, hash_similarity, hist_similarity
+    try:
+        hash_a = _average_hash(prepared_a)
+        hash_b = _average_hash(prepared_b)
+        hash_bits = 64
+        hash_similarity = 1 - ((hash_a ^ hash_b).bit_count() / hash_bits)
+        hist_similarity = _histogram_similarity(prepared_a, prepared_b)
+        score = hash_similarity * 0.7 + hist_similarity * 0.3
+        return score, hash_similarity, hist_similarity
+    finally:
+        prepared_a.close()
+        prepared_b.close()
 
 
 async def _download_image_to_memory(url: str, media_context: MediaResourceContext | None = None) -> Image.Image | None:
