@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from mdcx.config.enums import Website
+from mdcx.config.enums import DownloadableFile, Website
 from mdcx.config.models import Config
 from mdcx.config.v1 import ConfigV1
 from tests.random_generator import generate_random_pydantic_instance
@@ -69,6 +69,16 @@ def test_from_legacy():
     assert config.file_moword is True
     assert config.folder_hd is True
     assert config.file_hd is True
+
+
+def test_config_update_removes_old_youma_poster_option_without_enabling_new_option():
+    data = {"download_files": ["poster", "youma_use_poster"]}
+
+    Config.update(data)
+    config = Config.model_validate(data)
+
+    assert DownloadableFile.POSTER_AUTO_BEST not in config.download_files
+    assert "youma_use_poster" not in config.model_dump(mode="json")["download_files"]
 
 
 def test_default_config_template_is_valid_json_and_matches_current_model():

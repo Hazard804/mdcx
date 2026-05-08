@@ -861,6 +861,13 @@ class Config(BaseModel):
         处理字段变更.
         """
 
+        def migrate_download_file_option(value: Any) -> Any:
+            if value == "youma_use_poster":
+                return None
+            if value == DownloadableFile.POSTER_AUTO_BEST:
+                return DownloadableFile.POSTER_AUTO_BEST.value
+            return value
+
         def is_removed_airav_site(site: object) -> bool:
             return site == Website.AIRAV or site == Website.AIRAV.value
 
@@ -898,6 +905,16 @@ class Config(BaseModel):
             d["use_database"] = bool(r)
         if isinstance(r := d.get("local_library"), str):
             d["local_library"] = str_to_list(r, ",")
+        if isinstance(download_files := d.get("download_files"), str):
+            d["download_files"] = [
+                item
+                for value in str_to_list(download_files, ",")
+                if (item := migrate_download_file_option(value)) is not None
+            ]
+        elif isinstance(download_files, list | set):
+            d["download_files"] = [
+                item for value in download_files if (item := migrate_download_file_option(value)) is not None
+            ]
 
         # 兼容旧版 llm_prompt 配置
         if isinstance(translate_config := d.get("translate_config"), dict):

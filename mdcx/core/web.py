@@ -47,6 +47,8 @@ from .media_resource import MediaResourceContext
 AMAZON_SEARCH_SCRAPING_TYPES = {FixedScrapingType.YOUMA}
 AMAZON_SEARCH_VARIANT_MOSAICS = {"流出", "无码破解", "無碼破解"}
 AMAZON_SEARCH_SPECIAL_MOSAICS = {"里番", "裏番", "动漫", "動漫"}
+POSTER_AUTO_BEST_MIN_CROP_AREA_RATIO = 0.70
+POSTER_AUTO_BEST_MIN_CROP_HEIGHT_RATIO = 0.80
 
 __all__ = [
     "_beam_search_amazon_ean13_from_ranked_digits",
@@ -77,6 +79,10 @@ def _get_poster_copy_policy(result: CrawlersResult, download_files: list[Downloa
     if result.scraping_type == FixedScrapingType.YOUMA:
         return DownloadableFile.IGNORE_YOUMA in download_files, ""
     return False, ""
+
+
+def _is_vr_result(result: CrawlersResult) -> bool:
+    return "VR" in result.number.upper() or "VR" in result.title.upper()
 
 
 async def _cleanup_download_part_files(*file_paths: Path) -> None:
@@ -125,6 +131,90 @@ def _cut_thumb_right_image(thumb_img: Image.Image) -> Image.Image:
         return cropped.convert("RGB")
     finally:
         cropped.close()
+
+
+def _get_thumb_right_crop_size(image_size: tuple[int, int]) -> tuple[int, int]:
+    w, h = image_size
+    if w <= 0 or h <= 0:
+        return 0, 0
+    ax, bx = w / 1.9, w
+    if w == 800:
+        if h == 439:
+            ax, bx = 420, w
+        elif 499 <= h <= 503:
+            ax, bx = 437, w
+        else:
+            ax, bx = 421, w
+    elif w == 840 and h == 472:
+        ax, bx = 473, 788
+    return max(int(bx - ax), 0), h
+
+
+def _get_local_image_size(pic_path: Path) -> tuple[int, int]:
+    try:
+        with Image.open(pic_path) as img:
+            return img.size
+    except Exception:
+        return 0, 0
+
+
+async def _get_thumb_right_crop_size_from_path(pic_path: Path | None) -> tuple[int, int]:
+    if not pic_path or not await aiofiles.os.path.exists(pic_path):
+        return 0, 0
+    return _get_thumb_right_crop_size(await to_thread(_get_local_image_size, pic_path))
+
+
+def _image_area(size: tuple[int, int]) -> int:
+    return max(size[0], 0) * max(size[1], 0)
+
+
+def _is_known_image_size(size: tuple[int, int]) -> bool:
+    return size[0] > 0 and size[1] > 0
+
+
+async def _select_poster_auto_best(
+    result: CrawlersResult,
+    other: OtherInfo,
+    *,
+    direct_url: str,
+    direct_from: str,
+    direct_size: tuple[int, int],
+    crop_source_path: Path | None,
+    media_context: MediaResourceContext | None = None,
+) -> None:
+    candidates: list[tuple[str, str, tuple[int, int]]] = []
+    if direct_url:
+        candidates.append((direct_url, direct_from or "poster", direct_size))
+
+    enhanced_url = result.poster
+    enhanced_from = result.poster_from
+    if enhanced_url and enhanced_url != direct_url:
+        candidates.append((enhanced_url, enhanced_from or "poster", await _get_image_size(enhanced_url, media_context)))
+
+    known_candidates = [each for each in candidates if _is_known_image_size(each[2])]
+    if not known_candidates:
+        LogBuffer.log().write("\n 🖼 Poster选优: 无可比较的 Poster 尺寸，保持原策略")
+        return
+
+    best_url, best_from, best_size = max(known_candidates, key=lambda item: _image_area(item[2]))
+    crop_size = await _get_thumb_right_crop_size_from_path(crop_source_path)
+    if _is_known_image_size(crop_size):
+        best_area = _image_area(best_size)
+        crop_area = _image_area(crop_size)
+        if (
+            best_area < crop_area * POSTER_AUTO_BEST_MIN_CROP_AREA_RATIO
+            or best_size[1] < crop_size[1] * POSTER_AUTO_BEST_MIN_CROP_HEIGHT_RATIO
+        ):
+            result.image_download = False
+            LogBuffer.log().write(f"\n 🖼 Poster选优: 直下/搜索图{best_size}明显小于thumb右裁剪{crop_size}，改用裁剪")
+            return
+
+    result.poster = best_url
+    result.poster_from = best_from
+    result.image_download = True
+    if best_from.startswith("Google"):
+        other.poster_size = best_size
+    LogBuffer.log().write(f"\n 🖼 Poster选优: 使用 {best_from} {best_size}")
 
 
 def _prepare_similarity_image(img: Image.Image) -> Image.Image:
@@ -821,16 +911,29 @@ async def poster_download(
             LogBuffer.log().write(f"\n 🍀 Poster done! (copy thumb)({get_used_time(start_time)}s)")
             return True
 
-    if (
-        result.scraping_type == FixedScrapingType.YOUMA
-        and DownloadableFile.YOUMA_USE_POSTER in download_files
-        and DownloadableFile.IGNORE_YOUMA not in download_files
-    ):
-        result.image_download = True
-        LogBuffer.log().write("\n 🖼 有码封面策略: 已启用「有码优先使用 Poster」，不走 SOD/VR 裁剪判定")
+    poster_auto_best = (
+        DownloadableFile.POSTER_AUTO_BEST in download_files and DownloadableFile.IGNORE_YOUMA not in download_files
+    )
+    direct_poster_url = result.poster if poster_auto_best else ""
+    direct_poster_from = result.poster_from if poster_auto_best else ""
+    direct_poster_size = await _get_image_size(direct_poster_url, media_context) if direct_poster_url else (0, 0)
 
     # 获取高清 poster
     await _get_big_poster(result, other, media_context)
+    if _is_vr_result(result) and result.poster:
+        result.image_download = True
+        if poster_auto_best:
+            LogBuffer.log().write("\n 🖼 Poster选优: VR作品保持直下 Poster 策略")
+    elif poster_auto_best:
+        await _select_poster_auto_best(
+            result,
+            other,
+            direct_url=direct_poster_url,
+            direct_from=direct_poster_from,
+            direct_size=direct_poster_size,
+            crop_source_path=fanart_path or thumb_path,
+            media_context=media_context,
+        )
 
     # 下载图片
     poster_url = result.poster

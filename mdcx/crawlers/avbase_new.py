@@ -161,36 +161,13 @@ class AvbaseCrawler(BaseCrawler):
         if DownloadableFile.EXTRAFANART in manager.config.download_files and res.extrafanart:
             res.extrafanart = await self._sanitize_extrafanart_urls(list(res.extrafanart))
 
-        studio_text = str(res.studio or "").upper()
         title_text = str(res.title or "").upper()
-        input_mosaic = str(ctx.input.mosaic or "")
-        is_youma = res.mosaic in ["有码", "有碼"] or input_mosaic in ["有码", "有碼"]
-        use_youma_poster = (
-            is_youma
-            and DownloadableFile.YOUMA_USE_POSTER in manager.config.download_files
-            and DownloadableFile.IGNORE_YOUMA not in manager.config.download_files
-        )
-        is_sod_studio = "SOD" in studio_text
         is_vr_title = "VR" in title_text
-        res.image_download = use_youma_poster or is_vr_title or is_sod_studio
-        if use_youma_poster:
-            self._log("图片[有码策略]: 启用「有码优先使用 Poster」，跳过 SOD/VR 判定")
+        res.image_download = is_vr_title
 
         if res.image_download and not res.poster:
             self._log("图片[Poster失效]: 直下封面无可用候选，改为裁剪模式")
             res.image_download = False
-
-        if not use_youma_poster and is_sod_studio and res.poster and res.thumb:
-            poster_size = await self._get_url_content_length(res.poster)
-            thumb_size = await self._get_url_content_length(res.thumb)
-            if poster_size and thumb_size:
-                if poster_size < thumb_size * 0.5:
-                    res.image_download = is_vr_title
-                    self._log(f"SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，改为裁剪模式")
-                else:
-                    self._log(f"SOD 图片判定: ps={poster_size}B, pl={thumb_size}B，保持直接下载")
-            else:
-                self._log("SOD 图片判定: 无法获取 ps/pl 大小，保持直接下载")
 
         if not res.publisher:
             res.publisher = res.studio

@@ -9029,9 +9029,9 @@
                           </layout>
                         </item>
                         <item>
-                          <layout class="QHBoxLayout" name="horizontalLayout_youma_use_poster">
+                          <layout class="QHBoxLayout" name="horizontalLayout_poster_auto_best">
                             <item>
-                              <widget class="QCheckBox" name="checkBox_youma_use_poster">
+                              <widget class="QCheckBox" name="checkBox_poster_auto_best">
                                 <property name="sizePolicy">
                                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                                     <horstretch>0</horstretch>
@@ -9045,12 +9045,12 @@
                                   </size>
                                 </property>
                                 <property name="text">
-                                  <string>有码优先使用 Poster，不按 SOD/VR 判定</string>
+                                  <string>Poster 竖图按大小自动选优</string>
                                 </property>
                               </widget>
                             </item>
                             <item>
-                              <widget class="QLabel" name="label_youma_use_poster">
+                              <widget class="QLabel" name="label_poster_auto_best">
                                 <property name="sizePolicy">
                                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                                     <horstretch>0</horstretch>
@@ -9061,7 +9061,7 @@
                                   <string notr="true">color: rgb(8, 128, 128);</string>
                                 </property>
                                 <property name="text">
-                                  <string> 有码封面默认直下 Poster（ps.jpg），失败后仍会回退裁剪</string>
+                                  <string> 在直下 Poster、搜图结果和 thumb 右裁剪之间自动选择</string>
                                 </property>
                               </widget>
                             </item>

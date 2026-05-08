@@ -1,16 +1,20 @@
 import re
 import urllib.parse
+from pathlib import Path
 
 import numpy as np
 import pytest
+from PIL import Image
 
-from mdcx.config.enums import FixedScrapingType, HDPicSource
+from mdcx.config.enums import DownloadableFile, FixedScrapingType, HDPicSource
 from mdcx.config.manager import manager
 from mdcx.core.web import (
     _beam_search_amazon_ean13_from_ranked_digits,
     _extract_amazon_barcode_label_roi,
     _get_big_poster,
+    _select_poster_auto_best,
     get_big_pic_by_amazon,
+    poster_download,
     try_get_amazon_barcode_from_covers,
 )
 from mdcx.models.log_buffer import LogBuffer
@@ -25,6 +29,90 @@ def _extract_search_query(req_url: str) -> str:
 
 def _normalize_search_query(query: str) -> str:
     return re.sub(r" \[(DVD|Blu-ray)\]$", "", query)
+
+
+def _save_test_image(path: Path, size: tuple[int, int]):
+    Image.new("RGB", size, "white").save(path, format="JPEG")
+
+
+@pytest.mark.asyncio
+async def test_select_poster_auto_best_prefers_larger_search_candidate(monkeypatch: pytest.MonkeyPatch):
+    async def fake_get_image_size(url: str, media_context=None):
+        assert url == "https://example.test/search.jpg"
+        return 1200, 1800
+
+    monkeypatch.setattr("mdcx.core.web._get_image_size", fake_get_image_size)
+
+    result = CrawlersResult.empty()
+    result.poster = "https://example.test/search.jpg"
+    result.poster_from = "Amazon"
+    other = OtherInfo.empty()
+
+    await _select_poster_auto_best(
+        result,
+        other,
+        direct_url="https://example.test/direct.jpg",
+        direct_from="crawler",
+        direct_size=(500, 750),
+        crop_source_path=None,
+    )
+
+    assert result.poster == "https://example.test/search.jpg"
+    assert result.poster_from == "Amazon"
+    assert result.image_download is True
+
+
+@pytest.mark.asyncio
+async def test_select_poster_auto_best_falls_back_to_thumb_right_crop(tmp_path: Path):
+    thumb_path = tmp_path / "thumb.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    result = CrawlersResult.empty()
+    result.poster = "https://example.test/direct.jpg"
+    result.poster_from = "crawler"
+    result.image_download = True
+    other = OtherInfo.empty()
+
+    await _select_poster_auto_best(
+        result,
+        other,
+        direct_url="https://example.test/direct.jpg",
+        direct_from="crawler",
+        direct_size=(200, 300),
+        crop_source_path=thumb_path,
+    )
+
+    assert result.image_download is False
+
+
+@pytest.mark.asyncio
+async def test_poster_download_keeps_vr_direct_poster_without_auto_best(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    async def fake_get_big_poster(*args, **kwargs):
+        return None
+
+    async def fake_download_file_with_filepath(url: str, file_path: Path, folder_path: Path):
+        assert url == "https://example.test/vr-poster.jpg"
+        _save_test_image(file_path, (500, 750))
+        return True
+
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.POSTER])
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
+    monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
+
+    result = CrawlersResult.empty()
+    result.number = "ABVR-001"
+    result.title = "VR SAMPLE"
+    result.poster = "https://example.test/vr-poster.jpg"
+    result.poster_from = "crawler"
+    result.image_download = False
+    other = OtherInfo.empty()
+
+    assert await poster_download(result, other, "", tmp_path, tmp_path / "poster.jpg") is True
+    assert result.image_download is True
+    assert other.poster_path == tmp_path / "poster.jpg"
 
 
 @pytest.mark.asyncio

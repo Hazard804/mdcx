@@ -1253,9 +1253,9 @@ export const CreateSoftlinksBodySchema = {
 
 export const DownloadableFileSchema = {
     type: 'string',
-    enum: ['poster', 'thumb', 'fanart', 'extrafanart', 'trailer', 'nfo', 'extrafanart_extras', 'extrafanart_copy', 'theme_videos', 'ignore_pic_fail', 'ignore_youma', 'ignore_wuma', 'ignore_fc2', 'ignore_guochan', 'ignore_size'],
+    enum: ['poster', 'thumb', 'fanart', 'extrafanart', 'trailer', 'nfo', 'extrafanart_extras', 'extrafanart_copy', 'theme_videos', 'ignore_pic_fail', 'ignore_youma', 'poster_auto_best', 'ignore_wuma', 'ignore_fc2', 'ignore_guochan', 'ignore_size'],
     title: 'DownloadableFile',
-    showNames: ['海报', '缩略图', '剧照', '额外剧照', '预告片', 'Nfo', '额外剧照扩展', '额外剧照复制', '主题视频', '忽略图片失败', '忽略有码', '忽略无码', '忽略FC2', '忽略国产', '忽略大小']
+    showNames: ['海报', '缩略图', '剧照', '额外剧照', '预告片', 'Nfo', '额外剧照扩展', '额外剧照复制', '主题视频', '忽略图片失败', '忽略有码', 'Poster竖图自动选优', '忽略无码', '忽略FC2', '忽略国产', '忽略大小']
 } as const;
 
 export const EmbyActionSchema = {

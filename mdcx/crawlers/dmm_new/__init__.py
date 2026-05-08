@@ -1311,22 +1311,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
             ctx.final_images_resolved = True
 
         title_text = str(res.title or "").upper()
-        input_mosaic = str(ctx.input.mosaic or "")
-        is_youma = res.mosaic in ["有码", "有碼"] or input_mosaic in ["有码", "有碼"]
-        use_youma_poster = (
-            is_youma
-            and DownloadableFile.YOUMA_USE_POSTER in manager.config.download_files
-            and DownloadableFile.IGNORE_YOUMA not in manager.config.download_files
-        )
-        # 对于VR视频或SOD工作室，直接使用ps.jpg而不进行裁剪
-        # SOD系列通常采用特殊的宽高比，无法通过裁剪获得最佳效果
-        is_sod_studio = "SOD" in (res.studio or "")
-        use_direct_download = "VR" in title_text or is_sod_studio
-        if use_youma_poster:
-            self._log("图片[有码策略]: 启用「有码优先使用 Poster」，跳过 SOD/VR 判定")
-            use_direct_download = True
-
-        res.image_download = use_direct_download
+        res.image_download = "VR" in title_text
         res.originaltitle = res.title
         res.originalplot = res.outline
         res.thumb = self._with_https(normalize_media_url(str(res.thumb or "").strip()))
@@ -1337,25 +1322,6 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         if res.image_download and not res.poster:
             self._log("图片[Poster失效]: 直下封面无可用候选，改为裁剪/回退模式")
             res.image_download = False
-
-        # 对SOD工作室进行图片大小比较（在poster赋值之后）
-        if not use_youma_poster and is_sod_studio and res.poster and res.thumb:
-            ps_url = res.poster  # ps.jpg
-            pl_url = res.thumb  # pl.jpg
-            try:
-                ps_size = await self._get_url_content_length(ps_url)
-                pl_size = await self._get_url_content_length(pl_url)
-
-                if ps_size and pl_size:
-                    if ps_size < pl_size * 0.5:
-                        self._log(f"图片[SOD判定]: ps过低({ps_size}B) vs pl({pl_size}B)，改为裁剪模式")
-                        res.image_download = "VR" in title_text
-                    else:
-                        self._log(f"图片[SOD判定]: {res.studio} ps分辨率充足({ps_size}B)，保持直接下载")
-                else:
-                    self._log(f"图片[SOD判定]: {res.studio} 无法获取 ps/pl 大小，保持直接下载")
-            except Exception as e:
-                self._log(f"图片[SOD判定]失败: {e}，保持直接下载")
 
         if not res.publisher:
             res.publisher = res.studio

@@ -266,7 +266,7 @@ class DownloadableFile(Enum):
     THEME_VIDEOS = "theme_videos"
     IGNORE_PIC_FAIL = "ignore_pic_fail"
     IGNORE_YOUMA = "ignore_youma"
-    YOUMA_USE_POSTER = "youma_use_poster"
+    POSTER_AUTO_BEST = "poster_auto_best"
     IGNORE_WUMA = "ignore_wuma"
     IGNORE_FC2 = "ignore_fc2"
     IGNORE_GUOCHAN = "ignore_guochan"
@@ -286,7 +286,7 @@ class DownloadableFile(Enum):
             "主题视频",
             "忽略图片失败",
             "忽略有码",
-            "有码优先Poster",
+            "Poster竖图自动选优",
             "忽略无码",
             "忽略FC2",
             "忽略国产",

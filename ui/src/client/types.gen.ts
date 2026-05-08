@@ -849,7 +849,7 @@ export type CreateSoftlinksBody = {
 /**
  * DownloadableFile
  */
-export type DownloadableFile = 'poster' | 'thumb' | 'fanart' | 'extrafanart' | 'trailer' | 'nfo' | 'extrafanart_extras' | 'extrafanart_copy' | 'theme_videos' | 'ignore_pic_fail' | 'ignore_youma' | 'ignore_wuma' | 'ignore_fc2' | 'ignore_guochan' | 'ignore_size';
+export type DownloadableFile = 'poster' | 'thumb' | 'fanart' | 'extrafanart' | 'trailer' | 'nfo' | 'extrafanart_extras' | 'extrafanart_copy' | 'theme_videos' | 'ignore_pic_fail' | 'ignore_youma' | 'poster_auto_best' | 'ignore_wuma' | 'ignore_fc2' | 'ignore_guochan' | 'ignore_size';
 
 /**
  * EmbyAction
