@@ -19,7 +19,6 @@ from ping3 import ping
 
 from ..config.manager import manager
 from ..consts import GITHUB_RELEASES_API_LATEST
-from ..manual import ManualConfig
 from ..models.log_buffer import LogBuffer
 from ..signals import signal
 from ..utils import executor
@@ -949,26 +948,6 @@ async def get_actorname(number: str) -> tuple[bool, str]:
         ):
             return True, ",".join(actor_name)
     return False, "No Result!"
-
-
-async def get_yesjav_title(movie_number: str) -> str:
-    yesjav_url = f"http://www.yesjav101.com/search.asp?q={movie_number}&"
-    movie_title = ""
-    async with manager.acquire_computed() as computed:
-        response, error = await computed.async_client.get_text(yesjav_url)
-    if response is not None:
-        parser = etree.HTMLParser(encoding="utf-8")
-        html = etree.HTML(response, parser)
-        movie_title = html.xpath(
-            '//dl[@id="zi"]/p/font/a/b[contains(text(), $number)]/../../a[contains(text(), "中文字幕")]/text()',
-            number=movie_number,
-        )
-        if movie_title:
-            movie_title = movie_title[0]
-            for each in ManualConfig.CHAR_LIST:
-                movie_title = movie_title.replace(each, "")
-            movie_title = movie_title.strip()
-    return movie_title
 
 
 async def download_file_with_filepath(url: str, file_path: Path, folder_new_path: Path) -> bool:

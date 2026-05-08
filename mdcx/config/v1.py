@@ -181,10 +181,7 @@ class ConfigV1:
     llm_max_try: int = 5
     llm_temperature: float = 0.2
     title_language: str = r"zh_cn"
-    title_sehua: bool = True
-    title_yesjav: bool = False
     title_translate: bool = True
-    title_sehua_zh: bool = True
     outline_language: str = r"zh_cn"
     outline_translate: bool = True
     outline_show: str = r""

@@ -13003,7 +13003,7 @@
                       <x>0</x>
                       <y>0</y>
                       <width>760</width>
-                      <height>2750</height>
+                      <height>2630</height>
                     </rect>
                   </property>
                   <widget class="QGroupBox" name="groupBox_trans">
@@ -13619,7 +13619,7 @@
                         <x>30</x>
                         <y>871</y>
                         <width>701</width>
-                        <height>250</height>
+                        <height>130</height>
                       </rect>
                     </property>
                     <property name="minimumSize">
@@ -13643,26 +13643,12 @@
                           <x>20</x>
                           <y>30</y>
                           <width>661</width>
-                          <height>211</height>
+                          <height>91</height>
                         </rect>
                       </property>
                       <layout class="QGridLayout" name="gridLayout_45">
                         <item row="2" column="1">
                           <layout class="QHBoxLayout" name="horizontalLayout_2">
-                            <item>
-                              <widget class="QCheckBox" name="checkBox_title_sehua">
-                                <property name="text">
-                                  <string>使用色花中文标题</string>
-                                </property>
-                              </widget>
-                            </item>
-                            <item>
-                              <widget class="QCheckBox" name="checkBox_title_yesjav">
-                                <property name="text">
-                                  <string>使用yesjav中文标题</string>
-                                </property>
-                              </widget>
-                            </item>
                             <item>
                               <widget class="QCheckBox" name="checkBox_title_translate">
                                 <property name="text">
@@ -13744,45 +13730,6 @@
                             </item>
                           </layout>
                         </item>
-                        <item row="5" column="1">
-                          <widget class="QLabel" name="label_236">
-                            <property name="sizePolicy">
-                              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                                <horstretch>0</horstretch>
-                                <verstretch>0</verstretch>
-                              </sizepolicy>
-                            </property>
-                            <property name="styleSheet">
-                              <string notr="true">color: rgb(8, 128, 128);</string>
-                            </property>
-                            <property name="text">
-                              <string>当存在色花中文标题时，即使刮削网站有中文翻译，也会使用色花中文标题</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item row="3" column="1">
-                          <widget class="QLabel" name="label_160">
-                            <property name="sizePolicy">
-                              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                                <horstretch>0</horstretch>
-                                <verstretch>0</verstretch>
-                              </sizepolicy>
-                            </property>
-                            <property name="styleSheet">
-                              <string notr="true">color: rgb(8, 128, 128);</string>
-                            </property>
-                            <property name="text">
-                              <string>翻译优先级：色花（内置标题数据） &gt; yesjav（在线色花数据） &gt; 翻译引擎</string>
-                            </property>
-                          </widget>
-                        </item>
-                        <item row="4" column="1">
-                          <widget class="QCheckBox" name="checkBox_title_sehua_2">
-                            <property name="text">
-                              <string>优先使用色花中文标题</string>
-                            </property>
-                          </widget>
-                        </item>
                         <item row="2" column="0">
                           <widget class="QLabel" name="label_244">
                             <property name="sizePolicy">
@@ -13818,7 +13765,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>1141</y>
+                        <y>1021</y>
                         <width>701</width>
                         <height>220</height>
                       </rect>
@@ -14059,7 +14006,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>1381</y>
+                        <y>1261</y>
                         <width>701</width>
                         <height>420</height>
                       </rect>
@@ -14236,7 +14183,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>1821</y>
+                        <y>1701</y>
                         <width>701</width>
                         <height>151</height>
                       </rect>
@@ -14383,7 +14330,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>1992</y>
+                        <y>1872</y>
                         <width>701</width>
                         <height>151</height>
                       </rect>
@@ -14530,7 +14477,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>2163</y>
+                        <y>2043</y>
                         <width>701</width>
                         <height>151</height>
                       </rect>
@@ -14677,7 +14624,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>2334</y>
+                        <y>2214</y>
                         <width>701</width>
                         <height>151</height>
                       </rect>
@@ -14824,7 +14771,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>2505</y>
+                        <y>2385</y>
                         <width>701</width>
                         <height>151</height>
                       </rect>

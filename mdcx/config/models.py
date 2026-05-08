@@ -380,9 +380,6 @@ class Config(BaseModel):
         description="选择后将跳过自动类型判断，直接使用指定类型的网站列表进行刮削",
     )
 
-    title_sehua: bool = Field(default=True, title="使用色花标题")
-    title_yesjav: bool = Field(default=False, title="使用 Yesjav 标题")
-    title_sehua_zh: bool = Field(default=True, title="使用色花中文标题")
     actor_realname: bool = Field(default=True, title="演员真名")
     outline_format: list[OutlineShow] = Field(default_factory=list, title="简介格式")
     # endregion

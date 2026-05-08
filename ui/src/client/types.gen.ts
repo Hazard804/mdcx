@@ -400,21 +400,9 @@ export type Config = {
      */
     title_language?: string;
     /**
-     * 标题色花
-     */
-    title_sehua?: boolean;
-    /**
-     * 标题Yesjav
-     */
-    title_yesjav?: boolean;
-    /**
      * 翻译标题
      */
     title_translate?: boolean;
-    /**
-     * 中文标题色花
-     */
-    title_sehua_zh?: boolean;
     /**
      * 简介语言
      */

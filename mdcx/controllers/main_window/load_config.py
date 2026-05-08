@@ -231,14 +231,8 @@ def load_config(self: "MyMAinWindow"):
         sites = manager.config.get_field_config(CrawlerResultFields.ORIGINALTITLE).site_prority
         self.Ui.lineEdit_originaltitle_website.setText(",".join(sites))
 
-        # 增强翻译-sehua
-        self.Ui.checkBox_title_sehua.setChecked(manager.config.title_sehua)
-        # 增强翻译-yesjav
-        self.Ui.checkBox_title_yesjav.setChecked(manager.config.title_yesjav)
         # 标题增强翻译-使用翻译引擎
         self.Ui.checkBox_title_translate.setChecked(title_field_config.translate)
-        # 增强翻译-优先sehua
-        self.Ui.checkBox_title_sehua_2.setChecked(manager.config.title_sehua_zh)
 
         # 简介字段配置
         outline_field_config = manager.config.get_field_config(field_mapping["outline"])

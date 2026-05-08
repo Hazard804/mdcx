@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 import traceback
@@ -32,7 +31,6 @@ class Resources:
         self._userdata_base.mkdir(parents=True, exist_ok=True)  # 确保用户数据目录存在
 
         # 获取资源路径
-        self.sehua_title_path = self.r("c_number/c_number.json")  # 内置色花数据的文件路径
         self.actor_map_backup_path = self.r("mapping_table/mapping_actor.xml")  # 内置演员映射表的文件路径
         self.info_map_backup_path = self.r("mapping_table/mapping_info.xml")  # 内置信息映射表的文件路径
 
@@ -76,7 +74,6 @@ class Resources:
 
         self.actor_mapping_data = None  # 演员映射表数据
         self.info_mapping_data = None  # 信息映射表数据
-        self.sehua_title_data = {}  # 色花数据
 
         self._get_or_generate_local_data()
         self._get_mark_icon()
@@ -161,10 +158,6 @@ class Resources:
 
     def _get_or_generate_local_data(self):
         """如果用户数据目录下已有数据则直接读取, 否则根据内置数据生成"""
-        # 载入 c_numuber.json 数据
-        with open(self.sehua_title_path, encoding="UTF-8") as data:
-            self.sehua_title_data = json.load(data)
-
         # 载入 mapping_actor.xml mapping_info.xml 数据
         actor_map_local_path = self.u("mapping_actor.xml")
         info_map_local_path = self.u("mapping_info.xml")

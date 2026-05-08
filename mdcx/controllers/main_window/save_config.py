@@ -165,10 +165,6 @@ def save_config(self: "MyMAinWindow"):
     # originaltitle
     manager.config.set_field_sites(CrawlerResultFields.ORIGINALTITLE, self.Ui.lineEdit_originaltitle_website.text())
 
-    manager.config.title_sehua = get_checkbox(self.Ui.checkBox_title_sehua)
-    manager.config.title_yesjav = get_checkbox(self.Ui.checkBox_title_yesjav)
-    manager.config.title_sehua_zh = get_checkbox(self.Ui.checkBox_title_sehua_2)
-
     # 简介字段配置
     manager.config.set_field_sites(field_mapping["outline"], self.Ui.lineEdit_outline_website.text())
     outline_language = get_radio_buttons(

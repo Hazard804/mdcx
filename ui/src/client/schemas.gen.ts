@@ -655,24 +655,9 @@ export const ConfigSchema = {
             title: '标题语言',
             default: 'zh_cn'
         },
-        title_sehua: {
-            type: 'boolean',
-            title: '标题色花',
-            default: true
-        },
-        title_yesjav: {
-            type: 'boolean',
-            title: '标题Yesjav',
-            default: false
-        },
         title_translate: {
             type: 'boolean',
             title: '翻译标题',
-            default: true
-        },
-        title_sehua_zh: {
-            type: 'boolean',
-            title: '中文标题色花',
             default: true
         },
         outline_language: {

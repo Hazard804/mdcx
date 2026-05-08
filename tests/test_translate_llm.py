@@ -124,9 +124,6 @@ async def test_translate_title_outline_supports_english(monkeypatch: pytest.Monk
 
     class _Cfg:
         def __init__(self):
-            self.title_sehua = False
-            self.title_sehua_zh = False
-            self.title_yesjav = False
             self.translate_config = _TranslateCfg()
 
         def get_field_config(self, _field):
@@ -177,9 +174,6 @@ async def test_translate_title_outline_supports_long_english_outline(monkeypatch
 
     class _Cfg:
         def __init__(self):
-            self.title_sehua = False
-            self.title_sehua_zh = False
-            self.title_yesjav = False
             self.translate_config = _TranslateCfg()
 
         def get_field_config(self, _field):
@@ -246,9 +240,6 @@ async def test_translate_title_outline_skips_unconfigured_baidu_and_falls_back(m
 
     class _Cfg:
         def __init__(self):
-            self.title_sehua = False
-            self.title_sehua_zh = False
-            self.title_yesjav = False
             self.translate_config = _TranslateCfg()
 
         def get_field_config(self, _field):
@@ -306,9 +297,6 @@ async def test_translate_title_outline_skip_does_not_fake_translate_via_zhconv(m
 
     class _Cfg:
         def __init__(self):
-            self.title_sehua = False
-            self.title_sehua_zh = False
-            self.title_yesjav = False
             self.translate_config = _TranslateCfg()
 
         def get_field_config(self, _field):
