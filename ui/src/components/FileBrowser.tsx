@@ -62,7 +62,10 @@ export function FileBrowser({
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   useEffect(() => setPathInputValue(path), [path]);
 
-  const { data, error, isLoading, refetch } = useQuery({ ...listFilesOptions({ query: { path } }), retry: false });
+  const { data, error, isLoading, refetch } = useQuery({
+    ...listFilesOptions({ query: { path, directories_only: selectionType === "directory" } }),
+    retry: false,
+  });
   const items = data?.items || [];
   const total = data?.total;
 

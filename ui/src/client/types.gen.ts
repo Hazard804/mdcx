@@ -1303,6 +1303,11 @@ export type ListFilesData = {
          * 服务器路径. 相对路径将基于 SAFE_DIRS 中的首个路径解析.
          */
         path: string;
+        /**
+         * Directories Only
+         * 仅返回目录, 用于目录选择场景以减少文件系统访问.
+         */
+        directories_only?: boolean;
     };
     url: '/api/v1/files/list';
 };

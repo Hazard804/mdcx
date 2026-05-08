@@ -34,6 +34,7 @@ class FileListResponse(BaseModel):
 @router.get("/list", operation_id="listFiles", summary="列出文件和目录")
 async def list_files(
     path: Annotated[str, Query(description="服务器路径. 相对路径将基于 SAFE_DIRS 中的首个路径解析.")],
+    directories_only: Annotated[bool, Query(description="仅返回目录, 用于目录选择场景以减少文件系统访问.")] = False,
 ) -> FileListResponse:
     """
     列出指定路径下的文件和目录. 仅允许访问 `SAFE_DIRS` 目录下的内容, `SAFE_DIRS` 可通过服务器环境变量 `MDCX_SAFE_DIRS` 设置. 指向 `SAFE_DIRS` 外目录的软链接本身可见, 但无法访问其内容.
@@ -62,17 +63,18 @@ async def list_files(
         for entry in os.scandir(target_path):
             entry_path = Path(entry.path)
             item_type = "directory" if entry.is_dir() else "file"
+            if directories_only and item_type != "directory":
+                continue
             item = FileItem(name=entry.name, path=str(entry_path.as_posix()), type=item_type)
-            # Get optional file metadata
-            try:
-                stat_result = entry.stat()
-                mtime = datetime.fromtimestamp(stat_result.st_mtime)
-                item.last_modified = mtime
-                if item_type == "file":
+            # 目录选择时不读取文件元数据, 降低网盘目录下的额外访问开销.
+            if item_type == "file" and not directories_only:
+                try:
+                    stat_result = entry.stat()
+                    item.last_modified = datetime.fromtimestamp(stat_result.st_mtime)
                     item.size = stat_result.st_size
-            except (OSError, FileNotFoundError):
-                # Could not retrieve stats, skip these fields
-                pass
+                except (OSError, FileNotFoundError):
+                    # Could not retrieve stats, skip these fields
+                    pass
             items.append(item)
 
         # Sort items: directories first, then files, both alphabetically

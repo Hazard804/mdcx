@@ -1346,7 +1346,7 @@ class MyMAinWindow(QMainWindow):
             None,
             f"选择{link_name}目标目录",
             default_dir,
-            options=self.options,
+            options=self.options | QFileDialog.Option.ShowDirsOnly,
         )
         return Path(selected_dir) if selected_dir else None
 
@@ -3080,7 +3080,9 @@ class MyMAinWindow(QMainWindow):
         media_path = self.Ui.lineEdit_movie_path.text()  # 获取待刮削目录作为打开目录
         if not media_path:
             media_path = manager.data_folder.as_posix()
-        media_folder_path = QFileDialog.getExistingDirectory(None, "选择目录", media_path, options=self.options)
+        media_folder_path = QFileDialog.getExistingDirectory(
+            None, "选择目录", media_path, options=self.options | QFileDialog.Option.ShowDirsOnly
+        )
         return media_folder_path
 
     # 改回接受焦点状态
