@@ -29,6 +29,22 @@ from ..utils.path import showFilePath
 from .utils import render_name_template
 
 
+def _has_umr_suffix_marker(file_name: str, movie_number: str) -> bool:
+    normalized_name = remove_escape_string(file_name, "-").upper()
+    normalized_number = movie_number.upper()
+    if normalized_number:
+        normalized_name = normalized_name.replace(normalized_number, "-")
+
+    compact_definition_suffixes = (
+        "4K60FPS",
+        "4KS",
+        "8K",
+        "4K",
+    )
+    compact_definition = "|".join(compact_definition_suffixes)
+    return bool(re.search(rf"(?<![A-Z0-9])U(?:C)?(?=(?:{compact_definition}|[-_.\s\]\)]|$))", normalized_name))
+
+
 async def creat_folder(
     other: OtherInfo,
     json_data: BaseCrawlerResult,
@@ -548,8 +564,7 @@ async def get_file_info_v2(file_path: Path, copy_sub: bool = True) -> FileInfo:
             or "破解" in file_path_str
             or "克破" in file_path_str
             or (umr_style_lower and umr_style_lower in file_path_lower)
-            or "-u." in file_path_lower
-            or "-uc." in file_path_lower
+            or _has_umr_suffix_marker(file_name, movie_number)
         ):
             destroyed = umr_style
             mosaic = "无码破解"
