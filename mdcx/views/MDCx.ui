@@ -6800,8 +6800,17 @@
                             <property name="styleSheet">
                               <string notr="true">color: rgb(8, 128, 128);</string>
                             </property>
+                            <property name="maximumSize">
+                              <size>
+                                <width>16777215</width>
+                                <height>42</height>
+                              </size>
+                            </property>
                             <property name="text">
-                              <string>&lt;p&gt;「网站偏好」-「指定网站」指定 mdtv、hdouban，或文件路径含有「国产」、「麻豆」时，将自动使用以上网站刮削国产番号&lt;/p&gt;</string>
+                              <string>&lt;span&gt;「网站偏好」-「指定网站」指定 mdtv、hdouban，或文件路径含有「国产」、「麻豆」时，将自动使用以上网站刮削国产番号&lt;/span&gt;</string>
+                            </property>
+                            <property name="alignment">
+                              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
                             </property>
                             <property name="wordWrap">
                               <bool>true</bool>

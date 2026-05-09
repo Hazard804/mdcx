@@ -27,7 +27,7 @@ from mdcx.crawlers import get_registered_crawler_site_values
 from mdcx.gen.field_enums import CrawlerResultFields
 from mdcx.manual import ManualConfig
 
-from .style import get_theme_tokens
+from .style import build_scrollbar_style, get_theme_tokens
 
 if TYPE_CHECKING:
     from .main_window import MyMAinWindow
@@ -257,8 +257,16 @@ def _style_dialog(dialog: QDialog, dark: bool = False) -> None:
             border: 0;
             background: {colors["window"]};
         }}
+        {build_scrollbar_style(dark)}
         """
     )
+
+
+def _localize_dialog_buttons(buttons: QDialogButtonBox) -> None:
+    if ok_button := buttons.button(QDialogButtonBox.StandardButton.Ok):
+        ok_button.setText("保存")
+    if cancel_button := buttons.button(QDialogButtonBox.StandardButton.Cancel):
+        cancel_button.setText("取消")
 
 
 class SitePaletteList(QListWidget):
@@ -291,18 +299,27 @@ class SitePaletteList(QListWidget):
         return source if isinstance(source, PrioritySiteList) else None
 
     def dragEnterEvent(self, event) -> None:
+        if event.source() is self:
+            event.ignore()
+            return
         if self._removable_drop_source(event.source()) is not None:
             event.acceptProposedAction()
             return
         super().dragEnterEvent(event)
 
     def dragMoveEvent(self, event) -> None:
+        if event.source() is self:
+            event.ignore()
+            return
         if self._removable_drop_source(event.source()) is not None:
             event.acceptProposedAction()
             return
         super().dragMoveEvent(event)
 
     def dropEvent(self, event) -> None:
+        if event.source() is self:
+            event.ignore()
+            return
         removable_source = self._removable_drop_source(event.source())
         if removable_source is not None:
             removed_sites = set(getattr(removable_source, "drag_sites", []) or _selected_sites(removable_source))
@@ -432,6 +449,7 @@ class SiteListEditorDialog(QDialog):
         self.selected_list.itemDoubleClicked.connect(lambda _item: self._remove_selected())
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        _localize_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -552,6 +570,7 @@ class FieldPriorityDialog(QDialog):
             self._field_lists[field] = list_widget
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        _localize_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

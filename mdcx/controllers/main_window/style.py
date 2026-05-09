@@ -180,6 +180,53 @@ def build_menu_style(dark: bool) -> str:
     """
 
 
+def build_scrollbar_style(dark: bool) -> str:
+    handle = "#4B5563" if dark else "#CBD5E1"
+    handle_hover = "#64748B" if dark else "#94A3B8"
+    return f"""
+        QScrollBar:vertical{{
+            width: 10px;
+            margin: 0;
+            background: transparent;
+        }}
+        QScrollBar::handle:vertical{{
+            min-height: 32px;
+            border-radius: 5px;
+            background: {handle};
+        }}
+        QScrollBar::handle:vertical:hover{{
+            background: {handle_hover};
+        }}
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical{{
+            height: 0;
+            background: transparent;
+        }}
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical{{
+            background: transparent;
+        }}
+        QScrollBar:horizontal{{
+            height: 10px;
+            margin: 0;
+            background: transparent;
+        }}
+        QScrollBar::handle:horizontal{{
+            min-width: 32px;
+            border-radius: 5px;
+            background: {handle};
+        }}
+        QScrollBar::handle:horizontal:hover{{
+            background: {handle_hover};
+        }}
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal{{
+            width: 0;
+            background: transparent;
+        }}
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal{{
+            background: transparent;
+        }}
+    """
+
+
 def _apply_log_document_style(self: "MyMAinWindow", dark: bool) -> None:
     t = _tokens(dark)
     document_style = f"""
@@ -660,46 +707,7 @@ def set_style(self: "MyMAinWindow"):
             border: 2px solid #2F55EA;
             background: #F8FAFF;
         }}
-        QScrollBar:vertical{{
-            width: 10px;
-            margin: 0;
-            background: transparent;
-        }}
-        QScrollBar::handle:vertical{{
-            min-height: 32px;
-            border-radius: 5px;
-            background: #CBD5E1;
-        }}
-        QScrollBar::handle:vertical:hover{{
-            background: #94A3B8;
-        }}
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical{{
-            height: 0;
-            background: transparent;
-        }}
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical{{
-            background: transparent;
-        }}
-        QScrollBar:horizontal{{
-            height: 10px;
-            margin: 0;
-            background: transparent;
-        }}
-        QScrollBar::handle:horizontal{{
-            min-width: 32px;
-            border-radius: 5px;
-            background: #CBD5E1;
-        }}
-        QScrollBar::handle:horizontal:hover{{
-            background: #94A3B8;
-        }}
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal{{
-            width: 0;
-            background: transparent;
-        }}
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal{{
-            background: transparent;
-        }}
+        {build_scrollbar_style(False)}
         QProgressBar::chunk{{
             background-color: #5777FF;
             width: 3px; /*区块宽度*/
@@ -1168,46 +1176,7 @@ def set_dark_style(self: "MyMAinWindow"):
             color: #FFFFFF;
             background: #6684FF;
         }}
-        QScrollBar:vertical{{
-            width: 10px;
-            margin: 0;
-            background: transparent;
-        }}
-        QScrollBar::handle:vertical{{
-            min-height: 32px;
-            border-radius: 5px;
-            background: #4B5563;
-        }}
-        QScrollBar::handle:vertical:hover{{
-            background: #64748B;
-        }}
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical{{
-            height: 0;
-            background: transparent;
-        }}
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical{{
-            background: transparent;
-        }}
-        QScrollBar:horizontal{{
-            height: 10px;
-            margin: 0;
-            background: transparent;
-        }}
-        QScrollBar::handle:horizontal{{
-            min-width: 32px;
-            border-radius: 5px;
-            background: #4B5563;
-        }}
-        QScrollBar::handle:horizontal:hover{{
-            background: #64748B;
-        }}
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal{{
-            width: 0;
-            background: transparent;
-        }}
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal{{
-            background: transparent;
-        }}
+        {build_scrollbar_style(True)}
         QProgressBar::chunk{{
             background-color: #5777FF;
             width: 3px; /*区块宽度*/
