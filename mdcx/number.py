@@ -94,7 +94,17 @@ def is_uncensored(number: str) -> bool:
 def is_suren(number: str) -> bool:
     if re.search(r"\d{3,}[A-Z]+-\d{2}", number.upper()) or "SIRO" in number.upper():
         return True
-    return any(number.upper().startswith(key) for key in ManualConfig.SUREN_DIC)
+    return any(_matches_suren_prefix(number, key) for key in ManualConfig.SUREN_DIC)
+
+
+def _matches_suren_prefix(number: str, key: str) -> bool:
+    number_upper = number.upper()
+    key_upper = key.upper()
+    if number_upper.startswith(key_upper):
+        return True
+
+    # S-Cute 的实际番号是 SCUTE-xxx，历史配置使用 CUTE- 作为补全键。
+    return key_upper == "CUTE-" and number_upper.startswith("SCUTE-")
 
 
 def get_number_letters(number: str) -> str:
@@ -249,7 +259,7 @@ def get_file_number(filepath: str, escape_string_list: list[str]) -> str:
     elif r := re.search(r"[A-Z]{2,}-\d{2,}[Z]?", filename):  # 提取类似mkbd-120番号
         file_number = r.group()
         for key, value in ManualConfig.SUREN_DIC.items():
-            if key in file_number:
+            if _matches_suren_prefix(file_number, key):
                 file_number = value + file_number
                 break
 

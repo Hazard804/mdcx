@@ -39,6 +39,7 @@ def test_get_file_number_normalizes_uncensored_digit_numbers(raw_number: str, ex
         (r"D:/test/LUXU-1488.mp4", "259LUXU-1488"),
         (r"D:/test/SCUTE-953.mp4", "229SCUTE-953"),
         (r"D:/test/MAAN-673.mp4", "300MAAN-673"),
+        (r"D:/test/ARA-094.mp4", "261ARA-094"),
     ],
 )
 def test_get_file_number_normalizes_suren_numbers(raw_number: str, expected_number: str):
@@ -50,6 +51,7 @@ def test_get_file_number_normalizes_suren_numbers(raw_number: str, expected_numb
     [
         (r"D:/test/DANDY-818.mp4", "DANDY-818"),
         (r"D:/test/KIWVR-254.mp4", "KIWVR-254"),
+        (r"D:/test/GARA-022.mp4", "GARA-022"),
     ],
 )
 def test_get_file_number_keeps_non_suren_prefixes(raw_number: str, expected_number: str):
