@@ -86,6 +86,7 @@ from .handlers import show_netstatus
 from .init import Init_QSystemTrayIcon, Init_Singal, Init_Ui, init_QTreeWidget
 from .load_config import load_config
 from .save_config import save_config
+from .site_priority_dialog import apply_site_priority_theme
 from .style import apply_application_palette, build_menu_style, set_dark_style, set_style
 
 if TYPE_CHECKING:
@@ -617,6 +618,7 @@ class MyMAinWindow(QMainWindow):
         if self.show_flag:
             self.show_flag = False
             self.set_style()  # 样式美化
+            apply_site_priority_theme(self)
 
             # self.setWindowState(Qt.WindowNoState)                               # 恢复正常窗口
             self.show()

@@ -58,7 +58,7 @@ def _is_suren_number(file_number: str, short_number: str) -> bool:
 class ScrapeClassification:
     scraping_type: FixedScrapingType
     scraping_type_source: str
-    sites: set[Website] | None = None
+    sites: list[Website] | set[Website] | None = None
     website: Website | None = None
     mosaic: str = ""
 
@@ -264,11 +264,18 @@ class FileScraper:
         finally:
             task_input.number = original_number
 
-    async def _call_crawlers(self, task_input: CrawlerInput, type_sites: set[Website]) -> CrawlersResult | None:
+    async def _call_crawlers(
+        self, task_input: CrawlerInput, classification: ScrapeClassification | list[Website] | set[Website]
+    ) -> CrawlersResult | None:
         """
         获取一组网站的数据：按照设置的网站组，请求各字段数据，并返回最终的数据
         采用按需请求策略：仅请求必要的网站，失败时才请求下一优先级网站
         """
+        use_type_field_config = isinstance(classification, ScrapeClassification)
+        if not isinstance(classification, ScrapeClassification):
+            classification = ScrapeClassification(FixedScrapingType.AUTO, "compat", sites=classification)
+        type_sites = list(classification.sites or [])
+        type_site_set = set(type_sites)
         all_res: dict[tuple[Website, Language], CrawlerResult] = {}
         failed: set[tuple[Website, Language]] = set()  # 记录失败的网站
         reduced = CrawlersResult.empty()
@@ -278,7 +285,11 @@ class FileScraper:
         for field in ManualConfig.REDUCED_FIELDS:
             # 获取该字段的优先级列表
             f_config = self.config.get_field_config(field)
-            f_sites = [s for s in f_config.site_prority if s in type_sites]
+            if use_type_field_config and hasattr(self.config, "get_type_field_config"):
+                type_field_config = self.config.get_type_field_config(classification.scraping_type, field)
+            else:
+                type_field_config = f_config
+            f_sites = [s for s in type_field_config.site_prority if s in type_site_set]
             f_lang = f_config.language
 
             reduced.field_log += (
@@ -481,7 +492,7 @@ class FileScraper:
             if classification.website:
                 res = await self._call_specific_crawler(task_input, classification.website)
             else:
-                res = await self._call_crawlers(task_input, classification.sites or set())
+                res = await self._call_crawlers(task_input, classification)
         else:
             classification = classify_scrape_task(task_input, self.config, use_fixed_type=False)
             res = await self._call_specific_crawler(task_input, website)

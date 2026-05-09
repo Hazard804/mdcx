@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from mdcx.config.enums import FixedScrapingType, Website
-from mdcx.config.models import FieldConfig
+from mdcx.config.models import Config, FieldConfig, FieldPriorityConfig
 from mdcx.core.file_crawler import (
     FileScraper,
     _deal_res,
@@ -77,6 +77,15 @@ class _FakeConfig:
         if field in (CrawlerResultFields.RUNTIME, CrawlerResultFields.RELEASE, CrawlerResultFields.YEAR):
             return FieldConfig(site_prority=[Website.AVBASE, Website.JAVDB])
         return FieldConfig(site_prority=[])
+
+
+class _TypePriorityConfig(_FakeConfig):
+    def get_type_field_config(
+        self, scraping_type: FixedScrapingType, field: CrawlerResultFields
+    ) -> FieldPriorityConfig:
+        if scraping_type == FixedScrapingType.YOUMA and field == CrawlerResultFields.RUNTIME:
+            return FieldPriorityConfig(site_prority=[Website.JAVDB, Website.AVBASE])
+        return FieldPriorityConfig()
 
 
 class _ClassificationConfig:
@@ -292,6 +301,53 @@ async def test_call_crawlers_release_skip_invalid_and_fill_year(monkeypatch: pyt
     assert result.release == "2024-01-02"
     assert result.year == "2024"
     assert result.field_sources[CrawlerResultFields.RELEASE] == Website.JAVDB.value
+
+
+@pytest.mark.asyncio
+async def test_call_crawlers_uses_type_field_priority(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(ManualConfig, "REDUCED_FIELDS", (CrawlerResultFields.RUNTIME,))
+
+    provider = _FakeCrawlerProvider(
+        {
+            Website.AVBASE: _build_result(Website.AVBASE, "120"),
+            Website.JAVDB: _build_result(Website.JAVDB, "55"),
+        }
+    )
+    scraper = FileScraper(_TypePriorityConfig(), provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "SCUTE-1354"
+
+    result = await scraper._call_crawlers(
+        task_input,
+        classification=classify_scrape_task(task_input, Config(website_youma=[Website.AVBASE, Website.JAVDB])),
+    )
+
+    assert result is not None
+    assert result.runtime == "55"
+    assert result.field_sources[CrawlerResultFields.RUNTIME] == Website.JAVDB.value
+
+
+@pytest.mark.asyncio
+async def test_call_crawlers_legacy_site_list_uses_global_field_priority(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(ManualConfig, "REDUCED_FIELDS", (CrawlerResultFields.RUNTIME,))
+
+    provider = _FakeCrawlerProvider(
+        {
+            Website.AVBASE: _build_result(Website.AVBASE, "120"),
+            Website.JAVDB: _build_result(Website.JAVDB, "55"),
+        }
+    )
+    config = Config(website_youma=[Website.AVBASE, Website.JAVDB])
+    config.set_field_sites(CrawlerResultFields.RUNTIME, [Website.JAVDB, Website.AVBASE])
+    scraper = FileScraper(config, provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "SCUTE-1354"
+
+    result = await scraper._call_crawlers(task_input, {Website.AVBASE, Website.JAVDB})
+
+    assert result is not None
+    assert result.runtime == "55"
+    assert result.field_sources[CrawlerResultFields.RUNTIME] == Website.JAVDB.value
 
 
 @pytest.mark.asyncio

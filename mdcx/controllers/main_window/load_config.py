@@ -35,6 +35,7 @@ from mdcx.signals import signal_qt
 from mdcx.utils.file import delete_file_sync
 
 from .bind_utils import set_checkboxes, set_radio_buttons
+from .site_priority_dialog import apply_site_priority_theme, refresh_site_priority_ui
 
 if TYPE_CHECKING:
     from .main_window import MyMAinWindow
@@ -46,24 +47,13 @@ def load_config(self: "MyMAinWindow"):
     """
     field_mapping = {
         "title": CrawlerResultFields.TITLE,
-        "originaltitle": CrawlerResultFields.ORIGINALTITLE,
         "outline": CrawlerResultFields.OUTLINE,
-        "originalplot": CrawlerResultFields.ORIGINALPLOT,
         "actor": CrawlerResultFields.ACTORS,
-        "all_actors": CrawlerResultFields.ALL_ACTORS,
         "tag": CrawlerResultFields.TAGS,
         "series": CrawlerResultFields.SERIES,
         "studio": CrawlerResultFields.STUDIO,
         "publisher": CrawlerResultFields.PUBLISHER,
         "director": CrawlerResultFields.DIRECTORS,
-        "poster": CrawlerResultFields.POSTER,
-        "thumb": CrawlerResultFields.THUMB,
-        "extrafanart": CrawlerResultFields.EXTRAFANART,
-        "score": CrawlerResultFields.SCORE,
-        "release": CrawlerResultFields.RELEASE,
-        "runtime": CrawlerResultFields.RUNTIME,
-        "trailer": CrawlerResultFields.TRAILER,
-        "wanted": CrawlerResultFields.WANTED,
     }
 
     errors = manager.load()
@@ -198,6 +188,7 @@ def load_config(self: "MyMAinWindow"):
         _fixed_value = manager.config.fixed_scraping_type.value
         _idx = _type_values.index(_fixed_value) if _fixed_value in _type_values else 0
         self.Ui.comboBox_fixed_scraping_type.setCurrentIndex(_idx)
+        manager.config.ensure_type_field_configs()
 
         # 刮削偏好
         scrape_like = manager.config.scrape_like
@@ -218,8 +209,6 @@ def load_config(self: "MyMAinWindow"):
 
         # 标题字段配置
         title_field_config = manager.config.get_field_config(CrawlerResultFields.TITLE)
-        title_website = ",".join(title_field_config.site_prority)
-        self.Ui.lineEdit_title_website.setText(title_website)
         # 标题语言
         set_radio_buttons(
             title_field_config.language.value if title_field_config.language.value != "undefined" else "jp",
@@ -227,19 +216,12 @@ def load_config(self: "MyMAinWindow"):
             (self.Ui.radioButton_title_zh_tw, "zh_tw"),
             default=self.Ui.radioButton_title_jp,
         )
-        # originaltitle 字段配置
-        sites = manager.config.get_field_config(CrawlerResultFields.ORIGINALTITLE).site_prority
-        self.Ui.lineEdit_originaltitle_website.setText(",".join(sites))
 
         # 标题增强翻译-使用翻译引擎
         self.Ui.checkBox_title_translate.setChecked(title_field_config.translate)
 
         # 简介字段配置
         outline_field_config = manager.config.get_field_config(field_mapping["outline"])
-        self.Ui.lineEdit_outline_website.setText(",".join(outline_field_config.site_prority))
-        # originalplot 字段配置
-        sites = manager.config.get_field_config(CrawlerResultFields.ORIGINALPLOT).site_prority
-        self.Ui.lineEdit_originalplot_website.setText(",".join(sites))
 
         # 简介语言
         set_radio_buttons(
@@ -269,10 +251,6 @@ def load_config(self: "MyMAinWindow"):
         )
         # 演员字段配置
         actor_field_config = manager.config.get_field_config(field_mapping["actor"])
-        self.Ui.lineEdit_actors_website.setText(",".join([site.value for site in actor_field_config.site_prority]))
-        # all_actors 字段配置
-        all_actor_field_config = manager.config.get_field_config(CrawlerResultFields.ALL_ACTORS)
-        self.Ui.lineEdit_all_actors_website.setText(",".join(all_actor_field_config.site_prority))
         # 演员映射语言
         set_radio_buttons(
             actor_field_config.language.value if actor_field_config.language.value != "undefined" else "jp",
@@ -288,7 +266,6 @@ def load_config(self: "MyMAinWindow"):
 
         # 标签字段配置
         tag_field_config = manager.config.get_field_config(field_mapping["tag"])
-        self.Ui.lineEdit_tags_website.setText(",".join([site.value for site in tag_field_config.site_prority]))
         # 标签字段语言
         set_radio_buttons(
             tag_field_config.language.value if tag_field_config.language.value != "undefined" else "zh_cn",
@@ -318,7 +295,6 @@ def load_config(self: "MyMAinWindow"):
 
         # 系列字段配置
         series_field_config = manager.config.get_field_config(field_mapping["series"])
-        self.Ui.lineEdit_series_website.setText(",".join([site.value for site in series_field_config.site_prority]))
 
         # 系列字段语言
         set_radio_buttons(
@@ -333,7 +309,6 @@ def load_config(self: "MyMAinWindow"):
 
         # 工作室字段配置
         studio_field_config = manager.config.get_field_config(field_mapping["studio"])
-        self.Ui.lineEdit_studio_website.setText(",".join([site.value for site in studio_field_config.site_prority]))
 
         # 片商字段语言
         set_radio_buttons(
@@ -346,15 +321,8 @@ def load_config(self: "MyMAinWindow"):
         # 片商-使用信息映射表
         self.Ui.checkBox_studio_translate.setChecked(studio_field_config.translate)
 
-        # 想看字段配置
-        wanted_field_config = manager.config.get_field_config(field_mapping["wanted"])
-        self.Ui.lineEdit_wanted_website.setText(",".join([site.value for site in wanted_field_config.site_prority]))
-
         # 发行商字段配置
         publisher_field_config = manager.config.get_field_config(field_mapping["publisher"])
-        self.Ui.lineEdit_publisher_website.setText(
-            ",".join([site.value for site in publisher_field_config.site_prority])
-        )
 
         # 发行字段语言
         set_radio_buttons(
@@ -369,9 +337,6 @@ def load_config(self: "MyMAinWindow"):
 
         # 导演字段配置
         director_field_config = manager.config.get_field_config(field_mapping["director"])
-        self.Ui.lineEdit_directors_website.setText(
-            ",".join([site.value for site in director_field_config.site_prority])
-        )
 
         # 导演字段语言
         set_radio_buttons(
@@ -384,34 +349,8 @@ def load_config(self: "MyMAinWindow"):
         # 导演-使用信息映射表
         self.Ui.checkBox_director_translate.setChecked(director_field_config.translate)
 
-        # 海报字段配置
-        poster_field_config = manager.config.get_field_config(field_mapping["poster"])
-        self.Ui.lineEdit_poster_website.setText(",".join([site.value for site in poster_field_config.site_prority]))
-
-        # 缩略图字段配置
-        thumb_field_config = manager.config.get_field_config(field_mapping["thumb"])
-        self.Ui.lineEdit_thumb_website.setText(",".join([site.value for site in thumb_field_config.site_prority]))
-
-        # 剧照字段配置
-        extrafanart_field_config = manager.config.get_field_config(field_mapping["extrafanart"])
-        self.Ui.lineEdit_extrafanart_website.setText(
-            ",".join([site.value for site in extrafanart_field_config.site_prority])
-        )
-
-        # 评分字段配置
-        score_field_config = manager.config.get_field_config(field_mapping["score"])
-        self.Ui.lineEdit_score_website.setText(",".join([site.value for site in score_field_config.site_prority]))
-
-        # 发行日期字段配置
-        release_field_config = manager.config.get_field_config(field_mapping["release"])
-        self.Ui.lineEdit_release_website.setText(",".join([site.value for site in release_field_config.site_prority]))
-
-        # 时长字段配置
-        runtime_field_config = manager.config.get_field_config(field_mapping["runtime"])
-        self.Ui.lineEdit_runtime_website.setText(",".join([site.value for site in runtime_field_config.site_prority]))
-        # 预告片字段配置
-        trailer_field_config = manager.config.get_field_config(field_mapping["trailer"])
-        self.Ui.lineEdit_trailer_website.setText(",".join([site.value for site in trailer_field_config.site_prority]))
+        manager.config.ensure_type_field_configs()
+        refresh_site_priority_ui(self)
 
         self.Ui.lineEdit_nfo_tagline.setText(manager.config.nfo_tagline)
         self.Ui.lineEdit_nfo_tag_series.setText(manager.config.nfo_tag_series)
@@ -1077,6 +1016,7 @@ def load_config(self: "MyMAinWindow"):
 
         # 其他设置
         self.dark_mode = Switch.DARK_MODE in switch_on
+        apply_site_priority_theme(self)
         self.show_hide_logs(Switch.SHOW_LOGS in switch_on)
 
         # 隐藏窗口设置

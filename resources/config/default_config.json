@@ -157,48 +157,43 @@
   "scrape_like": "info",
   "website_single": "fc2",
   "website_youma": [
-    "dmm",
+    "mgstage",
+    "official",
+    "missav",
+    "javbus",
     "javdbapi",
     "jav321",
-    "official",
-    "javbus",
-    "mgstage",
+    "dmm",
     "avbase"
   ],
   "website_wuma": [
-    "7mmtv",
-    "freejavbt",
-    "jav321",
     "missav",
-    "javbus",
-    "iqqtv",
+    "7mmtv",
     "avsox"
   ],
   "website_suren": [
-    "dmm",
-    "7mmtv",
-    "freejavbt",
-    "jav321",
-    "javbus",
     "mgstage",
-    "avbase"
+    "javbus",
+    "jav321",
+    "dmm",
+    "avbase",
+    "7mmtv"
   ],
   "website_fc2": [
+    "fc2",
     "7mmtv",
     "fc2hub",
-    "freejavbt",
-    "fc2club",
-    "fc2"
+    "fc2club"
   ],
   "website_oumei": [
     "theporndb"
   ],
   "website_guochan": [
-    "javday",
-    "hdouban",
-    "mdtv",
     "cnmdb",
-    "madouqu"
+    "hdouban",
+    "madouqu",
+    "javday",
+    "mdtv"
   ],
   "actor_realname": true,
   "outline_format": [],
@@ -207,7 +202,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -221,7 +215,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -230,7 +225,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -244,7 +238,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
@@ -253,7 +248,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -267,7 +261,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -276,7 +271,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -290,7 +284,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
@@ -299,7 +294,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -313,7 +307,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -321,8 +316,22 @@
     "all_actors": {
       "site_prority": [
         "theporndb",
-        "javdbapi",
-        "javdb"
+        "dmm",
+        "official",
+        "mgstage",
+        "prestige",
+        "avbase",
+        "jav321",
+        "7mmtv",
+        "javdb",
+        "javbus",
+        "iqqtv",
+        "freejavbt",
+        "missav",
+        "avsox",
+        "fc2hub",
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -331,7 +340,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -345,7 +353,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -354,7 +363,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -368,7 +376,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -377,7 +386,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -391,7 +399,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -400,7 +409,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -414,7 +422,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -423,7 +432,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -437,7 +445,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "zh_cn",
       "translate": true
@@ -446,7 +455,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -460,7 +468,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
@@ -469,7 +478,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -483,7 +491,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
@@ -492,7 +501,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -506,7 +514,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
@@ -514,12 +523,22 @@
     "trailer": {
       "site_prority": [
         "theporndb",
-        "official",
         "dmm",
-        "javdbapi",
+        "official",
+        "mgstage",
+        "prestige",
+        "avbase",
+        "jav321",
+        "7mmtv",
         "javdb",
+        "javbus",
+        "iqqtv",
+        "freejavbt",
+        "missav",
+        "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
@@ -528,7 +547,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -542,7 +560,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
@@ -551,7 +570,6 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
         "official",
         "mgstage",
         "prestige",
@@ -565,7 +583,8 @@
         "missav",
         "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
@@ -574,21 +593,44 @@
       "site_prority": [
         "theporndb",
         "dmm",
-        "javdbapi",
-        "javdb",
+        "official",
         "mgstage",
         "prestige",
+        "avbase",
+        "jav321",
+        "7mmtv",
+        "javdb",
+        "javbus",
+        "iqqtv",
+        "freejavbt",
+        "missav",
+        "avsox",
         "fc2hub",
-        "fc2"
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true
     },
     "wanted": {
       "site_prority": [
+        "theporndb",
         "dmm",
-        "javdbapi",
-        "javdb"
+        "official",
+        "mgstage",
+        "prestige",
+        "avbase",
+        "jav321",
+        "7mmtv",
+        "javdb",
+        "javbus",
+        "iqqtv",
+        "freejavbt",
+        "missav",
+        "avsox",
+        "fc2hub",
+        "fc2",
+        "fc2ppvdb"
       ],
       "language": "undefined",
       "translate": true

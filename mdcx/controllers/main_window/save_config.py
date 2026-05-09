@@ -38,6 +38,7 @@ from mdcx.signals import signal_qt
 from mdcx.tools.actress_db import ActressDB
 
 from .bind_utils import get_checkbox, get_checkboxes, get_radio_buttons
+from .site_priority_dialog import refresh_site_priority_ui
 
 if TYPE_CHECKING:
     from .main_window import MyMAinWindow
@@ -136,8 +137,8 @@ def save_config(self: "MyMAinWindow"):
     if manager.config.website_single == Website.AIRAV:
         manager.config.website_single = Website.AIRAV_CC
 
-    def get_sites(text: str) -> set[Website]:
-        return {Website(site) for site in str_to_list(text, ",") if site != Website.AIRAV.value}
+    def get_sites(text: str) -> list[Website]:
+        return list(dict.fromkeys(Website(site) for site in str_to_list(text, ",") if site != Website.AIRAV.value))
 
     manager.config.website_youma = get_sites(self.Ui.lineEdit_website_youma.text())
     manager.config.website_wuma = get_sites(self.Ui.lineEdit_website_wuma.text())
@@ -154,7 +155,6 @@ def save_config(self: "MyMAinWindow"):
     )
 
     # 标题字段配置
-    manager.config.set_field_sites(field_mapping["title"], self.Ui.lineEdit_title_website.text())
     title_language = get_radio_buttons(
         (self.Ui.radioButton_title_zh_cn, Language.ZH_CN),
         (self.Ui.radioButton_title_zh_tw, Language.ZH_TW),
@@ -162,11 +162,8 @@ def save_config(self: "MyMAinWindow"):
     )
     manager.config.set_field_language(field_mapping["title"], title_language)
     manager.config.set_field_translate(field_mapping["title"], get_checkbox(self.Ui.checkBox_title_translate))
-    # originaltitle
-    manager.config.set_field_sites(CrawlerResultFields.ORIGINALTITLE, self.Ui.lineEdit_originaltitle_website.text())
 
     # 简介字段配置
-    manager.config.set_field_sites(field_mapping["outline"], self.Ui.lineEdit_outline_website.text())
     outline_language = get_radio_buttons(
         (self.Ui.radioButton_outline_zh_cn, Language.ZH_CN),
         (self.Ui.radioButton_outline_zh_tw, Language.ZH_TW),
@@ -179,11 +176,8 @@ def save_config(self: "MyMAinWindow"):
         (self.Ui.radioButton_trans_show_zh_jp, OutlineShow.SHOW_ZH_JP),
         (self.Ui.radioButton_trans_show_jp_zh, OutlineShow.SHOW_JP_ZH),
     )
-    # originalplot
-    manager.config.set_field_sites(CrawlerResultFields.ORIGINALPLOT, self.Ui.lineEdit_originalplot_website.text())
 
     # 演员字段配置
-    manager.config.set_field_sites(field_mapping["actor"], self.Ui.lineEdit_actors_website.text())
     actor_language = get_radio_buttons(
         (self.Ui.radioButton_actor_zh_cn, Language.ZH_CN),
         (self.Ui.radioButton_actor_zh_tw, Language.ZH_TW),
@@ -193,12 +187,10 @@ def save_config(self: "MyMAinWindow"):
     manager.config.set_field_translate(field_mapping["actor"], get_checkbox(self.Ui.checkBox_actor_translate))
     manager.config.actor_realname = get_checkbox(self.Ui.checkBox_actor_realname)
     # all_actors
-    manager.config.set_field_sites(CrawlerResultFields.ALL_ACTORS, self.Ui.lineEdit_all_actors_website.text())
     manager.config.set_field_language(CrawlerResultFields.ALL_ACTORS, actor_language)
     manager.config.set_field_translate(CrawlerResultFields.ALL_ACTORS, get_checkbox(self.Ui.checkBox_actor_translate))
 
     # 标签字段配置
-    manager.config.set_field_sites(field_mapping["tag"], self.Ui.lineEdit_tags_website.text())
     tag_language = get_radio_buttons(
         (self.Ui.radioButton_tag_zh_cn, Language.ZH_CN),
         (self.Ui.radioButton_tag_zh_tw, Language.ZH_TW),
@@ -219,7 +211,6 @@ def save_config(self: "MyMAinWindow"):
     )
 
     # 系列字段配置
-    manager.config.set_field_sites(field_mapping["series"], self.Ui.lineEdit_series_website.text())
     series_language = get_radio_buttons(
         (self.Ui.radioButton_series_zh_cn, Language.ZH_CN),
         (self.Ui.radioButton_series_zh_tw, Language.ZH_TW),
@@ -229,7 +220,6 @@ def save_config(self: "MyMAinWindow"):
     manager.config.set_field_translate(field_mapping["series"], get_checkbox(self.Ui.checkBox_series_translate))
 
     # 工作室字段配置
-    manager.config.set_field_sites(field_mapping["studio"], self.Ui.lineEdit_studio_website.text())
     studio_language = get_radio_buttons(
         (self.Ui.radioButton_studio_zh_cn, Language.ZH_CN),
         (self.Ui.radioButton_studio_zh_tw, Language.ZH_TW),
@@ -239,7 +229,6 @@ def save_config(self: "MyMAinWindow"):
     manager.config.set_field_translate(field_mapping["studio"], get_checkbox(self.Ui.checkBox_studio_translate))
 
     # 发行商字段配置
-    manager.config.set_field_sites(field_mapping["publisher"], self.Ui.lineEdit_publisher_website.text())
     publisher_language = get_radio_buttons(
         (self.Ui.radioButton_publisher_zh_cn, Language.ZH_CN),
         (self.Ui.radioButton_publisher_zh_tw, Language.ZH_TW),
@@ -249,7 +238,6 @@ def save_config(self: "MyMAinWindow"):
     manager.config.set_field_translate(field_mapping["publisher"], get_checkbox(self.Ui.checkBox_publisher_translate))
 
     # 导演字段配置
-    manager.config.set_field_sites(field_mapping["director"], self.Ui.lineEdit_directors_website.text())
     director_language = get_radio_buttons(
         (self.Ui.radioButton_director_zh_cn, Language.ZH_CN),
         (self.Ui.radioButton_director_zh_tw, Language.ZH_TW),
@@ -258,15 +246,8 @@ def save_config(self: "MyMAinWindow"):
     manager.config.set_field_language(field_mapping["director"], director_language)
     manager.config.set_field_translate(field_mapping["director"], get_checkbox(self.Ui.checkBox_director_translate))
 
-    # 其他图片和媒体字段配置
-    manager.config.set_field_sites(field_mapping["poster"], self.Ui.lineEdit_poster_website.text())
-    manager.config.set_field_sites(field_mapping["thumb"], self.Ui.lineEdit_thumb_website.text())
-    manager.config.set_field_sites(field_mapping["extrafanart"], self.Ui.lineEdit_extrafanart_website.text())
-    manager.config.set_field_sites(field_mapping["score"], self.Ui.lineEdit_score_website.text())
-    manager.config.set_field_sites(field_mapping["release"], self.Ui.lineEdit_release_website.text())
-    manager.config.set_field_sites(field_mapping["runtime"], self.Ui.lineEdit_runtime_website.text())
-    manager.config.set_field_sites(field_mapping["trailer"], self.Ui.lineEdit_trailer_website.text())
-    manager.config.set_field_sites(field_mapping["wanted"], self.Ui.lineEdit_wanted_website.text())
+    manager.config.fill_missing_type_field_configs()
+    refresh_site_priority_ui(self)
     manager.config.nfo_tagline = self.Ui.lineEdit_nfo_tagline.text()  # tagline格式
     manager.config.nfo_tag_series = self.Ui.lineEdit_nfo_tag_series.text()  # nfo_tag_series 格式
     manager.config.nfo_tag_studio = self.Ui.lineEdit_nfo_tag_studio.text()  # nfo_tag_studio 格式

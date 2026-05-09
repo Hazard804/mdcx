@@ -1,9 +1,14 @@
 import json
 from pathlib import Path
 
-from mdcx.config.enums import DownloadableFile, Website
-from mdcx.config.models import Config
+from mdcx.config.enums import DownloadableFile, FixedScrapingType, Website
+from mdcx.config.models import DEFAULT_FIELD_SITE_PRIORITY, Config
 from mdcx.config.v1 import ConfigV1
+from mdcx.controllers.main_window.site_priority_dialog import (
+    FIELD_PRIORITY_FIELDS,
+    _sync_field_sites_after_type_sites_changed,
+)
+from mdcx.gen.field_enums import CrawlerResultFields
 from tests.random_generator import generate_random_pydantic_instance
 
 
@@ -81,6 +86,90 @@ def test_config_update_removes_old_youma_poster_option_without_enabling_new_opti
     assert "youma_use_poster" not in config.model_dump(mode="json")["download_files"]
 
 
+def test_config_builds_type_field_priority_from_legacy_field_configs():
+    data = {
+        "website_youma": ["dmm", "javdb"],
+        "field_configs": {
+            "title": {
+                "site_prority": ["javdb", "dmm", "javbus"],
+                "language": "jp",
+                "translate": True,
+            }
+        },
+    }
+
+    Config.update(data)
+    config = Config.model_validate(data)
+
+    assert config.website_youma == [Website.DMM, Website.JAVDB]
+    assert config.get_type_field_config(FixedScrapingType.YOUMA, CrawlerResultFields.TITLE).site_prority == [
+        Website.JAVDB,
+        Website.DMM,
+    ]
+
+
+def test_config_default_site_priorities_follow_current_frontend_defaults():
+    config = Config()
+
+    assert config.website_youma == [
+        Website.MGSTAGE,
+        Website.OFFICIAL,
+        Website.MISSAV,
+        Website.JAVBUS,
+        Website.JAVDBAPI,
+        Website.JAV321,
+        Website.DMM,
+        Website.AVBASE,
+    ]
+    assert config.website_wuma == [Website.MISSAV, Website.MMTV, Website.AVSOX]
+    assert config.website_suren == [
+        Website.MGSTAGE,
+        Website.JAVBUS,
+        Website.JAV321,
+        Website.DMM,
+        Website.AVBASE,
+        Website.MMTV,
+    ]
+    assert config.website_fc2 == [Website.FC2, Website.MMTV, Website.FC2HUB, Website.FC2CLUB]
+    assert config.website_oumei == [Website.THEPORNDB]
+    assert config.website_guochan == [
+        Website.CNMDB,
+        Website.HDOUBAN,
+        Website.MADOUQU,
+        Website.JAVDAY,
+        Website.MDTV,
+    ]
+    assert config.get_field_config(CrawlerResultFields.TITLE).site_prority == DEFAULT_FIELD_SITE_PRIORITY
+    assert config.get_type_field_config(FixedScrapingType.YOUMA, CrawlerResultFields.TITLE).site_prority == [
+        Website.DMM,
+        Website.OFFICIAL,
+        Website.MGSTAGE,
+        Website.AVBASE,
+        Website.JAV321,
+        Website.JAVBUS,
+        Website.MISSAV,
+    ]
+    assert config.get_type_field_config(FixedScrapingType.FC2, CrawlerResultFields.TITLE).site_prority == [
+        Website.MMTV,
+        Website.FC2HUB,
+        Website.FC2,
+    ]
+
+
+def test_frontend_field_priority_fields_include_legacy_configurable_fields():
+    assert CrawlerResultFields.ORIGINALTITLE in FIELD_PRIORITY_FIELDS
+    assert CrawlerResultFields.ORIGINALPLOT in FIELD_PRIORITY_FIELDS
+    assert CrawlerResultFields.ALL_ACTORS in FIELD_PRIORITY_FIELDS
+
+
+def test_sync_field_sites_after_type_sites_changed_preserves_field_order():
+    assert _sync_field_sites_after_type_sites_changed(
+        [Website.JAVDB, Website.DMM],
+        [Website.DMM, Website.JAVDB, Website.JAVBUS],
+        [Website.JAVBUS, Website.JAVDB, Website.MGSTAGE, Website.DMM],
+    ) == [Website.JAVDB, Website.DMM, Website.MGSTAGE]
+
+
 def test_default_config_template_is_valid_json_and_matches_current_model():
     template_path = Path("resources/config/default_config.json")
     template = json.loads(template_path.read_text(encoding="utf-8"))
@@ -90,3 +179,7 @@ def test_default_config_template_is_valid_json_and_matches_current_model():
     assert config.media_path == "D:\\Media\\Input"
     assert config.softlink_path == "X:\\Media\\Softlink"
     assert config.failed_output_folder == "D:\\Media\\Input\\failed"
+    assert config.website_youma == Config().website_youma
+    assert config.get_field_config(CrawlerResultFields.TITLE).site_prority == DEFAULT_FIELD_SITE_PRIORITY
+    for field in CrawlerResultFields:
+        assert config.get_field_config(field) == Config().get_field_config(field)

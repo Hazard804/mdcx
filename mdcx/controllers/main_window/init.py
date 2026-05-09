@@ -14,6 +14,7 @@ from mdcx.crawlers import get_registered_crawler_site_values
 from mdcx.models.flags import Flags
 from mdcx.signals import signal_qt
 
+from .site_priority_dialog import setup_site_priority_ui
 from .style import build_menu_style, build_tree_widget_style
 
 if TYPE_CHECKING:
@@ -129,6 +130,7 @@ def Init_Ui(self: "MyMAinWindow"):
     self.Ui.widget_show_tips.hide()
     self.Ui.widget_nfo.resize(791, 681)
     self.Ui.widget_nfo.hide()
+    setup_site_priority_ui(self)
 
 
 def _setup_combo_boxes(self: "MyMAinWindow") -> None:

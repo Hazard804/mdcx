@@ -105,6 +105,53 @@ class FieldConfig(BaseModel):
     )
 
 
+class FieldPriorityConfig(BaseModel):
+    site_prority: list[Website] = Field(default_factory=list, title="来源网站优先级")
+
+
+CONFIGURABLE_SCRAPING_TYPES = (
+    FixedScrapingType.YOUMA,
+    FixedScrapingType.WUMA,
+    FixedScrapingType.SUREN,
+    FixedScrapingType.FC2,
+    FixedScrapingType.OUMEI,
+    FixedScrapingType.GUOCHAN,
+)
+
+SCRAPING_TYPE_SITE_FIELDS = {
+    FixedScrapingType.YOUMA: "website_youma",
+    FixedScrapingType.WUMA: "website_wuma",
+    FixedScrapingType.SUREN: "website_suren",
+    FixedScrapingType.FC2: "website_fc2",
+    FixedScrapingType.OUMEI: "website_oumei",
+    FixedScrapingType.GUOCHAN: "website_guochan",
+}
+
+DEFAULT_FIELD_SITE_PRIORITY = [
+    Website.THEPORNDB,
+    Website.DMM,
+    Website.OFFICIAL,
+    Website.MGSTAGE,
+    Website.PRESTIGE,
+    Website.AVBASE,
+    Website.JAV321,
+    Website.MMTV,
+    Website.JAVDB,
+    Website.JAVBUS,
+    Website.IQQTV,
+    Website.FREEJAVBT,
+    Website.MISSAV,
+    Website.AVSOX,
+    Website.FC2HUB,
+    Website.FC2,
+    Website.FC2PPVDB,
+]
+
+
+def default_field_config(language: Language = Language.UNDEFINED, translate: bool = True) -> FieldConfig:
+    return FieldConfig(site_prority=list(DEFAULT_FIELD_SITE_PRIORITY), language=language, translate=translate)
+
+
 class Config(BaseModel):
     model_config = ConfigDict()
     # region: General Settings
@@ -299,79 +346,53 @@ class Config(BaseModel):
 
     # region: Website Settings
     website_single: Website = Field(default=Website.AIRAV_CC, title="单个网站")  # todo 移除
-    website_youma: set[Website] = Field(
-        default_factory=lambda: {
-            Website.AVBASE,
-            Website.OFFICIAL,
-            Website.IQQTV,
-            Website.AVSEX,
-            Website.AVSOX,
-            Website.CABLEAV,
-            Website.DMM,
-            Website.FALENO,
-            Website.FANTASTICA,
-            Website.GIGA,
-            Website.JAV321,
-            Website.JAVBUS,
-            Website.JAVDAY,
-            Website.JAVDB,
-            Website.JAVDBAPI,
-            Website.LOVE6,
-            Website.LULUBAR,
+    website_youma: list[Website] = Field(
+        default_factory=lambda: [
             Website.MGSTAGE,
+            Website.OFFICIAL,
             Website.MISSAV,
-            Website.MYWIFE,
-            Website.PRESTIGE,
-            Website.XCITY,
-        },
+            Website.JAVBUS,
+            Website.JAVDBAPI,
+            Website.JAV321,
+            Website.DMM,
+            Website.AVBASE,
+        ],
         title="有码网站源",
     )
-    website_wuma: set[Website] = Field(
-        default_factory=lambda: {
-            Website.IQQTV,
-            Website.JAVBUS,
-            Website.FREEJAVBT,
-            Website.JAV321,
-            Website.AVSOX,
-            Website.MMTV,
-            Website.HDOUBAN,
-            Website.JAVDB,
+    website_wuma: list[Website] = Field(
+        default_factory=lambda: [
             Website.MISSAV,
-        },
+            Website.MMTV,
+            Website.AVSOX,
+        ],
         title="无码网站源",
     )
-    website_suren: set[Website] = Field(
-        default_factory=lambda: {
-            Website.AVBASE,
+    website_suren: list[Website] = Field(
+        default_factory=lambda: [
             Website.MGSTAGE,
-            Website.AVSEX,
-            Website.JAV321,
-            Website.FREEJAVBT,
-            Website.MMTV,
             Website.JAVBUS,
-            Website.JAVDB,
-        },
+            Website.JAV321,
+            Website.DMM,
+            Website.AVBASE,
+            Website.MMTV,
+        ],
         title="素人网站源",
     )
-    website_fc2: set[Website] = Field(
-        default_factory=lambda: {
+    website_fc2: list[Website] = Field(
+        default_factory=lambda: [
             Website.FC2,
-            Website.FC2CLUB,
-            Website.FC2HUB,
-            Website.FREEJAVBT,
             Website.MMTV,
-            Website.HDOUBAN,
-            Website.JAVDB,
-            Website.AVSOX,
-        },
+            Website.FC2HUB,
+            Website.FC2CLUB,
+        ],
         title="FC2网站源",
     )
-    website_oumei: set[Website] = Field(
-        default_factory=lambda: {Website.THEPORNDB, Website.JAVDB, Website.JAVBUS, Website.HDOUBAN},
+    website_oumei: list[Website] = Field(
+        default_factory=lambda: [Website.THEPORNDB],
         title="欧美网站源",
     )
-    website_guochan: set[Website] = Field(
-        default_factory=lambda: {Website.MADOUQU, Website.MDTV, Website.HDOUBAN, Website.CNMDB, Website.JAVDAY},
+    website_guochan: list[Website] = Field(
+        default_factory=lambda: [Website.CNMDB, Website.HDOUBAN, Website.MADOUQU, Website.JAVDAY, Website.MDTV],
         title="国产网站源",
     )
     fixed_scraping_type: FixedScrapingType = Field(
@@ -386,165 +407,31 @@ class Config(BaseModel):
 
     field_configs: dict[CrawlerResultFields, FieldConfig] = Field(
         default_factory=lambda: {
-            CrawlerResultFields.TITLE: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-                language=Language.JP,
-            ),
-            CrawlerResultFields.ORIGINALTITLE: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-            ),
-            CrawlerResultFields.OUTLINE: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-                language=Language.JP,
-            ),
-            CrawlerResultFields.ORIGINALPLOT: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-            ),
-            CrawlerResultFields.ACTORS: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-                language=Language.JP,
-            ),
-            CrawlerResultFields.ALL_ACTORS: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.JAVDBAPI, Website.JAVDB, Website.AVBASE],
-                language=Language.JP,
-            ),
-            CrawlerResultFields.TAGS: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-                language=Language.ZH_CN,
-            ),
-            CrawlerResultFields.DIRECTORS: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-                language=Language.JP,
-            ),
-            CrawlerResultFields.SERIES: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-                language=Language.JP,
-            ),
-            CrawlerResultFields.STUDIO: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-                language=Language.JP,
-            ),
-            CrawlerResultFields.PUBLISHER: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ],
-                language=Language.JP,
-            ),
-            CrawlerResultFields.THUMB: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.DMM, Website.JAVDBAPI, Website.AVBASE]
-            ),
-            CrawlerResultFields.POSTER: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.DMM, Website.JAVDBAPI, Website.AVBASE]
-            ),
-            CrawlerResultFields.EXTRAFANART: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.DMM, Website.JAVDBAPI, Website.AVBASE]
-            ),
-            CrawlerResultFields.TRAILER: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ]
-            ),
-            CrawlerResultFields.RELEASE: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ]
-            ),
-            CrawlerResultFields.RUNTIME: FieldConfig(
-                site_prority=[
-                    Website.THEPORNDB,
-                    Website.OFFICIAL,
-                    Website.DMM,
-                    Website.JAVDBAPI,
-                    Website.JAVDB,
-                    Website.AVBASE,
-                ]
-            ),
-            CrawlerResultFields.SCORE: FieldConfig(
-                site_prority=[Website.THEPORNDB, Website.DMM, Website.JAVDBAPI, Website.JAVDB, Website.AVBASE]
-            ),
-            CrawlerResultFields.WANTED: FieldConfig(
-                site_prority=[Website.DMM, Website.JAVDBAPI, Website.JAVDB, Website.AVBASE]
-            ),
+            CrawlerResultFields.TITLE: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.ORIGINALTITLE: default_field_config(),
+            CrawlerResultFields.OUTLINE: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.ORIGINALPLOT: default_field_config(),
+            CrawlerResultFields.ACTORS: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.ALL_ACTORS: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.TAGS: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.DIRECTORS: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.SERIES: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.STUDIO: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.PUBLISHER: default_field_config(language=Language.ZH_CN),
+            CrawlerResultFields.THUMB: default_field_config(),
+            CrawlerResultFields.POSTER: default_field_config(),
+            CrawlerResultFields.EXTRAFANART: default_field_config(),
+            CrawlerResultFields.TRAILER: default_field_config(),
+            CrawlerResultFields.RELEASE: default_field_config(),
+            CrawlerResultFields.RUNTIME: default_field_config(),
+            CrawlerResultFields.SCORE: default_field_config(),
+            CrawlerResultFields.WANTED: default_field_config(),
         },
         title="字段配置",
+    )
+    type_field_configs: dict[FixedScrapingType, dict[CrawlerResultFields, FieldPriorityConfig]] = Field(
+        default_factory=dict,
+        title="按类型字段优先级",
     )
 
     site_configs: dict[Website, SiteConfig] = Field(default_factory=dict, title="网站配置")
@@ -826,6 +713,9 @@ class Config(BaseModel):
     # publisher_translate: bool = Field(default=True, title="翻译发行商")
     # endregion
 
+    def model_post_init(self, context) -> None:
+        self.ensure_type_field_configs()
+
     def get_site_config(self, site: Website) -> SiteConfig:
         return self.site_configs.get(site, SiteConfig())
 
@@ -835,6 +725,76 @@ class Config(BaseModel):
 
     def get_field_config(self, field: CrawlerResultFields) -> FieldConfig:
         return self.field_configs.get(field, FieldConfig())
+
+    def get_type_sites(self, scraping_type: FixedScrapingType) -> list[Website]:
+        field_name = SCRAPING_TYPE_SITE_FIELDS.get(scraping_type)
+        if not field_name:
+            return []
+        return self.parse_sites(getattr(self, field_name, []))
+
+    def get_type_field_config(
+        self, scraping_type: FixedScrapingType, field: CrawlerResultFields
+    ) -> FieldPriorityConfig:
+        self.ensure_type_field_configs()
+        return self.type_field_configs.get(scraping_type, {}).get(field, FieldPriorityConfig())
+
+    def set_type_field_sites(
+        self, scraping_type: FixedScrapingType, field: CrawlerResultFields, sites: list[Website] | str
+    ) -> None:
+        self.type_field_configs.setdefault(scraping_type, {})[field] = FieldPriorityConfig(
+            site_prority=self.parse_sites(sites)
+        )
+
+    def build_type_field_configs(
+        self, scraping_type: FixedScrapingType
+    ) -> dict[CrawlerResultFields, FieldPriorityConfig]:
+        type_sites = self.get_type_sites(scraping_type)
+        type_site_set = set(type_sites)
+        configs: dict[CrawlerResultFields, FieldPriorityConfig] = {}
+        for crawler_field in ManualConfig.REDUCED_FIELDS:
+            field_sites = self.get_field_config(crawler_field).site_prority
+            sites = [site for site in field_sites if site in type_site_set]
+            if not sites:
+                sites = list(type_sites)
+            configs[crawler_field] = FieldPriorityConfig(site_prority=sites)
+        return configs
+
+    def _normalize_type_field_config(
+        self,
+        scraping_type: FixedScrapingType,
+        current: dict[CrawlerResultFields, FieldPriorityConfig],
+    ) -> dict[CrawlerResultFields, FieldPriorityConfig]:
+        type_site_set = set(self.get_type_sites(scraping_type))
+        default = self.build_type_field_configs(scraping_type)
+        normalized: dict[CrawlerResultFields, FieldPriorityConfig] = {}
+        for crawler_field in ManualConfig.REDUCED_FIELDS:
+            if crawler_field in current:
+                old_sites = current[crawler_field].site_prority
+                sites = [site for site in self.parse_sites(old_sites) if site in type_site_set]
+            else:
+                sites = default[crawler_field].site_prority
+            normalized[crawler_field] = FieldPriorityConfig(site_prority=sites)
+        return normalized
+
+    def fill_missing_type_field_configs(self) -> None:
+        normalized: dict[FixedScrapingType, dict[CrawlerResultFields, FieldPriorityConfig]] = {}
+        for scraping_type in CONFIGURABLE_SCRAPING_TYPES:
+            current = self.type_field_configs.get(scraping_type)
+            if current is None:
+                normalized[scraping_type] = self.build_type_field_configs(scraping_type)
+            else:
+                normalized[scraping_type] = self._normalize_type_field_config(scraping_type, current)
+        self.type_field_configs = normalized
+
+    def ensure_type_field_configs(self) -> None:
+        normalized: dict[FixedScrapingType, dict[CrawlerResultFields, FieldPriorityConfig]] = {}
+        for scraping_type in CONFIGURABLE_SCRAPING_TYPES:
+            current = self.type_field_configs.get(scraping_type)
+            if not current:
+                normalized[scraping_type] = self.build_type_field_configs(scraping_type)
+                continue
+            normalized[scraping_type] = self._normalize_type_field_config(scraping_type, current)
+        self.type_field_configs = normalized
 
     def set_field_sites(self, field: CrawlerResultFields, sites: list[Website] | str):
         sites = self.parse_sites(sites)
@@ -850,7 +810,7 @@ class Config(BaseModel):
     def parse_sites(sites: list | set | str) -> list[Website]:
         if isinstance(sites, str):
             sites = str_to_list(sites, ",")
-        return [Website(s) for s in sites if s in Website]
+        return list(dict.fromkeys(Website(s) for s in sites if s in Website))
 
     @staticmethod
     def update(d: dict[str, Any]) -> list[str]:
@@ -873,13 +833,20 @@ class Config(BaseModel):
         for key, value in list(d.items()):
             if key.startswith("website_") and key != "website_single":
                 if isinstance(value, str):
-                    d[key] = ",".join(site for site in str_to_list(value, ",") if not is_removed_airav_site(site))
+                    d[key] = [site for site in str_to_list(value, ",") if not is_removed_airav_site(site)]
                 elif isinstance(value, list | set):
                     d[key] = [site for site in value if not is_removed_airav_site(site)]
         if isinstance(field_configs := d.get("field_configs"), dict):
             for value in field_configs.values():
                 if isinstance(value, dict) and isinstance(sites := value.get("site_prority"), list):
                     value["site_prority"] = [site for site in sites if not is_removed_airav_site(site)]
+        if isinstance(type_field_configs := d.get("type_field_configs"), dict):
+            for field_configs in type_field_configs.values():
+                if not isinstance(field_configs, dict):
+                    continue
+                for value in field_configs.values():
+                    if isinstance(value, dict) and isinstance(sites := value.get("site_prority"), list):
+                        value["site_prority"] = [site for site in sites if not is_removed_airav_site(site)]
         if "proxy_type" in d:
             d["use_proxy"] = d["proxy_type"] != "no"
         if isinstance(r := d.get("proxy"), str):
@@ -945,7 +912,7 @@ class Config(BaseModel):
         website_suren = Config.parse_sites(d.get("website_suren", []))
         website_fc2 = Config.parse_sites(d.get("website_fc2", []))
         website_oumei = Config.parse_sites(d.get("website_oumei", []))
-        website_guochan = Config.parse_sites(d.get("website_youma", []))
+        website_guochan = Config.parse_sites(d.get("website_guochan", []))
         all_enabled_sites = list(
             dict.fromkeys(website_youma + website_wuma + website_suren + website_fc2 + website_oumei + website_guochan)
         )
