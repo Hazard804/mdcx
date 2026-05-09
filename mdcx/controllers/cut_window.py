@@ -505,7 +505,13 @@ class CutWindow(QDialog):
         img_new_png.close()
 
         # 在主界面显示预览
-        await self.main_window._set_pixmap(self.cut_poster_path, thumb_path, poster_from="cut", cover_from="local")
+        await self.main_window._set_pixmap(
+            self.cut_poster_path,
+            thumb_path,
+            poster_from="cut",
+            cover_from="local",
+            force_reload=True,
+        )
         self.main_window.change_to_mainpage.emit("")
         return True
 

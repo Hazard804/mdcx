@@ -100,8 +100,9 @@ class PreviewImageLoader(QObject):
         thumb_path: Path | None,
         poster_from: str = "",
         thumb_from: str = "",
+        force_reload: bool = False,
     ) -> None:
-        future = self._pool.submit(self._load_pair, poster_path, thumb_path, poster_from, thumb_from)
+        future = self._pool.submit(self._load_pair, poster_path, thumb_path, poster_from, thumb_from, force_reload)
         future.add_done_callback(lambda done: self._emit_result(request_id, done))
 
     def shutdown(self) -> None:
@@ -123,13 +124,14 @@ class PreviewImageLoader(QObject):
         thumb_path: Path | None,
         poster_from: str,
         thumb_from: str,
+        force_reload: bool,
     ) -> tuple[list, list]:
         return (
-            self._load_one(poster_path, poster=True, pic_from=poster_from),
-            self._load_one(thumb_path, poster=False, pic_from=thumb_from),
+            self._load_one(poster_path, poster=True, pic_from=poster_from, force_reload=force_reload),
+            self._load_one(thumb_path, poster=False, pic_from=thumb_from, force_reload=force_reload),
         )
 
-    def _load_one(self, pic_path: Path | None, poster: bool, pic_from: str = "") -> list:
+    def _load_one(self, pic_path: Path | None, poster: bool, pic_from: str = "", force_reload: bool = False) -> list:
         if not pic_path or not pic_path.exists():
             return _preview_placeholder(poster)
 
@@ -141,9 +143,10 @@ class PreviewImageLoader(QObject):
                 file_size=stat.st_size,
                 poster=poster,
             )
-            cached = self._cache.get(key)
-            if cached is not None:
-                return [True, cached.image, cached.msg, cached.width, cached.height]
+            if not force_reload:
+                cached = self._cache.get(key)
+                if cached is not None:
+                    return [True, cached.image, cached.msg, cached.width, cached.height]
 
             reader = QImageReader(pic_path.as_posix())
             reader.setAutoTransform(True)

@@ -1178,14 +1178,21 @@ class MyMAinWindow(QMainWindow):
         thumb_path: Path | None,
         poster_from="",
         cover_from="",
+        force_reload: bool = False,
     ) -> None:
         self.preview_request_id += 1
-        self.Ui.label_poster_size.setText("")
-        self.resize_label_and_setpixmap(
-            [False, "", "加载中...", 156, 220] if poster_path else [False, "", "暂无封面图", 156, 220],
-            [False, "", "加载中...", 328, 220] if thumb_path else [False, "", "暂无缩略图", 328, 220],
+        if not poster_path or not poster_path.is_file():
+            self.resize_label_and_setpixmap([False, "", "暂无封面图", 156, 220], None)
+        if not thumb_path or not thumb_path.is_file():
+            self.resize_label_and_setpixmap(None, [False, "", "暂无缩略图", 328, 220])
+        self.preview_image_loader.load(
+            self.preview_request_id,
+            poster_path,
+            thumb_path,
+            poster_from,
+            cover_from,
+            force_reload=force_reload,
         )
-        self.preview_image_loader.load(self.preview_request_id, poster_path, thumb_path, poster_from, cover_from)
 
     async def _set_pixmap(
         self,
@@ -1193,8 +1200,9 @@ class MyMAinWindow(QMainWindow):
         thumb_path: Path | None,
         poster_from="",
         cover_from="",
+        force_reload: bool = False,
     ):
-        self._request_preview_images(poster_path, thumb_path, poster_from, cover_from)
+        self._request_preview_images(poster_path, thumb_path, poster_from, cover_from, force_reload=force_reload)
 
     def _apply_preview_images(self, request_id: int, poster_pix: list, thumb_pix: list) -> None:
         if request_id != self.preview_request_id:
@@ -1205,22 +1213,25 @@ class MyMAinWindow(QMainWindow):
         self.resize_label_and_setpixmap(poster_pix, thumb_pix)
 
     def resize_label_and_setpixmap(self, poster_pix, thumb_pix):
-        self.Ui.label_poster.resize(poster_pix[3], poster_pix[4])
-        self.Ui.label_thumb.resize(thumb_pix[3], thumb_pix[4])
+        if poster_pix is not None:
+            self.Ui.label_poster.resize(poster_pix[3], poster_pix[4])
+            if poster_pix[0]:
+                poster_pixmap = (
+                    poster_pix[1] if isinstance(poster_pix[1], QPixmap) else QPixmap.fromImage(poster_pix[1])
+                )
+                self.Ui.label_poster.setPixmap(poster_pixmap)
+            else:
+                self.Ui.label_poster.clear()
+                self.Ui.label_poster.setText(poster_pix[2])
 
-        if poster_pix[0]:
-            poster_pixmap = poster_pix[1] if isinstance(poster_pix[1], QPixmap) else QPixmap.fromImage(poster_pix[1])
-            self.Ui.label_poster.setPixmap(poster_pixmap)
-        else:
-            self.Ui.label_poster.clear()
-            self.Ui.label_poster.setText(poster_pix[2])
-
-        if thumb_pix[0]:
-            thumb_pixmap = thumb_pix[1] if isinstance(thumb_pix[1], QPixmap) else QPixmap.fromImage(thumb_pix[1])
-            self.Ui.label_thumb.setPixmap(thumb_pixmap)
-        else:
-            self.Ui.label_thumb.clear()
-            self.Ui.label_thumb.setText(thumb_pix[2])
+        if thumb_pix is not None:
+            self.Ui.label_thumb.resize(thumb_pix[3], thumb_pix[4])
+            if thumb_pix[0]:
+                thumb_pixmap = thumb_pix[1] if isinstance(thumb_pix[1], QPixmap) else QPixmap.fromImage(thumb_pix[1])
+                self.Ui.label_thumb.setPixmap(thumb_pixmap)
+            else:
+                self.Ui.label_thumb.clear()
+                self.Ui.label_thumb.setText(thumb_pix[2])
 
     # endregion
 
