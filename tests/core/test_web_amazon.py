@@ -116,6 +116,42 @@ async def test_poster_download_keeps_vr_direct_poster_without_auto_best(
 
 
 @pytest.mark.asyncio
+async def test_poster_auto_best_only_applies_to_youma(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    async def fake_get_big_poster(*args, **kwargs):
+        return None
+
+    async def fake_download_file_with_filepath(*args, **kwargs):
+        raise AssertionError("无码分类不应触发 Poster 自动选优直下下载")
+
+    monkeypatch.setattr(
+        manager.config,
+        "download_files",
+        [DownloadableFile.POSTER, DownloadableFile.THUMB, DownloadableFile.POSTER_AUTO_BEST],
+    )
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
+    monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
+
+    thumb_path = tmp_path / "thumb.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    result = CrawlersResult.empty()
+    result.number = "050826_100"
+    result.mosaic = "无码"
+    result.scraping_type = FixedScrapingType.WUMA
+    result.poster = "https://example.test/missav-og-image.jpg"
+    result.poster_from = "missav"
+    result.image_download = False
+    other = OtherInfo.empty()
+    other.thumb_path = thumb_path
+
+    poster_path = tmp_path / "poster.jpg"
+    assert await poster_download(result, other, "", tmp_path, poster_path) is True
+    assert result.poster_from == "thumb center"
+    assert other.poster_path == poster_path
+
+
+@pytest.mark.asyncio
 async def test_get_big_poster_uses_amazon_only_for_non_suren_censored(monkeypatch: pytest.MonkeyPatch):
     called = False
 

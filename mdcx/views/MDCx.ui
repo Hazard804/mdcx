@@ -9045,7 +9045,7 @@
                                   </size>
                                 </property>
                                 <property name="text">
-                                  <string>Poster 竖图按大小自动选优</string>
+                                  <string>有码 Poster 竖图按大小自动选优</string>
                                 </property>
                               </widget>
                             </item>
@@ -9061,7 +9061,7 @@
                                   <string notr="true">color: rgb(8, 128, 128);</string>
                                 </property>
                                 <property name="text">
-                                  <string> 在直下 Poster、搜图结果和 thumb 右裁剪之间自动选择</string>
+                                  <string> 仅作用于有码分类，在直下 Poster、搜图结果和 thumb 右裁剪之间自动选择</string>
                                 </property>
                               </widget>
                             </item>

@@ -286,7 +286,7 @@ class DownloadableFile(Enum):
             "主题视频",
             "忽略图片失败",
             "忽略有码",
-            "Poster竖图自动选优",
+            "有码Poster竖图自动选优",
             "忽略无码",
             "忽略FC2",
             "忽略国产",

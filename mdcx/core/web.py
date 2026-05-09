@@ -912,7 +912,9 @@ async def poster_download(
             return True
 
     poster_auto_best = (
-        DownloadableFile.POSTER_AUTO_BEST in download_files and DownloadableFile.IGNORE_YOUMA not in download_files
+        result.scraping_type == FixedScrapingType.YOUMA
+        and DownloadableFile.POSTER_AUTO_BEST in download_files
+        and DownloadableFile.IGNORE_YOUMA not in download_files
     )
     direct_poster_url = result.poster if poster_auto_best else ""
     direct_poster_from = result.poster_from if poster_auto_best else ""
