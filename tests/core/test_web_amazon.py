@@ -152,6 +152,50 @@ async def test_poster_auto_best_only_applies_to_youma(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.asyncio
+async def test_oumei_uses_separate_ignore_copy_option(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    async def fake_get_big_poster(*args, **kwargs):
+        return None
+
+    async def fake_download_file_with_filepath(*args, **kwargs):
+        return False
+
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
+    monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
+
+    thumb_path = tmp_path / "thumb.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    result = CrawlersResult.empty()
+    result.number = "example.26.05.09"
+    result.mosaic = "无码"
+    result.scraping_type = FixedScrapingType.OUMEI
+    other = OtherInfo.empty()
+    other.thumb_path = thumb_path
+
+    monkeypatch.setattr(
+        manager.config,
+        "download_files",
+        [DownloadableFile.POSTER, DownloadableFile.THUMB, DownloadableFile.IGNORE_WUMA],
+    )
+    poster_path = tmp_path / "poster-wuma-option.jpg"
+    assert await poster_download(result, other, "", tmp_path, poster_path) is True
+    assert result.poster_from == "thumb center"
+
+    result.poster_from = ""
+    other.poster_path = None
+    monkeypatch.setattr(
+        manager.config,
+        "download_files",
+        [DownloadableFile.POSTER, DownloadableFile.THUMB, DownloadableFile.IGNORE_OUMEI],
+    )
+    poster_path = tmp_path / "poster-oumei-option.jpg"
+    assert await poster_download(result, other, "", tmp_path, poster_path) is True
+    assert result.poster_from == "copy thumb"
+    assert other.poster_path == poster_path
+
+
+@pytest.mark.asyncio
 async def test_get_big_poster_uses_amazon_only_for_non_suren_censored(monkeypatch: pytest.MonkeyPatch):
     called = False
 

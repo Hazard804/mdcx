@@ -404,6 +404,7 @@ def save_config(self: "MyMAinWindow"):
         (self.Ui.checkBox_ignore_youma, DownloadableFile.IGNORE_YOUMA),
         (self.Ui.checkBox_poster_auto_best, DownloadableFile.POSTER_AUTO_BEST),
         (self.Ui.checkBox_ignore_wuma, DownloadableFile.IGNORE_WUMA),
+        (self.Ui.checkBox_ignore_oumei, DownloadableFile.IGNORE_OUMEI),
         (self.Ui.checkBox_ignore_fc2, DownloadableFile.IGNORE_FC2),
         (self.Ui.checkBox_ignore_guochan, DownloadableFile.IGNORE_GUOCHAN),
         (self.Ui.checkBox_ignore_size, DownloadableFile.IGNORE_SIZE),

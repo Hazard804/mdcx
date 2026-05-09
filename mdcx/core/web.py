@@ -76,6 +76,8 @@ def _get_poster_copy_policy(result: CrawlersResult, download_files: list[Downloa
         return DownloadableFile.IGNORE_GUOCHAN in download_files, "right"
     if result.scraping_type == FixedScrapingType.WUMA:
         return DownloadableFile.IGNORE_WUMA in download_files, "center"
+    if result.scraping_type == FixedScrapingType.OUMEI:
+        return DownloadableFile.IGNORE_OUMEI in download_files, "center"
     if result.scraping_type == FixedScrapingType.YOUMA:
         return DownloadableFile.IGNORE_YOUMA in download_files, ""
     return False, ""

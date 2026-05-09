@@ -268,6 +268,7 @@ class DownloadableFile(Enum):
     IGNORE_YOUMA = "ignore_youma"
     POSTER_AUTO_BEST = "poster_auto_best"
     IGNORE_WUMA = "ignore_wuma"
+    IGNORE_OUMEI = "ignore_oumei"
     IGNORE_FC2 = "ignore_fc2"
     IGNORE_GUOCHAN = "ignore_guochan"
     IGNORE_SIZE = "ignore_size"
@@ -288,6 +289,7 @@ class DownloadableFile(Enum):
             "忽略有码",
             "有码Poster竖图自动选优",
             "忽略无码",
+            "忽略欧美",
             "忽略FC2",
             "忽略国产",
             "忽略大小",

@@ -8874,7 +8874,7 @@
                         <x>30</x>
                         <y>20</y>
                         <width>701</width>
-                        <height>451</height>
+                        <height>481</height>
                       </rect>
                     </property>
                     <property name="minimumSize">
@@ -8946,7 +8946,7 @@
                           <x>60</x>
                           <y>210</y>
                           <width>621</width>
-                          <height>208</height>
+                        <height>238</height>
                         </rect>
                       </property>
                       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -9061,7 +9061,7 @@
                                   <string notr="true">color: rgb(8, 128, 128);</string>
                                 </property>
                                 <property name="text">
-                                  <string> 仅作用于有码分类，在直下 Poster、搜图结果和 thumb 右裁剪之间自动选择</string>
+                                  <string> 仅有码：直下/搜图/右裁剪选优</string>
                                 </property>
                               </widget>
                             </item>
@@ -9084,7 +9084,7 @@
                                   </size>
                                 </property>
                                 <property name="text">
-                                  <string>无码（含欧美）封面不裁剪，直接复制缩略图</string>
+                                  <string>无码封面不裁剪，直接复制缩略图</string>
                                 </property>
                               </widget>
                             </item>
@@ -9101,6 +9101,45 @@
                                 </property>
                                 <property name="text">
                                   <string> 无码封面人脸位置不固定，建议手动裁剪或直接复制</string>
+                                </property>
+                              </widget>
+                            </item>
+                          </layout>
+                        </item>
+                        <item>
+                          <layout class="QHBoxLayout" name="horizontalLayout_ignore_oumei">
+                            <item>
+                              <widget class="QCheckBox" name="checkBox_ignore_oumei">
+                                <property name="sizePolicy">
+                                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                    <horstretch>0</horstretch>
+                                    <verstretch>0</verstretch>
+                                  </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                  <size>
+                                    <width>30</width>
+                                    <height>0</height>
+                                  </size>
+                                </property>
+                                <property name="text">
+                                  <string>欧美封面不裁剪，直接复制缩略图</string>
+                                </property>
+                              </widget>
+                            </item>
+                            <item>
+                              <widget class="QLabel" name="label_ignore_oumei">
+                                <property name="sizePolicy">
+                                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                    <horstretch>0</horstretch>
+                                    <verstretch>0</verstretch>
+                                  </sizepolicy>
+                                </property>
+                                <property name="styleSheet">
+                                  <string notr="true">color: rgb(8, 128, 128);</string>
+                                </property>
+                                <property name="text">
+                                  <string> 欧美封面人脸位置不固定，建议手动裁剪或直接复制</string>
                                 </property>
                               </widget>
                             </item>
@@ -9293,7 +9332,7 @@
                       <property name="geometry">
                         <rect>
                           <x>60</x>
-                          <y>410</y>
+                        <y>440</y>
                           <width>621</width>
                           <height>41</height>
                         </rect>
@@ -9335,7 +9374,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>490</y>
+                        <y>520</y>
                         <width>701</width>
                         <height>131</height>
                       </rect>
@@ -9687,7 +9726,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>640</y>
+                        <y>670</y>
                         <width>701</width>
                         <height>401</height>
                       </rect>
@@ -10048,7 +10087,7 @@
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>1060</y>
+                        <y>1090</y>
                         <width>701</width>
                         <height>201</height>
                       </rect>
