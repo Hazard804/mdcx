@@ -566,7 +566,6 @@ class Config(BaseModel):
             EmbyAction.GRAPHIS_BACKDROP,
             EmbyAction.GRAPHIS_FACE,
             EmbyAction.GRAPHIS_NEW,
-            EmbyAction.ACTOR_PHOTO_AUTO,
             EmbyAction.ACTOR_REPLACE,
         ],
         title="Emby功能开关",
