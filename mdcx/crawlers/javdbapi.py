@@ -140,7 +140,6 @@ class JavdbApiCrawler(DmmCrawler):
             tags=self._clean_list(movie.genres),
             extrafanart=[self._with_https(str(url or "").strip()) for url in (movie.samples or []) if url],
             external_id=source_url or number,
-            image_cut="right",
             mosaic="有码",
         )
 

@@ -235,7 +235,6 @@ class JavlibraryCrawler(BaseCrawler):
             extrafanart=[],
             trailer="",
             image_download=False,
-            image_cut="right",
             mosaic="有码",
             external_id=real_url,
             wanted=get_wanted(html_detail),

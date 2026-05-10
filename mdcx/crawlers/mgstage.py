@@ -216,7 +216,6 @@ class MgstageCrawler(BaseCrawler):
             extrafanart=getExtraFanart(htmlcode),
             trailer=await get_trailer(self.async_client, htmlcode),
             image_download=True,
-            image_cut="right",
             mosaic="有码",
             external_id=detail_url,
         )

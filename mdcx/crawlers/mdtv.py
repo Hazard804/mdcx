@@ -273,7 +273,6 @@ class MdtvCrawler(BaseCrawler):
             extrafanart=[],
             trailer="",
             image_download=False,
-            image_cut="no",
             mosaic="国产",
             external_id=detail_url,
         )

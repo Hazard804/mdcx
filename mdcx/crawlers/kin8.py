@@ -196,7 +196,6 @@ class Kin8Crawler(BaseCrawler):
             extrafanart=get_extrafanart(html_info),
             trailer=trailer,
             image_download=False,
-            image_cut="",
             mosaic="无码",
             external_id=detail_url,
         )

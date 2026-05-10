@@ -119,6 +119,9 @@ def classify_scrape_task(task_input: CrawlTask, config: "Config", use_fixed_type
     if _is_suren_number(file_number, task_input.short_number):
         return ScrapeClassification(FixedScrapingType.SUREN, "auto", sites=config.website_suren)
 
+    if is_uncensored(file_number):
+        return ScrapeClassification(FixedScrapingType.WUMA, "auto", sites=config.website_wuma)
+
     if re.match(r"\D{2,}00\d{3,}", file_number) and "-" not in file_number and "_" not in file_number:
         return ScrapeClassification(FixedScrapingType.YOUMA, "auto", sites={Website.DMM})
 

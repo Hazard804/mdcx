@@ -246,7 +246,6 @@ class Fc2ppvdbCrawler(BaseCrawler):
             extrafanart=[],
             trailer=get_video_url(html_info),
             image_download=False,
-            image_cut="center",
             mosaic="无码" if video_type == "無碼" else "有码",
             external_id=article_url,
             wanted="",

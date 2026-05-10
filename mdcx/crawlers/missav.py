@@ -251,7 +251,7 @@ class Parser(DetailPageParser):
         return extract_text(html, "//meta[@property='og:image']/@content")
 
     async def poster(self, ctx, html: Selector) -> str:
-        return await self.thumb(ctx, html)
+        return ""
 
     async def trailer(self, ctx, html: Selector) -> str:
         return ""
@@ -626,8 +626,6 @@ class MissavCrawler(BaseCrawler):
             res.originaltitle = res.title
         if not res.originalplot:
             res.originalplot = res.outline
-        if not res.poster:
-            res.poster = res.thumb
         if not res.publisher:
             res.publisher = res.studio
         res.mosaic = ""

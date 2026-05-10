@@ -429,7 +429,6 @@ class Jav321Crawler(BaseCrawler):
             extrafanart=extrafanart,
             trailer="",
             image_download=False,
-            image_cut="right",
             mosaic=mosaic,
             wanted="",
         )

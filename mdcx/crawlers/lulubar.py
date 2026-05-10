@@ -172,7 +172,6 @@ class LulubarCrawler(BaseCrawler):
             extrafanart=get_extrafanart(detail_page),
             trailer="",
             image_download=False,
-            image_cut="right",
             mosaic=get_mosaic(detail_page),
             external_id=detail_url,
         )

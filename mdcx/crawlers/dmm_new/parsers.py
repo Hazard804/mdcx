@@ -216,10 +216,6 @@ class MonoParser(DetailPageParser):
         return trailer
 
     @override
-    async def image_cut(self, ctx, html):
-        return "right"
-
-    @override
     async def mosaic(self, ctx, html):
         if extract_text(html, '//li[@class="on"]/a/text()') == "アニメ":
             return "里番"
@@ -373,10 +369,6 @@ class DigitalParser(DetailPageParser):
     async def score(self, ctx, html) -> str:
         score = extract_text(html, "//p[contains(@class,'d-review__average')]/strong/text()")
         return score.replace("点", "")
-
-    @override
-    async def image_cut(self, ctx, html):
-        return "right"
 
     @override
     async def mosaic(self, ctx, html):

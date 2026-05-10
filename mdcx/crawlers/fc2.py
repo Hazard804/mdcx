@@ -248,7 +248,6 @@ class Fc2Crawler(BaseCrawler):
             extrafanart=extrafanart,
             trailer=trailer,
             image_download=False,
-            image_cut="center",
             mosaic=getMosaic(tag, title),
             external_id=real_url,
             wanted="",

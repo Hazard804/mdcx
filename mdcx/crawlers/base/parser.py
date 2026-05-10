@@ -164,9 +164,6 @@ class DetailPageParser[T: Context = Context]:
     async def year(self, ctx: T, html: Selector) -> FieldRes:
         return self.NOT_SUPPORT
 
-    async def image_cut(self, ctx: T, html: Selector) -> FieldRes:
-        return self.NOT_SUPPORT
-
     async def image_download(self, ctx: T, html: Selector) -> FieldValue[bool]:
         return self.NOT_SUPPORT
 
@@ -211,7 +208,6 @@ class DetailPageParser[T: Context = Context]:
             trailer=await self.trailer(ctx, html),
             wanted=await self.wanted(ctx, html),
             year=await self.year(ctx, html),
-            image_cut=await self.image_cut(ctx, html),
             image_download=await self.image_download(ctx, html),
             number=await self.number(ctx, html),
             mosaic=await self.mosaic(ctx, html),

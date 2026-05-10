@@ -181,7 +181,6 @@ class XcityCrawler(BaseCrawler):
             extrafanart=extrafanart if isinstance(extrafanart, list) else [],
             trailer="",
             image_download=False,
-            image_cut="right",
             mosaic="有码",
             external_id=detail_url,
         )

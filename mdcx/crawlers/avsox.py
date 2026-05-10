@@ -150,7 +150,6 @@ class AvsoxCrawler(GenericBaseCrawler[AvsoxContext]):
             extrafanart=[],
             trailer="",
             image_download=bool(ctx.search_poster),
-            image_cut="center",
             mosaic="无码",
             external_id=detail_url,
         )

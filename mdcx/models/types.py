@@ -296,7 +296,6 @@ class CrawlerResult(BaseCrawlerResult):
     单一网站爬虫返回的结果
     """
 
-    image_cut: str  # 图片裁剪方式
     source: str  # 数据来源（爬虫名称）
     external_id: str
 
@@ -307,7 +306,6 @@ class CrawlerResult(BaseCrawlerResult):
         """
         return cls(
             **BaseCrawlerResult.empty().__dict__,
-            image_cut="",
             source="",
             external_id="",
         )

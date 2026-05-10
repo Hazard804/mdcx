@@ -47,6 +47,21 @@ from .media_resource import MediaResourceContext
 AMAZON_SEARCH_SCRAPING_TYPES = {FixedScrapingType.YOUMA}
 AMAZON_SEARCH_VARIANT_MOSAICS = {"流出", "无码破解", "無碼破解"}
 AMAZON_SEARCH_SPECIAL_MOSAICS = {"里番", "裏番", "动漫", "動漫"}
+POSTER_COPY_POLICY_MAP = {
+    FixedScrapingType.YOUMA: DownloadableFile.IGNORE_YOUMA,
+    FixedScrapingType.WUMA: DownloadableFile.IGNORE_WUMA,
+    FixedScrapingType.FC2: DownloadableFile.IGNORE_FC2,
+    FixedScrapingType.GUOCHAN: DownloadableFile.IGNORE_GUOCHAN,
+    FixedScrapingType.OUMEI: DownloadableFile.IGNORE_OUMEI,
+}
+POSTER_DIRECT_DOWNLOAD_TYPES = {
+    FixedScrapingType.WUMA,
+    FixedScrapingType.FC2,
+    FixedScrapingType.GUOCHAN,
+    FixedScrapingType.OUMEI,
+    FixedScrapingType.SUREN,
+    FixedScrapingType.AUTO,
+}
 POSTER_AUTO_BEST_MIN_CROP_AREA_RATIO = 0.70
 POSTER_AUTO_BEST_MIN_CROP_HEIGHT_RATIO = 0.80
 
@@ -69,18 +84,17 @@ def _should_search_amazon(result: CrawlersResult) -> bool:
     return result.mosaic in AMAZON_SEARCH_VARIANT_MOSAICS | AMAZON_SEARCH_SPECIAL_MOSAICS
 
 
-def _get_poster_copy_policy(result: CrawlersResult, download_files: list[DownloadableFile]) -> tuple[bool, str]:
-    if result.scraping_type == FixedScrapingType.FC2:
-        return DownloadableFile.IGNORE_FC2 in download_files, "center"
-    if result.scraping_type == FixedScrapingType.GUOCHAN:
-        return DownloadableFile.IGNORE_GUOCHAN in download_files, "right"
-    if result.scraping_type == FixedScrapingType.WUMA:
-        return DownloadableFile.IGNORE_WUMA in download_files, "center"
-    if result.scraping_type == FixedScrapingType.OUMEI:
-        return DownloadableFile.IGNORE_OUMEI in download_files, "center"
+def _get_poster_copy_policy(result: CrawlersResult, download_files: list[DownloadableFile]) -> bool:
+    ignore_file = POSTER_COPY_POLICY_MAP.get(result.scraping_type)
+    return bool(ignore_file and ignore_file in download_files)
+
+
+def _should_try_direct_poster(result: CrawlersResult, poster_auto_best: bool) -> bool:
+    if result.scraping_type in POSTER_DIRECT_DOWNLOAD_TYPES:
+        return True
     if result.scraping_type == FixedScrapingType.YOUMA:
-        return DownloadableFile.IGNORE_YOUMA in download_files, ""
-    return False, ""
+        return result.image_download or poster_auto_best
+    return False
 
 
 def _is_vr_result(result: CrawlersResult) -> bool:
@@ -871,8 +885,6 @@ async def poster_download(
     poster_path = other.poster_path
     thumb_path = other.thumb_path
     fanart_path = other.fanart_path
-    image_cut = ""
-
     # 不下载poster、不保留poster时，返回
     if DownloadableFile.POSTER not in download_files and DownloadableFile.POSTER not in keep_files:
         if poster_path:
@@ -902,14 +914,15 @@ async def poster_download(
             LogBuffer.log().write(f"\n 🍀 Poster done! (copy cd-poster)({get_used_time(start_time)}s)")
             return True
 
-    # 勾选复制 thumb时：国产，复制thumb；无码，勾选不裁剪时，也复制thumb
+    # 命中对应的“不裁剪直接复制缩略图”选项时，直接复制 thumb。
     if thumb_path:
-        copy_flag, image_cut = _get_poster_copy_policy(result, download_files)
+        copy_flag = _get_poster_copy_policy(result, download_files)
         if copy_flag:
             await copy_file_async(thumb_path, poster_final_path)
             other.poster_marked = other.thumb_marked
             result.poster_from = "copy thumb"
             other.poster_path = poster_final_path
+            LogBuffer.log().write(f"\n 🖼 Poster策略: 命中直复制缩略图({result.scraping_type.value})")
             LogBuffer.log().write(f"\n 🍀 Poster done! (copy thumb)({get_used_time(start_time)}s)")
             return True
 
@@ -945,7 +958,12 @@ async def poster_download(
     poster_final_path_temp = poster_final_path
     if await aiofiles.os.path.exists(poster_final_path):
         poster_final_path_temp = poster_final_path.with_suffix(".[DOWNLOAD].jpg")
-    if result.image_download:
+    try_direct_poster = bool(poster_url) and _should_try_direct_poster(result, poster_auto_best)
+    LogBuffer.log().write(
+        f"\n 🖼 Poster策略: type={result.scraping_type.value}, poster={'yes' if poster_url else 'no'}, "
+        f"image_download={result.image_download}, auto_best={poster_auto_best}, direct={'yes' if try_direct_poster else 'no'}"
+    )
+    if try_direct_poster:
         start_time = time.time()
         if media_context is not None:
             downloaded = await media_context.save_image(poster_url, poster_final_path_temp, folder_new_path)
@@ -971,6 +989,8 @@ async def poster_download(
                 else:
                     await delete_file_async(poster_final_path_temp)
                     LogBuffer.log().write(f"\n 🟠 检测到 Poster 分辨率不对{str(poster_size)}! 已删除 ({poster_from})")
+    else:
+        LogBuffer.log().write("\n 🖼 Poster策略: 未尝试直下 poster，准备进入裁剪")
 
     # 判断之前有没有 poster 和 thumb
     if not poster_path and not thumb_path:
@@ -992,8 +1012,9 @@ async def poster_download(
     poster_final_path_temp = poster_final_path.with_suffix(".[CUT].jpg")
     if fanart_path:
         thumb_path = fanart_path
+    cut_log = LogBuffer.log().write
     if thumb_path and await asyncio.to_thread(
-        cut_thumb_to_poster, result, thumb_path, poster_final_path_temp, image_cut
+        cut_thumb_to_poster, result, thumb_path, poster_final_path_temp, result.scraping_type, cut_log
     ):
         # 裁剪成功，替换旧图
         await move_file_async(poster_final_path_temp, poster_final_path)

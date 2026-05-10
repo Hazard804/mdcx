@@ -174,7 +174,6 @@ class IqqtvCrawler(BaseCrawler):
             number = number.upper()
         real_url = appoint_url or ""
         iqqtv_url = self._language_base_url(language)
-        image_cut = "right"
         image_download = False
         if not real_url:
             url_search = iqqtv_url + "search.php?kw=" + number
@@ -213,8 +212,6 @@ class IqqtvCrawler(BaseCrawler):
         release = getRelease(html_info)
         tag = getTag(html_info)
         mosaic = getMosaic(tag)
-        if mosaic == "无码":
-            image_cut = "center"
         studio = getStudio(html_info)
         tag = tag.replace("无码片", "").replace("無碼片", "").replace("無修正", "")
         return CrawlerData(
@@ -238,7 +235,6 @@ class IqqtvCrawler(BaseCrawler):
             extrafanart=get_extrafanart(html_info),
             trailer="",
             image_download=image_download,
-            image_cut=image_cut,
             mosaic=mosaic,
             external_id=real_url,
             wanted="",

@@ -159,6 +159,7 @@ def test_is_suren_number_matches_current_scrape_branch(file_number: str, short_n
         ("ABF-133", "流出", "", FixedScrapingType.YOUMA, {Website.DMM}),
         ("ABF-134", "無碼破解", "", FixedScrapingType.YOUMA, {Website.DMM}),
         ("ABF-135", "無碼流出", "", FixedScrapingType.YOUMA, {Website.DMM}),
+        ("HEYZO-3843", "", "", FixedScrapingType.WUMA, {Website.JAVBUS}),
         ("MD-1234", "", "", FixedScrapingType.GUOCHAN, {Website.MDTV}),
         ("DANDY-732", "", "", FixedScrapingType.YOUMA, {Website.DMM}),
         ("SSNI00321", "", "", FixedScrapingType.YOUMA, {Website.DMM}),

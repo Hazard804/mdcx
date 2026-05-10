@@ -142,7 +142,6 @@ class PrestigeCrawler(BaseCrawler):
             extrafanart=get_extrafanart(page_data),
             trailer=trailer,
             image_download=True,
-            image_cut="right",
             mosaic="有码",
             external_id=detail_url,
             wanted="",

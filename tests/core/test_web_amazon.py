@@ -8,11 +8,14 @@ from PIL import Image
 
 from mdcx.config.enums import DownloadableFile, FixedScrapingType, HDPicSource
 from mdcx.config.manager import manager
+from mdcx.core.image import cut_thumb_to_poster
 from mdcx.core.web import (
     _beam_search_amazon_ean13_from_ranked_digits,
     _extract_amazon_barcode_label_roi,
     _get_big_poster,
+    _get_poster_copy_policy,
     _select_poster_auto_best,
+    _should_try_direct_poster,
     get_big_pic_by_amazon,
     poster_download,
     try_get_amazon_barcode_from_covers,
@@ -101,6 +104,10 @@ async def test_poster_download_keeps_vr_direct_poster_without_auto_best(
     monkeypatch.setattr(manager.config, "keep_files", [])
     monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
     monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
+    monkeypatch.setattr(
+        "mdcx.core.image.get_face_crop_left",
+        lambda image, crop_width: (_ for _ in ()).throw(AssertionError("不应裁剪")),
+    )
 
     result = CrawlersResult.empty()
     result.number = "ABVR-001"
@@ -116,21 +123,28 @@ async def test_poster_download_keeps_vr_direct_poster_without_auto_best(
 
 
 @pytest.mark.asyncio
-async def test_poster_auto_best_only_applies_to_youma(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+async def test_non_youma_prefers_direct_poster_before_crop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     async def fake_get_big_poster(*args, **kwargs):
         return None
 
-    async def fake_download_file_with_filepath(*args, **kwargs):
-        raise AssertionError("无码分类不应触发 Poster 自动选优直下下载")
+    async def fake_download_file_with_filepath(url: str, file_path: Path, folder_path: Path):
+        assert url == "https://example.test/missav-og-image.jpg"
+        _save_test_image(file_path, (500, 750))
+        return True
 
     monkeypatch.setattr(
         manager.config,
         "download_files",
-        [DownloadableFile.POSTER, DownloadableFile.THUMB, DownloadableFile.POSTER_AUTO_BEST],
+        [DownloadableFile.POSTER, DownloadableFile.THUMB],
     )
     monkeypatch.setattr(manager.config, "keep_files", [])
     monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
     monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
+    monkeypatch.setattr("mdcx.core.web._get_poster_copy_policy", lambda *args, **kwargs: False)
+    monkeypatch.setattr(
+        "mdcx.core.image.get_face_crop_left",
+        lambda image, crop_width: (_ for _ in ()).throw(AssertionError("不应进入裁剪")),
+    )
 
     thumb_path = tmp_path / "thumb.jpg"
     _save_test_image(thumb_path, (800, 500))
@@ -147,8 +161,112 @@ async def test_poster_auto_best_only_applies_to_youma(monkeypatch: pytest.Monkey
 
     poster_path = tmp_path / "poster.jpg"
     assert await poster_download(result, other, "", tmp_path, poster_path) is True
-    assert result.poster_from == "thumb center"
+    assert result.poster_from == "missav"
     assert other.poster_path == poster_path
+
+
+@pytest.mark.asyncio
+async def test_non_youma_falls_back_to_crop_when_direct_poster_missing(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    async def fake_get_big_poster(*args, **kwargs):
+        return None
+
+    async def fake_download_file_with_filepath(*args, **kwargs):
+        raise AssertionError("没有 poster 时不应先触发直下下载")
+
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.POSTER, DownloadableFile.THUMB])
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
+    monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
+    monkeypatch.setattr("mdcx.core.web._get_poster_copy_policy", lambda *args, **kwargs: False)
+    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", lambda image, crop_width: 120)
+
+    thumb_path = tmp_path / "thumb.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    result = CrawlersResult.empty()
+    result.number = "050826_100"
+    result.mosaic = "无码"
+    result.scraping_type = FixedScrapingType.OUMEI
+    result.poster = ""
+    result.poster_from = ""
+    result.image_download = False
+    other = OtherInfo.empty()
+    other.thumb_path = thumb_path
+
+    poster_path = tmp_path / "poster-fallback.jpg"
+    assert await poster_download(result, other, "", tmp_path, poster_path) is True
+    assert result.poster_from == "thumb face"
+    assert other.poster_path == poster_path
+    assert poster_path.exists()
+    with Image.open(poster_path) as img:
+        assert img.size == (333, 500)
+    assert other.poster_path == poster_path
+
+
+def test_cut_thumb_to_poster_uses_face_crop_for_non_youma(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    thumb_path = tmp_path / "thumb.jpg"
+    poster_path = tmp_path / "poster.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", lambda image, crop_width: 120)
+
+    result = CrawlersResult.empty()
+    result.scraping_type = FixedScrapingType.WUMA
+
+    assert cut_thumb_to_poster(result, thumb_path, poster_path, FixedScrapingType.WUMA) is True
+    assert result.poster_from == "thumb face"
+    assert poster_path.exists()
+    with Image.open(poster_path) as img:
+        assert img.size == (333, 500)
+
+
+def test_cut_thumb_to_poster_keeps_youma_right_crop_without_face_detection(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    thumb_path = tmp_path / "thumb.jpg"
+    poster_path = tmp_path / "poster.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    def _raise_face_detector(*args, **kwargs):
+        raise AssertionError("有码作品不应进入人脸裁剪")
+
+    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", _raise_face_detector)
+
+    result = CrawlersResult.empty()
+    result.scraping_type = FixedScrapingType.YOUMA
+
+    assert cut_thumb_to_poster(result, thumb_path, poster_path, FixedScrapingType.YOUMA) is True
+    assert result.poster_from == "thumb right"
+
+
+@pytest.mark.parametrize(
+    "scraping_type,download_file",
+    [
+        (FixedScrapingType.YOUMA, DownloadableFile.IGNORE_YOUMA),
+        (FixedScrapingType.WUMA, DownloadableFile.IGNORE_WUMA),
+        (FixedScrapingType.FC2, DownloadableFile.IGNORE_FC2),
+        (FixedScrapingType.OUMEI, DownloadableFile.IGNORE_OUMEI),
+        (FixedScrapingType.GUOCHAN, DownloadableFile.IGNORE_GUOCHAN),
+    ],
+)
+def test_get_poster_copy_policy_uses_explicit_type_mapping(
+    scraping_type: FixedScrapingType, download_file: DownloadableFile
+):
+    result = CrawlersResult.empty()
+    result.scraping_type = scraping_type
+
+    assert _get_poster_copy_policy(result, [download_file]) is True
+
+
+@pytest.mark.parametrize(
+    "scraping_type", [FixedScrapingType.WUMA, FixedScrapingType.FC2, FixedScrapingType.SUREN, FixedScrapingType.AUTO]
+)
+def test_non_youma_types_try_direct_poster(scraping_type: FixedScrapingType):
+    result = CrawlersResult.empty()
+    result.scraping_type = scraping_type
+    result.image_download = False
+
+    assert _should_try_direct_poster(result, poster_auto_best=False) is True
 
 
 @pytest.mark.asyncio

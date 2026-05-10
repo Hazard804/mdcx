@@ -70,7 +70,6 @@ def split_csv(value: str) -> list[str]:
 
 async def scrape_dl_getchu(client, number: str, appoint_url: str = "", ctx: Context | None = None) -> CrawlerData:
     real_url = appoint_url
-    image_cut = ""
     image_download = True
     cookies = {"adult_check_flag": "1"}
     if not real_url and ("DLID" in number.upper() or "ITEM" in number.upper() or "GETCHU" in number.upper()):
@@ -135,7 +134,6 @@ async def scrape_dl_getchu(client, number: str, appoint_url: str = "", ctx: Cont
         extrafanart=get_extrafanart(html_info),
         trailer="",
         image_download=image_download,
-        image_cut=image_cut,
         mosaic="同人",
         external_id=real_url,
         wanted="",

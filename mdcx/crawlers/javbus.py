@@ -166,7 +166,6 @@ class JavbusCrawler(BaseCrawler):
             "cookie": manager.config.javbus,
         }
         image_download = False
-        image_cut = "right"
 
         if not real_url:
             if "." in number or re.search(r"[-_]\d{2}[-_]\d{2}[-_]\d{2}", number):
@@ -213,7 +212,6 @@ class JavbusCrawler(BaseCrawler):
         tag = getTag(html_info)
         mosaic = getMosaic(html_info)
         if mosaic == "无码":
-            image_cut = "center"
             if (
                 "_" in number
                 and poster_url
@@ -251,7 +249,6 @@ class JavbusCrawler(BaseCrawler):
             extrafanart=extrafanart,
             trailer="",
             image_download=image_download,
-            image_cut=image_cut,
             mosaic=mosaic,
             external_id=real_url,
             wanted="",

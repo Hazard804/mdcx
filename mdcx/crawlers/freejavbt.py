@@ -398,7 +398,6 @@ class FreejavbtCrawler(BaseCrawler):
             extrafanart=get_extrafanart(html_detail),
             trailer=await get_trailer(html_detail),
             image_download=False,
-            image_cut="right",
             mosaic=get_mosaic(title, actor),
             external_id=real_url,
             wanted="",

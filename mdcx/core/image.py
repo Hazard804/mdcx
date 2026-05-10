@@ -11,13 +11,24 @@ from typing import cast
 from PIL import Image
 
 from ..base.image import add_mark_thread
-from ..config.enums import DownloadableFile, MarkType
+from ..config.enums import DownloadableFile, FixedScrapingType, MarkType
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 from ..models.types import CrawlersResult, FileInfo, OtherInfo
 from ..signals import signal
 from ..utils import executor, get_used_time
 from ..utils.file import check_pic_async, copy_file_sync, delete_file_sync
+from .face_crop import get_face_crop_left
+
+YOUMA_RIGHT_CROP_TYPES = {FixedScrapingType.YOUMA}
+FACE_FALLBACK_CROP_TYPES = {
+    FixedScrapingType.WUMA,
+    FixedScrapingType.FC2,
+    FixedScrapingType.OUMEI,
+    FixedScrapingType.GUOCHAN,
+    FixedScrapingType.SUREN,
+    FixedScrapingType.AUTO,
+}
 
 
 async def add_mark(json_data: OtherInfo, file_info: FileInfo, mosaic: str):
@@ -86,8 +97,38 @@ async def add_mark(json_data: OtherInfo, file_info: FileInfo, mosaic: str):
             LogBuffer.log().write(f"\n 🍀 Fanart add watermark: {mark_show_type}!")
 
 
-def cut_thumb_to_poster(json_data: CrawlersResult, thumb_path: Path, poster_path: Path, image_cut):
+def _right_crop_box(width: int, height: int) -> tuple[int, int, int, int]:
+    ax, ay, bx, by = width / 1.9, 0, width, height
+    if width == 800:
+        if height == 439:
+            ax, ay, bx, by = 420, 0, width, height
+        elif 499 <= height <= 503:
+            ax, ay, bx, by = 437, 0, width, height
+        else:
+            ax, ay, bx, by = 421, 0, width, height
+    elif width == 840 and height == 472:
+        ax, ay, bx, by = 473, 0, 788, height
+    return int(ax), int(ay), int(bx), int(by)
+
+
+def _center_crop_box(width: int, height: int) -> tuple[int, int, int, int]:
+    crop_width = int(height / 1.5)
+    ax = max(int((width - crop_width) / 2), 0)
+    ay = 0
+    bx = min(ax + crop_width, width)
+    by = height
+    return ax, ay, bx, by
+
+
+def cut_thumb_to_poster(
+    json_data: CrawlersResult,
+    thumb_path: Path,
+    poster_path: Path,
+    scraping_type: FixedScrapingType,
+    log_fn=None,
+):
     start_time = time.time()
+    log = log_fn or LogBuffer.log().write
     if os.path.exists(poster_path):
         delete_file_sync(poster_path)
 
@@ -101,45 +142,39 @@ def cut_thumb_to_poster(json_data: CrawlersResult, thumb_path: Path, poster_path
 
         w, h = img.size
         prop = h / w
+        log(f"\n 🖼 Poster裁剪: 开始处理({scraping_type.value})，源图={w}x{h}，比例={prop:.3f}")
 
-        # 判断裁剪方式
-        if not image_cut:
-            if prop >= 1.4:
-                image_cut = "no"
-            elif prop >= 1:
-                image_cut = "center"
-            else:
-                image_cut = "right"
-
-        # 不裁剪
-        if image_cut == "no":
+        # 已接近海报比例时直接复制，保持旧行为不变。
+        if prop >= 1.4:
             copy_file_sync(thumb_path, poster_path)
-            LogBuffer.log().write(f"\n 🍀 Poster done! (copy thumb)({get_used_time(start_time)}s)")
+            log(f"\n 🍀 Poster done! (copy thumb)({get_used_time(start_time)}s)")
             json_data.poster_from = "copy thumb"
             img.close()
             return True
 
-        # 中间裁剪
-        elif image_cut == "center":
-            json_data.poster_from = "thumb center"
-            ax = int((w - h / 1.5) / 2)
-            ay = 0
-            bx = ax + int(h / 1.5)
-            by = int(h)
-
-        # 右边裁剪
-        else:
+        # 有码作品固定走右裁剪；其余已枚举类型优先做人脸识别，失败后回退居中裁剪。
+        if scraping_type in YOUMA_RIGHT_CROP_TYPES:
             json_data.poster_from = "thumb right"
-            ax, ay, bx, by = w / 1.9, 0, w, h
-            if w == 800:
-                if h == 439:
-                    ax, ay, bx, by = 420, 0, w, h
-                elif h >= 499 and h <= 503:
-                    ax, ay, bx, by = 437, 0, w, h
-                else:
-                    ax, ay, bx, by = 421, 0, w, h
-            elif w == 840 and h == 472:
-                ax, ay, bx, by = 473, 0, 788, h
+            ax, ay, bx, by = _right_crop_box(w, h)
+            log("\n 🖼 Poster裁剪: 命中有码右裁策略")
+        elif scraping_type in FACE_FALLBACK_CROP_TYPES:
+            crop_width = int(h / 1.5)
+            face_left = get_face_crop_left(img, crop_width, log_fn=log)
+            if face_left is None:
+                json_data.poster_from = "thumb center"
+                ax, ay, bx, by = _center_crop_box(w, h)
+                log("\n 🖼 Poster裁剪: 未检测到人脸，回退居中裁剪")
+            else:
+                json_data.poster_from = "thumb face"
+                ax, ay, bx, by = face_left, 0, face_left + crop_width, h
+                log("\n 🖼 Poster裁剪: 检测到人脸，优先使用人脸裁剪")
+                if bx > w:
+                    bx = w
+                    ax = max(bx - crop_width, 0)
+        else:
+            json_data.poster_from = "thumb center"
+            ax, ay, bx, by = _center_crop_box(w, h)
+            log("\n 🖼 Poster裁剪: 未配置专用策略，默认居中裁剪")
 
         # 裁剪并保存
         img_new = img.convert("RGB")
@@ -147,13 +182,11 @@ def cut_thumb_to_poster(json_data: CrawlersResult, thumb_path: Path, poster_path
         img_new_png = img_new.crop((ax, ay, bx, by))
         img_new_png.save(poster_path, quality=95, subsampling=0)
         if executor.run(check_pic_async(poster_path)):
-            LogBuffer.log().write(f"\n 🍀 Poster done! ({json_data.poster_from})({get_used_time(start_time)}s)")
+            log(f"\n 🍀 Poster done! ({json_data.poster_from})({get_used_time(start_time)}s)")
             return True
-        LogBuffer.log().write(f"\n 🥺 Poster cut failed! ({json_data.poster_from})({get_used_time(start_time)}s)")
+        log(f"\n 🥺 Poster cut failed! ({json_data.poster_from})({get_used_time(start_time)}s)")
     except Exception as e:
-        LogBuffer.log().write(
-            f"\n 🥺 Poster failed! ({json_data.poster_from})({get_used_time(start_time)}s)\n    {str(e)}"
-        )
+        log(f"\n 🥺 Poster failed! ({json_data.poster_from})({get_used_time(start_time)}s)\n    {str(e)}")
         signal.show_traceback_log(traceback.format_exc())
         signal.show_log_text(f"{traceback.format_exc()}\n Pic: {thumb_path}")
         return False

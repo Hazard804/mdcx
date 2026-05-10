@@ -179,7 +179,6 @@ class Love6Crawler(BaseCrawler):
             extrafanart=[],
             trailer="",
             image_download=False,
-            image_cut="",
             mosaic="",
             external_id=detail_url,
         )

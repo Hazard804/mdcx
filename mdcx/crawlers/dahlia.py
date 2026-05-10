@@ -144,7 +144,6 @@ class DahliaCrawler(BaseCrawler):
             extrafanart=get_extrafanart(html_detail),
             trailer=get_trailer(html_detail),
             image_download=True,
-            image_cut="right",
             mosaic="有码",
             external_id=detail_url,
         )

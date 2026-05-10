@@ -167,7 +167,6 @@ class FantasticaCrawler(GenericBaseCrawler[FantasticaContext]):
             extrafanart=extrafanart,
             trailer="",
             image_download=image_download,
-            image_cut="right",
             mosaic="有码",
             external_id=detail_url,
         )

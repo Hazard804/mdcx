@@ -185,7 +185,6 @@ class Fc2hubCrawler(BaseCrawler):
             extrafanart=getExtraFanart(html_info),
             trailer=trailer,
             image_download=False,
-            image_cut="center",
             mosaic=getMosaic(tag, title),
             external_id=str(real_url).strip("[]"),
             wanted="",

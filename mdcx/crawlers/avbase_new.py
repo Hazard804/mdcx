@@ -134,7 +134,6 @@ class AvbaseCrawler(BaseCrawler):
             publisher=publisher or studio,
             series=series,
             trailer=trailer,
-            image_cut="right",
             image_download=False,
             external_id=external_id,
         )

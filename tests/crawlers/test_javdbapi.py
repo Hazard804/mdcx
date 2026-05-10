@@ -44,7 +44,6 @@ def test_to_crawler_data_maps_api_response():
     assert data.tags == ["ドラマ", "ギリモザ"]
     assert data.studio == "エスワン ナンバーワンスタイル"
     assert data.publisher == "S1 NO.1 STYLE"
-    assert data.image_cut == "right"
     assert data.mosaic == "有码"
     assert data.external_id == "https://video.dmm.co.jp/av/content/?id=ssis00001"
 

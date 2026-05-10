@@ -142,7 +142,6 @@ class Fc2clubCrawler(BaseCrawler):
             extrafanart=extrafanart,
             trailer="",
             image_download=False,
-            image_cut="center",
             mosaic=getMosaic(html_info),
             external_id=str(real_url).strip("[]"),
             wanted="",

@@ -277,7 +277,6 @@ class HdoubanCrawler(BaseCrawler):
             extrafanart=get_api_extrafanart(res["map"]),
             trailer=res["trailer"],
             image_download=False,
-            image_cut="",
             mosaic=mosaic,
             external_id=re.sub(r"http[s]?://[^/]+", self.base_url, real_url),
             wanted="",

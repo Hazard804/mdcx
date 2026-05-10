@@ -228,7 +228,6 @@ class MywifeCrawler(BaseCrawler):
             extrafanart=get_extrafanart(html_info),
             trailer=trailer,
             image_download=True,
-            image_cut="",
             mosaic="有码",
             external_id=real_url,
             wanted="",

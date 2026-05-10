@@ -245,9 +245,6 @@ class FalenoParser(DetailPageParser[FalenoContext]):
     async def image_download(self, ctx: FalenoContext, html: Selector) -> bool:
         return True
 
-    async def image_cut(self, ctx: FalenoContext, html: Selector) -> str:
-        return "right"
-
     async def mosaic(self, ctx: FalenoContext, html: Selector) -> str:
         return "有码"
 

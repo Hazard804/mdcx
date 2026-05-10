@@ -172,7 +172,6 @@ class GetchuCrawler(BaseCrawler):
             return await getchu_dl.scrape_dl_getchu(self.async_client, number, appoint_url, ctx)
 
         real_url = appoint_url.replace("&gc=gc", "") + "&gc=gc" if appoint_url else ""
-        image_cut = ""
         image_download = True
 
         if not real_url:
@@ -249,7 +248,6 @@ class GetchuCrawler(BaseCrawler):
             extrafanart=get_extrafanart(html_info),
             trailer="",
             image_download=image_download,
-            image_cut=image_cut,
             mosaic=mosaic,
             external_id=real_url,
             wanted="",

@@ -181,7 +181,6 @@ class OfficialCrawler(BaseCrawler):
             extrafanart=extrafanart,
             trailer=get_trailer(html_info),
             image_download="VR" in number.upper(),
-            image_cut="",
             mosaic="有码",
             external_id=real_url,
             wanted="",

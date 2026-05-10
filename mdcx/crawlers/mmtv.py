@@ -226,7 +226,6 @@ class MmtvCrawler(BaseCrawler):
             extrafanart=extrafanart,
             trailer="",
             image_download=False,
-            image_cut="",
             mosaic=get_mosaic(html_info, number),
             external_id=detail_url,
         )

@@ -156,7 +156,6 @@ class AiravCcCrawler(BaseCrawler):
             number = number.lower()
         real_url = ctx.input.appoint_url
         airav_url = self._language_base_url(language)
-        image_cut = "right"
         image_download = False
         mosaic = "有码"
 
@@ -220,7 +219,6 @@ class AiravCcCrawler(BaseCrawler):
             extrafanart=[],
             trailer="",
             image_download=image_download,
-            image_cut=image_cut,
             mosaic=mosaic,
             external_id=real_url,
             wanted="",

@@ -61,7 +61,6 @@ class CrawlerData:
     trailer: FieldValue = NOT_SUPPORT
     wanted: FieldValue = NOT_SUPPORT
     year: FieldValue = NOT_SUPPORT
-    image_cut: FieldValue = NOT_SUPPORT
     image_download: FieldValue[bool] = NOT_SUPPORT
     number: FieldValue = NOT_SUPPORT
     mosaic: FieldValue = NOT_SUPPORT

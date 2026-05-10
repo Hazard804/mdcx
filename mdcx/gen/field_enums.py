@@ -25,6 +25,5 @@ class CrawlerResultFields(StrEnum):
     TRAILER = "trailer"
     WANTED = "wanted"
     YEAR = "year"
-    IMAGE_CUT = "image_cut"
     SOURCE = "source"
     EXTERNAL_ID = "external_id"

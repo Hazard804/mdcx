@@ -108,7 +108,6 @@ def read_data(data, kind: TheporndbKind):
         extrafanart=[],
         trailer=trailer,
         image_download=False,
-        image_cut="",
         mosaic="无码",
         external_id=real_url,
         wanted="",

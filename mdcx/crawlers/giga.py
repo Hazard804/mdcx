@@ -183,7 +183,6 @@ class GigaCrawler(BaseCrawler):
             extrafanart=get_extrafanart(detail_page),
             trailer=await get_trailer(self.async_client, detail_url),
             image_download=True,
-            image_cut="right",
             mosaic="有码",
             external_id=detail_url,
         )

@@ -117,9 +117,6 @@ class Parser(DetailPageParser):
         result = re.search(r"(\d+)(人想看| want to watch it)", html_text)
         return result.group(1) if result else ""
 
-    async def image_cut(self, ctx, html: Selector) -> str:
-        return "right"
-
     async def image_download(self, ctx, html: Selector) -> bool:
         return False
 
