@@ -925,11 +925,13 @@ class MyMAinWindow(QMainWindow):
     # region 主界面
     # 开始刮削按钮
     def pushButton_start_scrape_clicked(self):
-        if self.Ui.pushButton_start_cap.text() == "开始":
+        button_text = self.Ui.pushButton_start_cap.text().strip()
+        if "停止" in button_text:
+            self.pushButton_stop_scrape_clicked()
+            return
+        if "开始" in button_text:
             if not get_remain_list():
                 start_new_scrape(FileMode.Default)
-        elif self.Ui.pushButton_start_cap.text() == "■ 停止":
-            self.pushButton_stop_scrape_clicked()
 
     # 停止确认弹窗
     def pushButton_stop_scrape_clicked(self):
@@ -942,7 +944,7 @@ class MyMAinWindow(QMainWindow):
             reply = box.exec()
             if reply != QMessageBox.StandardButton.Yes:
                 return
-        if self.Ui.pushButton_start_cap.text() == "■ 停止":
+        if "停止" in self.Ui.pushButton_start_cap.text():
             Flags.stop_requested = True
             signal_qt.stop = True
             executor.submit(save_success_list())
@@ -3158,6 +3160,8 @@ class MyMAinWindow(QMainWindow):
     def reset_buttons_status(self):
         self.Ui.pushButton_start_cap.setEnabled(True)
         self.Ui.pushButton_start_cap2.setEnabled(True)
+        self.Ui.pushButton_start_cap.setText("开始")
+        self.Ui.pushButton_start_cap2.setText("开始")
         self.pushButton_start_cap.emit("开始")
         self.pushButton_start_cap2.emit("开始")
         self.Ui.pushButton_select_media_folder.setVisible(True)
