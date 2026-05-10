@@ -959,11 +959,8 @@ async def poster_download(
     if await aiofiles.os.path.exists(poster_final_path):
         poster_final_path_temp = poster_final_path.with_suffix(".[DOWNLOAD].jpg")
     try_direct_poster = bool(poster_url) and _should_try_direct_poster(result, poster_auto_best)
-    LogBuffer.log().write(
-        f"\n 🖼 Poster策略: type={result.scraping_type.value}, poster={'yes' if poster_url else 'no'}, "
-        f"image_download={result.image_download}, auto_best={poster_auto_best}, direct={'yes' if try_direct_poster else 'no'}"
-    )
     if try_direct_poster:
+        LogBuffer.log().write(f"\n 🖼 Poster策略: 尝试直下 Poster ({poster_from})")
         start_time = time.time()
         if media_context is not None:
             downloaded = await media_context.save_image(poster_url, poster_final_path_temp, folder_new_path)
@@ -989,8 +986,6 @@ async def poster_download(
                 else:
                     await delete_file_async(poster_final_path_temp)
                     LogBuffer.log().write(f"\n 🟠 检测到 Poster 分辨率不对{str(poster_size)}! 已删除 ({poster_from})")
-    else:
-        LogBuffer.log().write("\n 🖼 Poster策略: 未尝试直下 poster，准备进入裁剪")
 
     # 判断之前有没有 poster 和 thumb
     if not poster_path and not thumb_path:

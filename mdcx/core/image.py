@@ -142,18 +142,22 @@ def cut_thumb_to_poster(
 
         w, h = img.size
         prop = h / w
-        log(f"\n 🖼 Poster裁剪: 开始处理({scraping_type.value})，源图={w}x{h}，比例={prop:.3f}")
+        log(f"\n 🖼 Poster裁剪: 开始处理({scraping_type.value})，源图={w}x{h}")
 
-        # 已接近海报比例时直接复制，保持旧行为不变。
+        # 优先按图片比例决定基础裁剪方式，保持旧版自动裁剪行为。
         if prop >= 1.4:
             copy_file_sync(thumb_path, poster_path)
             log(f"\n 🍀 Poster done! (copy thumb)({get_used_time(start_time)}s)")
             json_data.poster_from = "copy thumb"
             img.close()
             return True
+        if prop >= 1:
+            json_data.poster_from = "thumb center"
+            ax, ay, bx, by = _center_crop_box(w, h)
+            log("\n 🖼 Poster裁剪: 图片接近竖图，使用居中裁剪")
 
-        # 有码作品固定走右裁剪；其余已枚举类型优先做人脸识别，失败后回退居中裁剪。
-        if scraping_type in YOUMA_RIGHT_CROP_TYPES:
+        # 横图有码作品固定走右裁剪；其余已枚举类型优先做人脸识别，失败后回退居中裁剪。
+        elif scraping_type in YOUMA_RIGHT_CROP_TYPES:
             json_data.poster_from = "thumb right"
             ax, ay, bx, by = _right_crop_box(w, h)
             log("\n 🖼 Poster裁剪: 命中有码右裁策略")
@@ -163,11 +167,9 @@ def cut_thumb_to_poster(
             if face_left is None:
                 json_data.poster_from = "thumb center"
                 ax, ay, bx, by = _center_crop_box(w, h)
-                log("\n 🖼 Poster裁剪: 未检测到人脸，回退居中裁剪")
             else:
                 json_data.poster_from = "thumb face"
                 ax, ay, bx, by = face_left, 0, face_left + crop_width, h
-                log("\n 🖼 Poster裁剪: 检测到人脸，优先使用人脸裁剪")
                 if bx > w:
                     bx = w
                     ax = max(bx - crop_width, 0)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
@@ -15,6 +14,10 @@ from ..models.log_buffer import LogBuffer
 
 YUNET_MODEL_URL = "https://huggingface.co/opencv/opencv_zoo/resolve/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
 YUNET_MODEL_NAME = "face_detection_yunet_2023mar.onnx"
+YUNET_SCORE_THRESHOLD = 0.7
+YUNET_NMS_THRESHOLD = 0.3
+YUNET_TOP_K = 5000
+YUNET_DETECT_MAX_SIDE = 800
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,18 @@ class FaceBox:
     @property
     def height(self) -> int:
         return max(self.bottom - self.top, 0)
+
+
+def _scale_face_box(face: FaceBox, scale: float, image_width: int, image_height: int) -> FaceBox:
+    if scale == 1:
+        return face
+    return FaceBox(
+        left=max(int(round(face.left / scale)), 0),
+        top=max(int(round(face.top / scale)), 0),
+        right=min(int(round(face.right / scale)), image_width),
+        bottom=min(int(round(face.bottom / scale)), image_height),
+        score=face.score,
+    )
 
 
 def _face_model_path() -> Path:
@@ -72,29 +87,6 @@ def _log_face(message: str, log_fn=None) -> None:
         LogBuffer.log().write(message)
 
 
-def _cuda_enabled_count() -> int:
-    cuda_module = getattr(cv2, "cuda", None)
-    if cuda_module is None or not hasattr(cuda_module, "getCudaEnabledDeviceCount"):
-        return 0
-    try:
-        return int(cuda_module.getCudaEnabledDeviceCount())
-    except Exception:
-        return 0
-
-
-def _opencl_enabled() -> bool:
-    ocl_module = getattr(cv2, "ocl", None)
-    if ocl_module is None:
-        return False
-    checker = getattr(ocl_module, "haveOpenCL", None)
-    if checker is None:
-        return False
-    try:
-        return bool(checker())
-    except Exception:
-        return False
-
-
 def _load_yunet_model() -> Path | None:
     model_path = _face_model_path()
     if model_path.is_file() and not _is_git_lfs_pointer(model_path):
@@ -110,7 +102,7 @@ def _load_yunet_model() -> Path | None:
     return None
 
 
-def _create_yunet_detector(model_path: Path, backend_id: int, target_id: int):
+def _create_yunet_detector(model_path: Path):
     creator = getattr(cv2, "FaceDetectorYN_create", None)
     if creator is None:
         face_detector = getattr(cv2, "FaceDetectorYN", None)
@@ -118,102 +110,79 @@ def _create_yunet_detector(model_path: Path, backend_id: int, target_id: int):
     if creator is None:
         return None
     try:
-        return creator(str(model_path), "", (320, 320), 0.9, 0.3, 5000, backend_id, target_id)
+        return creator(
+            str(model_path),
+            "",
+            (320, 320),
+            YUNET_SCORE_THRESHOLD,
+            YUNET_NMS_THRESHOLD,
+            YUNET_TOP_K,
+            getattr(cv2.dnn, "DNN_BACKEND_OPENCV", 0),
+            getattr(cv2.dnn, "DNN_TARGET_CPU", 0),
+        )
     except Exception:
         return None
 
 
-def _build_yunet_backends() -> list[tuple[str, int, int]]:
-    backends: list[tuple[str, int, int]] = []
-    dnn = cv2.dnn
-    if _cuda_enabled_count() > 0:
-        backend_id = getattr(dnn, "DNN_BACKEND_CUDA", None)
-        target_id = getattr(dnn, "DNN_TARGET_CUDA", None)
-        if backend_id is not None and target_id is not None:
-            backends.append(("CUDA", backend_id, target_id))
-    if _opencl_enabled():
-        backend_id = getattr(dnn, "DNN_BACKEND_OPENCV", None)
-        target_id = getattr(dnn, "DNN_TARGET_OPENCL", None)
-        if backend_id is not None and target_id is not None:
-            backends.append(("OpenCL", backend_id, target_id))
-    backends.append(("CPU", getattr(dnn, "DNN_BACKEND_OPENCV", 0), getattr(dnn, "DNN_TARGET_CPU", 0)))
-    return backends
+def _resize_for_detection(image_bgr: np.ndarray) -> tuple[np.ndarray, float]:
+    h, w = image_bgr.shape[:2]
+    max_side = max(w, h)
+    if max_side <= YUNET_DETECT_MAX_SIDE:
+        return image_bgr, 1
+    scale = YUNET_DETECT_MAX_SIDE / max_side
+    resized = cv2.resize(image_bgr, (int(round(w * scale)), int(round(h * scale))), interpolation=cv2.INTER_AREA)
+    return resized, scale
 
 
-@lru_cache(maxsize=1)
-def _get_haar_cascade() -> cv2.CascadeClassifier | None:
-    cascade_path = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
-    if not cascade_path.is_file():
-        return None
-    cascade = cv2.CascadeClassifier(cascade_path.as_posix())
-    if cascade.empty():
-        return None
-    return cascade
-
-
-def _detect_faces_by_haar(image_bgr: np.ndarray) -> list[FaceBox]:
-    cascade = _get_haar_cascade()
-    if cascade is None:
-        return []
-    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-    faces = cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(24, 24),
-    )
-    return [FaceBox(int(x), int(y), int(x + w), int(y + h)) for x, y, w, h in faces]
-
-
-def _detect_faces_by_yunet(image_bgr: np.ndarray, log_fn=None) -> list[FaceBox]:
+def _detect_faces_by_yunet(image_bgr: np.ndarray) -> list[FaceBox]:
     model_path = _load_yunet_model()
     if model_path is None:
-        _log_face("\n 🖼 人脸裁剪: YuNet 模型不可用，跳过 YuNet", log_fn)
         return []
 
-    w, h = image_bgr.shape[1], image_bgr.shape[0]
-    backends = _build_yunet_backends()
-    _log_face(
-        f"\n 🖼 人脸裁剪: YuNet 检测开始，候选后端={','.join(name for name, _, _ in backends)}，尺寸={w}x{h}",
-        log_fn,
-    )
+    source_h, source_w = image_bgr.shape[:2]
+    detect_image, scale = _resize_for_detection(image_bgr)
+    detect_h, detect_w = detect_image.shape[:2]
+    detector = _create_yunet_detector(model_path)
+    if detector is None:
+        return []
 
-    for backend_name, backend_id, target_id in backends:
-        detector = _create_yunet_detector(model_path, backend_id, target_id)
-        if detector is None:
-            _log_face(f"\n 🖼 人脸裁剪: YuNet {backend_name} 后端初始化失败", log_fn)
-            continue
-        try:
-            detector.setInputSize((w, h))
-            _, faces = detector.detect(image_bgr)
-        except Exception:
-            _log_face(f"\n 🖼 人脸裁剪: YuNet {backend_name} 后端检测异常", log_fn)
-            continue
-        if faces is None or len(faces) == 0:
-            _log_face(f"\n 🖼 人脸裁剪: YuNet {backend_name} 未检测到人脸", log_fn)
-            return []
-        face_boxes: list[FaceBox] = []
-        for face in faces:
-            x, y, face_w, face_h = (float(face[i]) for i in range(4))
-            score = float(face[14]) if len(face) > 14 else 0.0
-            face_boxes.append(
-                FaceBox(
-                    left=max(int(round(x)), 0),
-                    top=max(int(round(y)), 0),
-                    right=min(int(round(x + face_w)), w),
-                    bottom=min(int(round(y + face_h)), h),
-                    score=score,
-                )
-            )
-        _log_face(f"\n 🖼 人脸裁剪: YuNet {backend_name} 检测到 {len(face_boxes)} 张脸", log_fn)
-        return face_boxes
-    return []
+    try:
+        detector.setInputSize((detect_w, detect_h))
+        _, faces = detector.detect(detect_image)
+    except Exception:
+        return []
+    if faces is None or len(faces) == 0:
+        return []
+
+    face_boxes: list[FaceBox] = []
+    for face in faces:
+        x, y, face_w, face_h = (float(face[i]) for i in range(4))
+        score = float(face[14]) if len(face) > 14 else 0.0
+        face_box = FaceBox(
+            left=max(int(round(x)), 0),
+            top=max(int(round(y)), 0),
+            right=min(int(round(x + face_w)), detect_w),
+            bottom=min(int(round(y + face_h)), detect_h),
+            score=score,
+        )
+        face_boxes.append(_scale_face_box(face_box, scale, source_w, source_h))
+    return face_boxes
 
 
-def _select_primary_face(faces: list[FaceBox]) -> FaceBox | None:
+def _select_primary_face(faces: list[FaceBox], image_width: int) -> FaceBox | None:
     if not faces:
         return None
-    return max(faces, key=lambda face: (face.score, face.width * face.height))
+
+    def _score(face: FaceBox) -> tuple[float, int]:
+        face_center_x = face.left + face.width / 2
+        right_bias = face_center_x / image_width if image_width > 0 else 0
+        normalized_score = max(face.score, 0)
+        area = face.width * face.height
+        # 封面人物通常在画面右侧；在检测分接近时，优先选择更适合 poster 裁剪的主体。
+        poster_score = normalized_score * 100 + right_bias * 12 + min(area / 1000, 30)
+        return poster_score, area
+
+    return max(faces, key=_score)
 
 
 def _build_face_focus_left(image_width: int, crop_width: int, face: FaceBox) -> int:
@@ -229,32 +198,19 @@ def _build_face_focus_left(image_width: int, crop_width: int, face: FaceBox) -> 
 def get_face_crop_left(image: Image.Image, crop_width: int, log_fn=None) -> int | None:
     if crop_width <= 0 or image.width <= 0 or image.height <= 0:
         return None
-    _log_face(
-        f"\n 🖼 人脸裁剪: 开始识别，源图={image.width}x{image.height}，裁剪宽度={crop_width}",
-        log_fn,
-    )
     rgb_image = image.convert("RGB")
     try:
         image_bgr = cv2.cvtColor(np.asarray(rgb_image), cv2.COLOR_RGB2BGR)
     finally:
         rgb_image.close()
-    faces = _detect_faces_by_yunet(image_bgr, log_fn=log_fn)
-    if not faces:
-        _log_face("\n 🖼 人脸裁剪: YuNet 无结果，回退 Haar", log_fn)
-        faces = _detect_faces_by_haar(image_bgr)
-        if faces:
-            _log_face(f"\n 🖼 人脸裁剪: Haar 检测到 {len(faces)} 张脸", log_fn)
-        else:
-            _log_face("\n 🖼 人脸裁剪: Haar 也未检测到人脸", log_fn)
-    primary_face = _select_primary_face(faces)
+    faces = _detect_faces_by_yunet(image_bgr)
+    primary_face = _select_primary_face(faces, image.width)
     if primary_face is None:
+        _log_face("\n 🖼 Poster裁剪: 未检测到有效人脸，使用居中裁剪", log_fn)
         return None
-    _log_face(
-        f"\n 🖼 人脸裁剪: 选中人脸 left={primary_face.left}, top={primary_face.top}, right={primary_face.right}, bottom={primary_face.bottom}, score={primary_face.score:.3f}",
-        log_fn,
-    )
     if crop_width >= image.width:
+        _log_face("\n 🖼 Poster裁剪: 人脸裁剪命中，使用 thumb face", log_fn)
         return 0
     left = _build_face_focus_left(image.width, crop_width, primary_face)
-    _log_face(f"\n 🖼 人脸裁剪: 计算裁剪起点 left={left}", log_fn)
+    _log_face("\n 🖼 Poster裁剪: 人脸裁剪命中，使用 thumb face", log_fn)
     return left

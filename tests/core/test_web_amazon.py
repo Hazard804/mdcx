@@ -106,7 +106,7 @@ async def test_poster_download_keeps_vr_direct_poster_without_auto_best(
     monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
     monkeypatch.setattr(
         "mdcx.core.image.get_face_crop_left",
-        lambda image, crop_width: (_ for _ in ()).throw(AssertionError("不应裁剪")),
+        lambda image, crop_width, **kwargs: (_ for _ in ()).throw(AssertionError("不应裁剪")),
     )
 
     result = CrawlersResult.empty()
@@ -143,7 +143,7 @@ async def test_non_youma_prefers_direct_poster_before_crop(monkeypatch: pytest.M
     monkeypatch.setattr("mdcx.core.web._get_poster_copy_policy", lambda *args, **kwargs: False)
     monkeypatch.setattr(
         "mdcx.core.image.get_face_crop_left",
-        lambda image, crop_width: (_ for _ in ()).throw(AssertionError("不应进入裁剪")),
+        lambda image, crop_width, **kwargs: (_ for _ in ()).throw(AssertionError("不应进入裁剪")),
     )
 
     thumb_path = tmp_path / "thumb.jpg"
@@ -178,7 +178,7 @@ async def test_non_youma_falls_back_to_crop_when_direct_poster_missing(monkeypat
     monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
     monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
     monkeypatch.setattr("mdcx.core.web._get_poster_copy_policy", lambda *args, **kwargs: False)
-    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", lambda image, crop_width: 120)
+    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", lambda image, crop_width, **kwargs: 120)
 
     thumb_path = tmp_path / "thumb.jpg"
     _save_test_image(thumb_path, (800, 500))
@@ -208,7 +208,7 @@ def test_cut_thumb_to_poster_uses_face_crop_for_non_youma(monkeypatch: pytest.Mo
     poster_path = tmp_path / "poster.jpg"
     _save_test_image(thumb_path, (800, 500))
 
-    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", lambda image, crop_width: 120)
+    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", lambda image, crop_width, **kwargs: 120)
 
     result = CrawlersResult.empty()
     result.scraping_type = FixedScrapingType.WUMA
@@ -218,6 +218,32 @@ def test_cut_thumb_to_poster_uses_face_crop_for_non_youma(monkeypatch: pytest.Mo
     assert poster_path.exists()
     with Image.open(poster_path) as img:
         assert img.size == (333, 500)
+
+
+def test_cut_thumb_to_poster_uses_concise_face_crop_log(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    thumb_path = tmp_path / "thumb.jpg"
+    poster_path = tmp_path / "poster.jpg"
+    logs: list[str] = []
+    _save_test_image(thumb_path, (800, 500))
+
+    def fake_face_crop(image, crop_width, log_fn=None):
+        if log_fn:
+            log_fn("\n 🖼 Poster裁剪: 人脸裁剪命中，使用 thumb face")
+        return 120
+
+    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", fake_face_crop)
+
+    result = CrawlersResult.empty()
+    result.scraping_type = FixedScrapingType.WUMA
+
+    assert cut_thumb_to_poster(result, thumb_path, poster_path, FixedScrapingType.WUMA, logs.append) is True
+
+    log_text = "".join(logs)
+    assert "YuNet" not in log_text
+    assert "score=" not in log_text
+    assert "left=" not in log_text
+    assert "比例=" not in log_text
+    assert "人脸裁剪命中" in log_text
 
 
 def test_cut_thumb_to_poster_keeps_youma_right_crop_without_face_detection(
@@ -237,6 +263,25 @@ def test_cut_thumb_to_poster_keeps_youma_right_crop_without_face_detection(
 
     assert cut_thumb_to_poster(result, thumb_path, poster_path, FixedScrapingType.YOUMA) is True
     assert result.poster_from == "thumb right"
+
+
+def test_cut_thumb_to_poster_keeps_ratio_priority_for_youma(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    thumb_path = tmp_path / "thumb.jpg"
+    poster_path = tmp_path / "poster.jpg"
+    _save_test_image(thumb_path, (500, 600))
+
+    def _raise_face_detector(*args, **kwargs):
+        raise AssertionError("有码偏竖图应优先居中裁剪，不应进入人脸裁剪")
+
+    monkeypatch.setattr("mdcx.core.image.get_face_crop_left", _raise_face_detector)
+
+    result = CrawlersResult.empty()
+    result.scraping_type = FixedScrapingType.YOUMA
+
+    assert cut_thumb_to_poster(result, thumb_path, poster_path, FixedScrapingType.YOUMA) is True
+    assert result.poster_from == "thumb center"
+    with Image.open(poster_path) as img:
+        assert img.size == (400, 600)
 
 
 @pytest.mark.parametrize(
