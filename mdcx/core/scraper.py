@@ -227,6 +227,10 @@ class Scraper:
             signal.label_result.emit(f" 刮削中：0 成功：{Flags.succ_count} 失败：{Flags.fail_count}")
             await save_success_list()  # 保存成功列表
             stopped = signal.stop or Flags.stop_requested
+            signal.show_log_text(
+                f" 🔧 收尾状态: stopped={stopped}, stop={signal.stop}, stop_requested={Flags.stop_requested}, "
+                f"again_queue={len(Flags.again_dic)}"
+            )
 
         should_start_again = False
         try:
@@ -268,12 +272,14 @@ class Scraper:
                 signal.show_log_text("================================================================================")
                 signal.show_scrape_info(f"🎉 刮削完成 {task_count}/{task_count}")
         finally:
+            signal.show_log_text(" 🔧 收尾动作: 重置按钮为“开始”")
             signal.reset_buttons_status.emit()
 
         if (not stopped) and should_start_again:
             Flags.new_again_dic = Flags.again_dic.copy()
             new_movie_list = list(Flags.new_again_dic.keys())
             Flags.again_dic.clear()
+            signal.show_log_text(f" 🔧 触发重新刮削队列: {len(new_movie_list)} 个文件")
             start_new_scrape(FileMode.Again, new_movie_list)
             return
 
@@ -281,9 +287,11 @@ class Scraper:
         if not stopped:
             try:
                 if EmbyAction.ACTOR_PHOTO_AUTO in manager.config.emby_on:
-                    await update_emby_actor_photo()
+                    signal.show_log_text(" 🔧 触发自动演员头像补全任务")
+                    await update_emby_actor_photo(manage_button_state=False)
                 if manager.config.actor_photo_kodi_auto:
-                    await creat_kodi_actors(True)
+                    signal.show_log_text(" 🔧 触发自动 Kodi 演员头像补全任务")
+                    await creat_kodi_actors(True, manage_button_state=False)
             except Exception:
                 signal.show_traceback_log(traceback.format_exc())
                 signal.show_log_text(traceback.format_exc())

@@ -48,8 +48,9 @@ def _raise_if_stop_requested() -> None:
         raise ActorTaskStopped("手动停止演员补全")
 
 
-async def creat_kodi_actors(add: bool) -> None:
-    signal.change_buttons_status.emit()
+async def creat_kodi_actors(add: bool, *, manage_button_state: bool = True) -> None:
+    if manage_button_state:
+        signal.change_buttons_status.emit()
     try:
         _raise_if_stop_requested()
         signal.show_log_text(f"📂 待刮削目录: {get_movie_path_setting().movie_path}")
@@ -69,7 +70,8 @@ async def creat_kodi_actors(add: bool) -> None:
     except ActorTaskStopped:
         signal.show_log_text("⛔️ 演员头像补全已手动停止！")
     finally:
-        signal.reset_buttons_status.emit()
+        if manage_button_state:
+            signal.reset_buttons_status.emit()
         signal.show_log_text("================================================================================")
 
 

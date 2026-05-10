@@ -63,8 +63,9 @@ async def _get_actor_detail(actor: dict) -> tuple[dict | None, str]:
         return await computed.async_client.get_json(actor_person, headers=headers, use_proxy=False)
 
 
-async def update_emby_actor_photo() -> None:
-    signal.change_buttons_status.emit()
+async def update_emby_actor_photo(*, manage_button_state: bool = True) -> None:
+    if manage_button_state:
+        signal.change_buttons_status.emit()
     try:
         _raise_if_stop_requested()
         server_type = manager.config.server_type
@@ -81,7 +82,8 @@ async def update_emby_actor_photo() -> None:
     except ActorPhotoTaskStopped:
         signal.show_log_text("⛔️ 演员头像补全已手动停止！")
     finally:
-        signal.reset_buttons_status.emit()
+        if manage_button_state:
+            signal.reset_buttons_status.emit()
 
 
 async def _get_emby_actor_list() -> list[dict]:
