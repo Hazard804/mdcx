@@ -19,6 +19,7 @@ from ..signals import signal
 from ..utils import get_used_time
 from ..utils.file import delete_file_async
 from ..utils.language import is_japanese
+from .mosaic import normalize_mosaic
 from .utils import render_name_template
 
 
@@ -462,6 +463,7 @@ async def get_nfo_data(file_path: Path, movie_number: str) -> tuple[CrawlersResu
         json_data.mosaic = "里番"
     elif "动漫" in tag or "動漫" in tag:
         json_data.mosaic = "动漫"
+    json_data.mosaic = normalize_mosaic(json_data.mosaic)
 
     # 获取只有标签的标签（因为启用字段翻译后，会再次重复添加字幕、演员、发行、系列等字段）
     replace_keys = set(filter(None, ["：", ":"] + re.split(r"[,，]", actor)))

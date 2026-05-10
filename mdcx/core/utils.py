@@ -201,6 +201,9 @@ def _detect_height_from_path(file_path: Path, file_number: str = "") -> int:
     # 文件名尾部的 4K 扩展标记单独处理，如 IPZZ-841_4K60FPS / IPZZ-841_4KS。
     if re.search(r"(?:^|[-_ .\[])(?:4K60FPS|4KS)(?=\.[^.\\/]+$)", normalized_name):
         return 2000
+    # 无码破解标记和 4K 紧贴时也保留 4K 识别，如 JUR-615-U4K / JUR-615-UC4K。
+    if re.search(r"(?:^|[-_ .\[])U(?:C)?-?4K(?=\.[^.\\/]+$)", normalized_name):
+        return 2000
     return 0
 
 

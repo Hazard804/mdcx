@@ -14,6 +14,7 @@ from ..models.log_buffer import LogBuffer
 from ..models.types import CrawlerInput, CrawlerResponse, CrawlerResult, CrawlersResult, CrawlTask
 from ..number import is_uncensored
 from ..utils.dataclass import update
+from .mosaic import is_guochan_mosaic, is_plain_uncensored_mosaic, normalize_mosaic
 
 if TYPE_CHECKING:
     from ..config.models import Config
@@ -25,9 +26,6 @@ MULTI_LANGUAGE_WEBSITES = [  # 支持多语言, language 参数有意义
     Website.IQQTV,
     Website.JAVLIBRARY,
 ]
-
-GUOCHAN_MOSAIC_VALUES = {"国产", "國產"}
-WUMA_MOSAIC_VALUES = {"无码", "無碼", "無修正"}
 
 
 def sprint_source(website: Website, language: Language) -> str:
@@ -82,7 +80,7 @@ def classify_scrape_task(task_input: CrawlTask, config: "Config", use_fixed_type
         return ScrapeClassification(fixed_type, "fixed", sites=fixed_sites[fixed_type])
 
     if (
-        mosaic in GUOCHAN_MOSAIC_VALUES
+        is_guochan_mosaic(mosaic)
         or (re.search(r"([^A-Z]|^)MD[A-Z-]*\d{4,}", file_number) and "MDVR" not in file_number)
         or re.search(r"MKY-[A-Z]+-\d{3,}", file_number)
     ):
@@ -113,7 +111,7 @@ def classify_scrape_task(task_input: CrawlTask, config: "Config", use_fixed_type
     ):
         return ScrapeClassification(FixedScrapingType.OUMEI, "auto", sites=config.website_oumei)
 
-    if mosaic in WUMA_MOSAIC_VALUES:
+    if is_plain_uncensored_mosaic(mosaic):
         return ScrapeClassification(FixedScrapingType.WUMA, "auto", sites=config.website_wuma)
 
     if _is_suren_number(file_number, task_input.short_number):
@@ -150,6 +148,8 @@ def classify_existing_scrape_result(
 
 
 def _deal_res(res: CrawlersResult) -> CrawlersResult:
+    res.mosaic = normalize_mosaic(res.mosaic)
+
     # 标签
     tag = re.sub(r",\d+[kKpP],", ",", res.tag)
     tag_rep_word = [",HD高画质", ",HD高畫質", ",高画质", ",高畫質"]
@@ -418,7 +418,7 @@ class FileScraper:
 
         # 处理 mosaic
         for site, result in all_res.items():
-            if mosaic := result.mosaic:
+            if mosaic := normalize_mosaic(result.mosaic):
                 reduced.mosaic = mosaic
                 break
 
@@ -513,7 +513,8 @@ class FileScraper:
         apply_scrape_classification(res, classification)
 
         # 从res获取mosaic
-        if res.mosaic == "无码":
+        res.mosaic = normalize_mosaic(res.mosaic)
+        if is_plain_uncensored_mosaic(res.mosaic):
             wuma = True
 
         # 马赛克
@@ -526,12 +527,13 @@ class FileScraper:
         elif youma:
             res.mosaic = "有码"
         elif mosaic:
-            res.mosaic = mosaic
+            res.mosaic = normalize_mosaic(mosaic)
         if not res.mosaic:
             if is_uncensored(number):
                 res.mosaic = "无码"
             else:
                 res.mosaic = "有码"
+        res.mosaic = normalize_mosaic(res.mosaic)
 
         # 原标题，用于amazon搜索
         res.originaltitle_amazon = res.originaltitle

@@ -18,6 +18,7 @@ from ..models.types import CrawlersResult
 from ..number import get_number_letters
 from ..utils import clean_list, get_used_time
 from ..utils.language import is_japanese, is_probably_english_for_translation
+from .mosaic import normalize_mosaic
 
 AVWIKI_SCRAPING_TYPES = {
     FixedScrapingType.YOUMA,
@@ -119,7 +120,8 @@ def translate_info(json_data: CrawlersResult, has_sub: bool):
         tag = tag.strip(",")
 
     # 添加字幕、马赛克信息到tag中
-    mosaic = json_data.mosaic
+    mosaic = normalize_mosaic(json_data.mosaic)
+    json_data.mosaic = mosaic
     if has_sub and TagInclude.CNWORD in tag_include:
         tag += ",中文字幕"
     if mosaic and TagInclude.MOSAIC in tag_include:

@@ -7,6 +7,7 @@ from lxml import etree
 
 from ..config.enums import Website
 from ..config.manager import manager
+from ..core.mosaic import is_plain_uncensored_mosaic
 from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
@@ -184,7 +185,7 @@ class JavbusCrawler(BaseCrawler):
         if htmlcode is None:
             if "404" not in str(error) or "." in number:
                 raise CralwerException(f"网络请求错误: {error}")
-            if mosaic in {"无码", "無碼"}:
+            if is_plain_uncensored_mosaic(mosaic):
                 real_url = await get_real_url(self.async_client, ctx, number, "uncensored", self.base_url, headers)
             else:
                 real_url = await get_real_url(self.async_client, ctx, number, "censored", self.base_url, headers)
@@ -211,7 +212,7 @@ class JavbusCrawler(BaseCrawler):
             ctx.debug(f"发行日期无效，已忽略: {release_raw}")
         tag = getTag(html_info)
         mosaic = getMosaic(html_info)
-        if mosaic == "无码":
+        if is_plain_uncensored_mosaic(mosaic):
             if (
                 "_" in number
                 and poster_url

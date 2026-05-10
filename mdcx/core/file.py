@@ -26,6 +26,7 @@ from ..utils.file import (
     move_file_async,
 )
 from ..utils.path import showFilePath
+from .mosaic import normalize_mosaic
 from .utils import render_name_template
 
 
@@ -734,6 +735,8 @@ async def get_file_info_v2(file_path: Path, copy_sub: bool = True) -> FileInfo:
                         c_word = cnword_style  # 中文字幕影片后缀
                         has_sub = True
                         break
+
+        mosaic = normalize_mosaic(mosaic)
 
         file_show_name = movie_number
         suffix_sort_list = manager.config.suffix_sort

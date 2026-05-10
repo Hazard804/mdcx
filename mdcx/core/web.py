@@ -43,9 +43,9 @@ from .amazon import (
 )
 from .image import cut_thumb_to_poster
 from .media_resource import MediaResourceContext
+from .mosaic import has_leak_mark, has_umr_mark
 
 AMAZON_SEARCH_SCRAPING_TYPES = {FixedScrapingType.YOUMA}
-AMAZON_SEARCH_VARIANT_MOSAICS = {"流出", "无码破解", "無碼破解"}
 AMAZON_SEARCH_SPECIAL_MOSAICS = {"里番", "裏番", "动漫", "動漫"}
 POSTER_COPY_POLICY_MAP = {
     FixedScrapingType.YOUMA: DownloadableFile.IGNORE_YOUMA,
@@ -81,7 +81,7 @@ def _should_search_amazon(result: CrawlersResult) -> bool:
         return False
     if result.scraping_type in AMAZON_SEARCH_SCRAPING_TYPES:
         return True
-    return result.mosaic in AMAZON_SEARCH_VARIANT_MOSAICS | AMAZON_SEARCH_SPECIAL_MOSAICS
+    return has_leak_mark(result.mosaic) or has_umr_mark(result.mosaic) or result.mosaic in AMAZON_SEARCH_SPECIAL_MOSAICS
 
 
 def _get_poster_copy_policy(result: CrawlersResult, download_files: list[DownloadableFile]) -> bool:

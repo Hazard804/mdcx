@@ -13,6 +13,7 @@ from ..config.enums import DownloadableFile
 from ..config.manager import manager
 from ..config.models import MarkType
 from ..core.file import get_file_info_v2
+from ..core.mosaic import has_leak_mark, has_umr_mark, has_uncensored_mark, is_censored_mosaic
 from ..utils import executor
 from ..utils.file import delete_file_sync
 from ..views.posterCutTool import Ui_Dialog_cut_poster
@@ -356,20 +357,20 @@ class CutWindow(QDialog):
                         self.Ui.radioButton_add_8k.setChecked(True)
                 if has_sub and MarkType.SUB in mark_type:
                     self.Ui.checkBox_add_sub.setChecked(True)
-                if mosaic == "有码" or mosaic == "有碼":
+                if is_censored_mosaic(mosaic):
                     if MarkType.YOUMA in mark_type:
                         self.Ui.radioButton_add_censored.setChecked(True)
-                elif "破解" in mosaic:
+                elif has_umr_mark(mosaic):
                     if MarkType.UMR in mark_type:
                         self.Ui.radioButton_add_umr.setChecked(True)
                     elif MarkType.UNCENSORED in mark_type:
                         self.Ui.radioButton_add_uncensored.setChecked(True)
-                elif "流出" in mosaic:
+                elif has_leak_mark(mosaic):
                     if MarkType.LEAK in mark_type:
                         self.Ui.radioButton_add_leak.setChecked(True)
-                    elif MarkType.UNCENSORED in mark_type:
+                    elif has_uncensored_mark(mosaic) and MarkType.UNCENSORED in mark_type:
                         self.Ui.radioButton_add_uncensored.setChecked(True)
-                elif mosaic == "无码" or mosaic == "無碼":
+                elif has_uncensored_mark(mosaic):
                     self.Ui.radioButton_add_uncensored.setChecked(True)
         # 显示裁剪框
         # 计算裁剪框大小

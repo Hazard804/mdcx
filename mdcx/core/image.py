@@ -19,6 +19,7 @@ from ..signals import signal
 from ..utils import executor, get_used_time
 from ..utils.file import check_pic_async, copy_file_sync, delete_file_sync
 from .face_crop import get_face_crop_left
+from .mosaic import has_leak_mark, has_umr_mark, has_uncensored_mark, is_censored_mosaic
 
 YOUMA_RIGHT_CROP_TYPES = {FixedScrapingType.YOUMA}
 FACE_FALLBACK_CROP_TYPES = {
@@ -48,20 +49,20 @@ async def add_mark(json_data: OtherInfo, file_info: FileInfo, mosaic: str):
     if has_sub and MarkType.SUB in mark_type:
         mark_list.append("字幕")
 
-    if mosaic == "有码" or mosaic == "有碼":
+    if is_censored_mosaic(mosaic):
         if MarkType.YOUMA in mark_type:
             mark_list.append("有码")
-    elif mosaic == "无码破解" or mosaic == "無碼破解":
+    elif has_umr_mark(mosaic):
         if MarkType.UMR in mark_type:
             mark_list.append("破解")
         elif MarkType.UNCENSORED in mark_type:
             mark_list.append("无码")
-    elif mosaic == "无码流出" or mosaic == "無碼流出":
+    elif has_leak_mark(mosaic):
         if MarkType.LEAK in mark_type:
             mark_list.append("流出")
-        elif MarkType.UNCENSORED in mark_type:
+        elif has_uncensored_mark(mosaic) and MarkType.UNCENSORED in mark_type:
             mark_list.append("无码")
-    elif (mosaic == "无码" or mosaic == "無碼") and MarkType.UNCENSORED in mark_type:
+    elif has_uncensored_mark(mosaic) and MarkType.UNCENSORED in mark_type:
         mark_list.append("无码")
 
     if mark_list:
