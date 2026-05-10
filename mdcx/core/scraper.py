@@ -198,6 +198,7 @@ class Scraper:
         task_count = len(movie_list)
         Flags.total_count = task_count
 
+        stopped = False
         if task_count:
             Flags.count_claw += 1
             if manager.config.main_mode == 4:
@@ -225,54 +226,56 @@ class Scraper:
                 raise UnexpectedScrapeCancellation(message)
             signal.label_result.emit(f" 刮削中：0 成功：{Flags.succ_count} 失败：{Flags.fail_count}")
             await save_success_list()  # 保存成功列表
-            if signal.stop or Flags.stop_requested:
-                return
+            stopped = signal.stop or Flags.stop_requested
 
-        signal.show_log_text("================================================================================")
-        await _clean_empty_fodlers(movie_path, file_mode)
-        end_time = time.time()
-        used_time = str(round((end_time - Flags.start_time), 2))
-        average_time = str(round((end_time - Flags.start_time) / task_count, 2)) if task_count else used_time
-        signal.exec_set_processbar.emit(0)
-        signal.set_label_file_path.emit(f"🎉 恭喜！全部刮削完成！共 {task_count} 个文件！用时 {used_time} 秒")
-        signal.show_traceback_log(
-            f"🎉 All finished!!! Total {task_count} , Success {Flags.succ_count} , Failed {Flags.fail_count} "
-        )
-        signal.show_log_text(
-            f" 🎉🎉🎉 All finished!!! Total {task_count} , Success {Flags.succ_count} , Failed {Flags.fail_count} "
-        )
-        signal.show_log_text("================================================================================")
-        if Flags.failed_list:
-            signal.show_log_text("    *** Failed results ****")
-            for i in range(len(Flags.failed_list)):
-                fail_path, fail_reson = Flags.failed_list[i]
-                signal.show_log_text(f" 🔴 {i + 1} {fail_path}\n    {fail_reson}")
-                signal.show_log_text("================================================================================")
-        signal.show_log_text(
-            " ⏰ Start time".ljust(15) + ": " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(Flags.start_time))
-        )
-        signal.show_log_text(
-            " 🏁 End time".ljust(15) + ": " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end_time))
-        )
-        signal.show_log_text(" ⏱ Used time".ljust(15) + f": {used_time}S")
-        signal.show_log_text(" 📺 Movies num".ljust(15) + f": {task_count}")
-        signal.show_log_text(" 🍕 Per time".ljust(15) + f": {average_time}S")
-        signal.show_log_text("================================================================================")
-        signal.show_scrape_info(f"🎉 刮削完成 {task_count}/{task_count}")
+        if not stopped:
+            signal.show_log_text("================================================================================")
+            await _clean_empty_fodlers(movie_path, file_mode)
+            end_time = time.time()
+            used_time = str(round((end_time - Flags.start_time), 2))
+            average_time = str(round((end_time - Flags.start_time) / task_count, 2)) if task_count else used_time
+            signal.exec_set_processbar.emit(0)
+            signal.set_label_file_path.emit(f"🎉 恭喜！全部刮削完成！共 {task_count} 个文件！用时 {used_time} 秒")
+            signal.show_traceback_log(
+                f"🎉 All finished!!! Total {task_count} , Success {Flags.succ_count} , Failed {Flags.fail_count} "
+            )
+            signal.show_log_text(
+                f" 🎉🎉🎉 All finished!!! Total {task_count} , Success {Flags.succ_count} , Failed {Flags.fail_count} "
+            )
+            signal.show_log_text("================================================================================")
+            if Flags.failed_list:
+                signal.show_log_text("    *** Failed results ****")
+                for i in range(len(Flags.failed_list)):
+                    fail_path, fail_reson = Flags.failed_list[i]
+                    signal.show_log_text(f" 🔴 {i + 1} {fail_path}\n    {fail_reson}")
+                    signal.show_log_text(
+                        "================================================================================"
+                    )
+            signal.show_log_text(
+                " ⏰ Start time".ljust(15) + ": " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(Flags.start_time))
+            )
+            signal.show_log_text(
+                " 🏁 End time".ljust(15) + ": " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end_time))
+            )
+            signal.show_log_text(" ⏱ Used time".ljust(15) + f": {used_time}S")
+            signal.show_log_text(" 📺 Movies num".ljust(15) + f": {task_count}")
+            signal.show_log_text(" 🍕 Per time".ljust(15) + f": {average_time}S")
+            signal.show_log_text("================================================================================")
+            signal.show_scrape_info(f"🎉 刮削完成 {task_count}/{task_count}")
 
-        # auto run after scrape
-        if EmbyAction.ACTOR_PHOTO_AUTO in manager.config.emby_on:
-            await update_emby_actor_photo()
-        if manager.config.actor_photo_kodi_auto:
-            await creat_kodi_actors(True)
+            # auto run after scrape
+            if EmbyAction.ACTOR_PHOTO_AUTO in manager.config.emby_on:
+                await update_emby_actor_photo()
+            if manager.config.actor_photo_kodi_auto:
+                await creat_kodi_actors(True)
 
         signal.reset_buttons_status.emit()
-        if len(Flags.again_dic):
+        if (not stopped) and len(Flags.again_dic):
             Flags.new_again_dic = Flags.again_dic.copy()
             new_movie_list = list(Flags.new_again_dic.keys())
             Flags.again_dic.clear()
             start_new_scrape(FileMode.Again, new_movie_list)
-        if Switch.AUTO_EXIT in manager.config.switch_on:
+        if (not stopped) and Switch.AUTO_EXIT in manager.config.switch_on:
             signal.show_log_text("\n\n 🍔 已启用「刮削后自动退出软件」！")
             count = 5
             for i in range(count):
