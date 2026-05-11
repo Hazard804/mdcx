@@ -283,6 +283,11 @@ class FileScraper:
         failed: set[tuple[Website, Language]] = set()  # 记录失败的网站
         reduced = CrawlersResult.empty()
         req_info: list[str] = []  # 请求信息列表
+        try_all_images = bool(
+            getattr(self.config, "scrape_like", "") == "info"
+            and getattr(self.config, "field_priority_try_all_images", False)
+        )
+        image_fields = {CrawlerResultFields.THUMB, CrawlerResultFields.POSTER}
 
         # 按字段分别处理，每个字段按优先级尝试获取
         for field in ManualConfig.REDUCED_FIELDS:
@@ -367,22 +372,29 @@ class FileScraper:
                         continue
                     field_value = normalized_year
 
+                is_primary_field_value = not getattr(reduced, field.value, None)
+
                 # 添加来源信息
-                reduced.field_sources[field] = site.value
+                if is_primary_field_value:
+                    reduced.field_sources[field] = site.value
 
                 # 添加 external_id
                 reduced.external_ids[site] = site_data.external_id
 
-                if field == CrawlerResultFields.POSTER:
+                if field == CrawlerResultFields.POSTER and is_primary_field_value:
                     reduced.image_download = site_data.image_download
                 elif field == CrawlerResultFields.ORIGINALTITLE and site_data.actor:
                     reduced.amazon_orginaltitle_actor = site_data.actor.split(",")[0]
 
                 # 保存数据
-                setattr(reduced, field.value, field_value)
-                reduced.field_log += f"\n    🟢 {site}\n     ↳{getattr(reduced, field.value)}"
+                if is_primary_field_value:
+                    setattr(reduced, field.value, field_value)
+                    reduced.field_log += f"\n    🟢 {site}\n     ↳{getattr(reduced, field.value)}"
+                elif try_all_images and field in image_fields:
+                    reduced.field_log += f"\n    🟢 {site} (候选)\n     ↳{field_value}"
                 # 找到有效数据，跳出循环继续处理下一个字段
-                break
+                if not (try_all_images and field in image_fields):
+                    break
             else:  # 所有来源都无此字段
                 reduced.field_log += "\n    🔴 所有来源均无数据"
 
@@ -395,11 +407,14 @@ class FileScraper:
             # 记录所有来源的 thumb url 以便后续下载
             if data.thumb:
                 reduced.thumb_list.append((data.source, data.thumb))
+            if data.poster:
+                reduced.poster_list.append((data.source, data.poster, data.image_download))
             # 记录所有来源的 actor 用于 Amazon 搜图
             if data.actor:
                 reduced.actor_amazon.extend(data.actors)
         # 去重
         reduced.thumb_list = list(dict.fromkeys(reduced.thumb_list))  # 保序
+        reduced.poster_list = list(dict.fromkeys(reduced.poster_list))  # 保序
         reduced.actor_amazon = list(set(reduced.actor_amazon))
 
         # 处理 release
@@ -457,6 +472,8 @@ class FileScraper:
             return res
         if res.thumb:
             res.thumb_list = [(website, res.thumb)]
+        if res.poster:
+            res.poster_list = [(website, res.poster, res.image_download)]
 
         # 加入来源信息
         res.field_sources = dict.fromkeys(CrawlerResultFields, website.value)

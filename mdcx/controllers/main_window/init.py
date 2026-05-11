@@ -231,6 +231,7 @@ def Init_Singal(self: "MyMAinWindow"):
     self.Ui.pushButton_tips_hard.clicked.connect(self.pushButton_tips_hard_clicked)
     self.Ui.checkBox_cover.stateChanged.connect(self.checkBox_cover_clicked)
     self.Ui.checkBox_amazon_big_pic.stateChanged.connect(self.update_amazon_strict_pic_verify_state)
+    self.Ui.radioButton_scrape_info.toggled.connect(self.update_field_priority_try_all_images_state)
     self.Ui.checkBox_i_agree_clean.stateChanged.connect(self.checkBox_i_agree_clean_clicked)
     self.Ui.checkBox_cd_part_a.stateChanged.connect(self.checkBox_cd_part_a_clicked)
     self.Ui.checkBox_i_understand_clean.stateChanged.connect(self.checkBox_i_agree_clean_clicked)

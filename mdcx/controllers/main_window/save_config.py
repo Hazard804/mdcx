@@ -153,6 +153,7 @@ def save_config(self: "MyMAinWindow"):
     manager.config.scrape_like = get_radio_buttons(
         (self.Ui.radioButton_scrape_speed, "speed"), (self.Ui.radioButton_scrape_info, "info"), default="single"
     )
+    manager.config.field_priority_try_all_images = get_checkbox(self.Ui.checkBox_field_priority_try_all_images)
 
     # 标题字段配置
     title_language = get_radio_buttons(

@@ -66,6 +66,63 @@ async def test_select_poster_auto_best_prefers_larger_search_candidate(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_poster_auto_best_removes_failed_candidate_and_reselects(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    async def fake_get_big_poster(*args, **kwargs):
+        return None
+
+    async def fake_get_image_size(url: str, media_context=None):
+        sizes = {
+            "https://example.test/first.jpg": (1000, 1500),
+            "https://example.test/second.jpg": (900, 1350),
+        }
+        return sizes[url]
+
+    calls: list[str] = []
+
+    async def fake_download_file_with_filepath(url: str, file_path: Path, folder_path: Path):
+        calls.append(url)
+        if url == "https://example.test/first.jpg":
+            return False
+        _save_test_image(file_path, (900, 1350))
+        return True
+
+    monkeypatch.setattr(
+        manager.config,
+        "download_files",
+        [DownloadableFile.POSTER, DownloadableFile.THUMB, DownloadableFile.POSTER_AUTO_BEST],
+    )
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr(manager.config, "scrape_like", "info")
+    monkeypatch.setattr(manager.config, "field_priority_try_all_images", True)
+    monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
+    monkeypatch.setattr("mdcx.core.web._get_image_size", fake_get_image_size)
+    monkeypatch.setattr("mdcx.core.web.download_file_with_filepath", fake_download_file_with_filepath)
+
+    thumb_path = tmp_path / "thumb.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    result = CrawlersResult.empty()
+    result.number = "ABF-001"
+    result.scraping_type = FixedScrapingType.YOUMA
+    result.poster = "https://example.test/first.jpg"
+    result.poster_from = "first"
+    result.image_download = True
+    result.poster_list = [
+        ("first", "https://example.test/first.jpg", True),
+        ("second", "https://example.test/second.jpg", True),
+    ]
+    other = OtherInfo.empty()
+    other.thumb_path = thumb_path
+
+    poster_path = tmp_path / "poster.jpg"
+    assert await poster_download(result, other, "", tmp_path, poster_path) is True
+    assert calls == ["https://example.test/first.jpg", "https://example.test/second.jpg"]
+    assert result.poster == "https://example.test/second.jpg"
+    assert result.poster_from == "second"
+    assert other.poster_path == poster_path
+
+
+@pytest.mark.asyncio
 async def test_select_poster_auto_best_falls_back_to_thumb_right_crop(tmp_path: Path):
     thumb_path = tmp_path / "thumb.jpg"
     _save_test_image(thumb_path, (800, 500))

@@ -1996,6 +1996,9 @@ class MyMAinWindow(QMainWindow):
         if not amazon_enabled:
             self.Ui.checkBox_amazon_strict_pic_verify.setChecked(False)
 
+    def update_field_priority_try_all_images_state(self, *_args):
+        self.Ui.checkBox_field_priority_try_all_images.setEnabled(self.Ui.radioButton_scrape_info.isChecked())
+
     # region 主界面编辑nfo
     def _show_nfo_info(self):
         try:

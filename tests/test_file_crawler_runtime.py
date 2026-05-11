@@ -88,6 +88,23 @@ class _TypePriorityConfig(_FakeConfig):
         return FieldPriorityConfig()
 
 
+class _ImagePriorityConfig(_FakeConfig):
+    scrape_like = "info"
+    field_priority_try_all_images = True
+
+    def get_field_config(self, field: CrawlerResultFields) -> FieldConfig:
+        if field in (CrawlerResultFields.POSTER, CrawlerResultFields.THUMB):
+            return FieldConfig(site_prority=[Website.AVBASE, Website.JAVDB])
+        return FieldConfig(site_prority=[])
+
+    def get_type_field_config(
+        self, scraping_type: FixedScrapingType, field: CrawlerResultFields
+    ) -> FieldPriorityConfig:
+        if field in (CrawlerResultFields.POSTER, CrawlerResultFields.THUMB):
+            return FieldPriorityConfig(site_prority=[Website.AVBASE, Website.JAVDB])
+        return FieldPriorityConfig()
+
+
 class _ClassificationConfig:
     fixed_scraping_type = FixedScrapingType.AUTO
     website_youma = {Website.DMM}
@@ -105,6 +122,14 @@ def _build_result(site: Website, runtime: str = "", release: str = "", year: str
     result.runtime = runtime
     result.release = release
     result.year = year
+    return result
+
+
+def _build_image_result(site: Website, poster: str = "", thumb: str = "", image_download: bool = True) -> CrawlerResult:
+    result = _build_result(site)
+    result.poster = poster
+    result.thumb = thumb
+    result.image_download = image_download
     return result
 
 
@@ -350,6 +375,48 @@ async def test_call_crawlers_legacy_site_list_uses_global_field_priority(monkeyp
     assert result is not None
     assert result.runtime == "55"
     assert result.field_sources[CrawlerResultFields.RUNTIME] == Website.JAVDB.value
+
+
+@pytest.mark.asyncio
+async def test_call_crawlers_collects_all_image_candidates_when_enabled(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(ManualConfig, "REDUCED_FIELDS", (CrawlerResultFields.POSTER, CrawlerResultFields.THUMB))
+
+    provider = _FakeCrawlerProvider(
+        {
+            Website.AVBASE: _build_image_result(
+                Website.AVBASE,
+                poster="https://example.test/avbase-poster.jpg",
+                thumb="https://example.test/avbase-thumb.jpg",
+                image_download=False,
+            ),
+            Website.JAVDB: _build_image_result(
+                Website.JAVDB,
+                poster="https://example.test/javdb-poster.jpg",
+                thumb="https://example.test/javdb-thumb.jpg",
+                image_download=True,
+            ),
+        }
+    )
+    scraper = FileScraper(_ImagePriorityConfig(), provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "SCUTE-1354"
+
+    result = await scraper._call_crawlers(
+        task_input,
+        classification=classify_scrape_task(task_input, Config(website_youma=[Website.AVBASE, Website.JAVDB])),
+    )
+
+    assert result is not None
+    assert result.poster == "https://example.test/avbase-poster.jpg"
+    assert result.poster_from == Website.AVBASE.value
+    assert result.poster_list == [
+        (Website.AVBASE.value, "https://example.test/avbase-poster.jpg", False),
+        (Website.JAVDB.value, "https://example.test/javdb-poster.jpg", True),
+    ]
+    assert result.thumb_list == [
+        (Website.AVBASE.value, "https://example.test/avbase-thumb.jpg"),
+        (Website.JAVDB.value, "https://example.test/javdb-thumb.jpg"),
+    ]
 
 
 @pytest.mark.asyncio

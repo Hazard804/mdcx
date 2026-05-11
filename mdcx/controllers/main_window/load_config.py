@@ -206,6 +206,8 @@ def load_config(self: "MyMAinWindow"):
             (self.Ui.radioButton_scrape_info, "info"),
             default=self.Ui.radioButton_scrape_info,
         )
+        self.Ui.checkBox_field_priority_try_all_images.setChecked(manager.config.field_priority_try_all_images)
+        self.update_field_priority_try_all_images_state()
 
         # 标题字段配置
         title_field_config = manager.config.get_field_config(CrawlerResultFields.TITLE)

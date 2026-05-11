@@ -141,6 +141,7 @@
   ],
   "amazon_strict_pic_verify": false,
   "scrape_like": "info",
+  "field_priority_try_all_images": false,
   "website_single": "fc2",
   "website_youma": [
     "mgstage",
