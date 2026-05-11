@@ -16,6 +16,10 @@ export type CleanAction = 'clean_ext' | 'clean_name' | 'clean_contains' | 'clean
  */
 export type Config = {
     /**
+     * 配置版本
+     */
+    config_version?: number;
+    /**
      * 媒体路径
      */
     media_path?: string;

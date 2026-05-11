@@ -32,6 +32,7 @@ from .enums import (
     Translator,
     Website,
 )
+from .migrations import migrate_config_data
 from .ui_schema import ServerPathDirectory, extract_ui_schema_recursive
 
 
@@ -155,6 +156,7 @@ def default_field_config(language: Language = Language.UNDEFINED, translate: boo
 class Config(BaseModel):
     model_config = ConfigDict()
     # region: General Settings
+    config_version: int = Field(default=2, title="配置版本")
     media_path: str = ServerPathDirectory("./media", title="媒体路径", initial_path=SAFE_DIRS[0].as_posix())
     softlink_path: str = ServerPathDirectory("softlink", title="软链接路径", ref_field="media_path")
     success_output_folder: str = ServerPathDirectory("JAV_output", title="成功输出目录", ref_field="media_path")
@@ -814,87 +816,12 @@ class Config(BaseModel):
         """
         处理字段变更.
         """
-
-        def migrate_download_file_option(value: Any) -> Any:
-            if value == "youma_use_poster":
-                return None
-            if value == DownloadableFile.POSTER_AUTO_BEST:
-                return DownloadableFile.POSTER_AUTO_BEST.value
-            return value
-
-        def is_removed_airav_site(site: object) -> bool:
-            return site == Website.AIRAV or site == Website.AIRAV.value
-
-        if is_removed_airav_site(d.get("website_single")):
-            d["website_single"] = Website.AIRAV_CC.value
-        for key, value in list(d.items()):
-            if key.startswith("website_") and key != "website_single":
-                if isinstance(value, str):
-                    d[key] = [site for site in str_to_list(value, ",") if not is_removed_airav_site(site)]
-                elif isinstance(value, list | set):
-                    d[key] = [site for site in value if not is_removed_airav_site(site)]
-        if isinstance(field_configs := d.get("field_configs"), dict):
-            for value in field_configs.values():
-                if isinstance(value, dict) and isinstance(sites := value.get("site_prority"), list):
-                    value["site_prority"] = [site for site in sites if not is_removed_airav_site(site)]
-        if isinstance(type_field_configs := d.get("type_field_configs"), dict):
-            for field_configs in type_field_configs.values():
-                if not isinstance(field_configs, dict):
-                    continue
-                for value in field_configs.values():
-                    if isinstance(value, dict) and isinstance(sites := value.get("site_prority"), list):
-                        value["site_prority"] = [site for site in sites if not is_removed_airav_site(site)]
-        if "proxy_type" in d:
-            d["use_proxy"] = d["proxy_type"] != "no"
-        if isinstance(r := d.get("proxy"), str):
-            r = r.strip()
-            if all(schema not in r for schema in ["http://", "https://", "socks5://", "socks5h://"]):
-                d["proxy"] = "http://" + r
-        if isinstance(r := d.get("cf_bypass_url"), str):
-            r = r.strip().rstrip("/")
-            if r and all(schema not in r for schema in ["http://", "https://"]):
-                r = "http://" + r
-            d["cf_bypass_url"] = r
-        if isinstance(r := d.get("cf_bypass_proxy"), str):
-            r = r.strip()
-            if r and all(schema not in r for schema in ["http://", "https://", "socks4://", "socks5://", "socks5h://"]):
-                r = "http://" + r
-            d["cf_bypass_proxy"] = r
-        if isinstance(r := d.get("nfo_tag_actor_contains"), str):
-            d["nfo_tag_actor_contains"] = str_to_list(r, "|")
-        if isinstance(r := d.get("use_database"), int):
-            d["use_database"] = bool(r)
-        if isinstance(r := d.get("local_library"), str):
-            d["local_library"] = str_to_list(r, ",")
-        if isinstance(download_files := d.get("download_files"), str):
-            d["download_files"] = [
-                item
-                for value in str_to_list(download_files, ",")
-                if (item := migrate_download_file_option(value)) is not None
-            ]
-        elif isinstance(download_files, list | set):
-            d["download_files"] = [
-                item for value in download_files if (item := migrate_download_file_option(value)) is not None
-            ]
-
-        # 兼容旧版 llm_prompt 配置
-        if isinstance(translate_config := d.get("translate_config"), dict):
-            old_prompt = translate_config.pop("llm_prompt", None)
-            if isinstance(old_prompt, str):
-                translate_config.setdefault("llm_prompt_title", old_prompt)
-                translate_config.setdefault("llm_prompt_outline", old_prompt)
-            if isinstance(translate_by := translate_config.get("translate_by"), list):
-                translate_config["translate_by"] = [item for item in translate_by if item != "youdao"]
-        if isinstance(old_prompt := d.get("llm_prompt"), str):
-            translate_config = d.setdefault("translate_config", {})
-            if isinstance(translate_config, dict):
-                translate_config.setdefault("llm_prompt_title", old_prompt)
-                translate_config.setdefault("llm_prompt_outline", old_prompt)
+        warnings = migrate_config_data(d)
         # 处理旧版字段设置
         if "field_configs" not in d:
             Config._convert_field_configs(d)
 
-        return []
+        return warnings
 
     @staticmethod
     def _convert_field_configs(d):

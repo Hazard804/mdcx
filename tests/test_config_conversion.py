@@ -157,20 +157,27 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
 
 
 def test_removed_hd_pic_sources_are_filtered_from_old_config():
-    config = Config.model_validate(
-        {
-            "download_hd_pics": [
-                "poster",
-                "thumb",
-                "amazon",
-                "official",
-                "google",
-                "goo_only",
-            ],
-        }
-    )
+    data = {
+        "download_hd_pics": [
+            "poster",
+            "thumb",
+            "amazon",
+            "official",
+            "google",
+            "goo_only",
+        ],
+        "google_used": ["m.media-amazon.com"],
+        "google_exclude": ["fake"],
+        "config_version": 1,
+    }
+
+    Config.update(data)
+    config = Config.model_validate(data)
 
     assert config.download_hd_pics == [HDPicSource.AMAZON]
+    assert config.config_version == 2
+    assert "google_used" not in data
+    assert "google_exclude" not in data
 
 
 def test_frontend_field_priority_fields_include_legacy_configurable_fields():

@@ -1,4 +1,5 @@
 {
+  "config_version": 2,
   "media_path": "D:\\Media\\Input",
   "softlink_path": "X:\\Media\\Softlink",
   "success_output_folder": "D:\\Media\\Input",

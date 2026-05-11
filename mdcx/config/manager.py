@@ -97,6 +97,7 @@ class ConfigManager:
         if template_path.is_file():
             try:
                 template = json.loads(template_path.read_text(encoding="UTF-8"))
+                Config.update(template)
                 self._path.write_text(Config.model_validate(template).model_dump_json(indent=2), encoding="UTF-8")
                 return
             except Exception:

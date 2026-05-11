@@ -16,6 +16,11 @@ export const CleanActionSchema = {
 
 export const ConfigSchema = {
     properties: {
+        config_version: {
+            type: 'integer',
+            title: '配置版本',
+            default: 2
+        },
         media_path: {
             type: 'string',
             title: '媒体路径',
