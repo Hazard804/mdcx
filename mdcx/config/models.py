@@ -320,29 +320,26 @@ class Config(BaseModel):
         title="保留文件类型",
     )
     download_hd_pics: list[HDPicSource] = Field(
-        default_factory=lambda: [HDPicSource.POSTER, HDPicSource.THUMB, HDPicSource.GOO_ONLY],
-        title="高清图片来源",
-    )
-    google_used: list[str] = Field(
-        default_factory=lambda: ["m.media-amazon.com"],
-        title="Google使用",
-    )
-    google_exclude: list[str] = Field(
-        default_factory=lambda: [
-            "fake",
-            "javfree",
-            "idoljp.com",
-            "qqimg.top",
-            "u9a9",
-            "picturedata",
-            "abpic",
-            "pbs.twimg.com",
-            "naiwarp",
-        ],
-        title="Google搜图排除的网址",
+        default_factory=lambda: [HDPicSource.AMAZON],
+        title="Amazon 高清封面图",
     )
     scrape_like: Literal["info", "speed", "single"] = Field(default="info", title="刮削模式")  # speed, info, single
     # endregion
+
+    @field_validator("download_hd_pics", mode="before")
+    @classmethod
+    def filter_removed_hd_pic_sources(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            items = str_to_list(v)
+        elif isinstance(v, list):
+            items = v
+        else:
+            return v
+
+        valid_values = {HDPicSource.AMAZON.value}
+        return [item for item in items if (item.value if isinstance(item, HDPicSource) else str(item)) in valid_values]
 
     # region: Website Settings
     website_single: Website = Field(default=Website.AIRAV_CC, title="单个网站")  # todo 移除

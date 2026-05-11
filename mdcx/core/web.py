@@ -18,7 +18,6 @@ from ..base.web import (
     check_url,
     download_extrafanart_task,
     download_file_with_filepath,
-    get_big_pic_by_google,
     get_dmm_trailer,
     get_imgsize,
 )
@@ -228,8 +227,6 @@ async def _select_poster_auto_best(
     result.poster = best_url
     result.poster_from = best_from
     result.image_download = True
-    if best_from.startswith("Google"):
-        other.poster_size = best_size
     LogBuffer.log().write(f"\n 🖼 Poster选优: 使用 {best_from} {best_size}")
 
 
@@ -523,115 +520,6 @@ async def trailer_download(
         return True
 
 
-async def _get_big_thumb(
-    result: CrawlersResult,
-    other: OtherInfo,
-    media_context: MediaResourceContext | None = None,
-):
-    """
-    获取背景大图：
-    1，官网图片
-    2，Amazon 图片
-    3，Google 搜图
-    """
-    start_time = time.time()
-    if "thumb" not in manager.config.download_hd_pics:
-        return
-    number = result.number
-    letters = result.letters
-    number_lower_line = number.lower()
-    number_lower_no_line = number_lower_line.replace("-", "")
-    thumb_width = 0
-
-    # faleno.jp 番号检查，都是大图，返回即可
-    if result.thumb_from in ["faleno", "dahlia"]:
-        if result.thumb:
-            LogBuffer.log().write(f"\n 🖼 HD Thumb found! ({result.thumb_from})({get_used_time(start_time)}s)")
-        other.poster_big = True
-        return result
-
-    # prestige 图片有的是大图，需要检测图片分辨率
-    elif result.thumb_from in ["prestige", "mgstage"]:
-        if result.thumb:
-            thumb_width, h = await _get_image_size(result.thumb, media_context)
-
-    # 片商官网查询
-    elif HDPicSource.OFFICIAL in manager.config.download_hd_pics:
-        # faleno.jp 番号检查
-        if re.findall(r"F[A-Z]{2}SS", number):
-            req_url = f"https://faleno.jp/top/works/{number_lower_no_line}/"
-            async with manager.acquire_computed() as computed:
-                response, error = await computed.async_client.get_text(req_url)
-            if response is not None:
-                temp_url = re.findall(
-                    r'src="((https://cdn.faleno.net/top/wp-content/uploads/[^_]+_)([^?]+))\?output-quality=', response
-                )
-                if temp_url:
-                    result.thumb = temp_url[0][0]
-                    result.poster = temp_url[0][1] + "2125.jpg"
-                    result.thumb_from = "faleno"
-                    result.poster_from = "faleno"
-                    other.poster_big = True
-                    trailer_temp = re.findall(r'class="btn09"><a class="pop_sample" href="([^"]+)', response)
-                    if trailer_temp:
-                        result.trailer = trailer_temp[0]
-                        result.trailer_from = "faleno"
-                    LogBuffer.log().write(f"\n 🖼 HD Thumb found! (faleno)({get_used_time(start_time)}s)")
-                    return result
-
-        # km-produce.com 番号检查
-        number_letter = letters.lower()
-        kmp_key = ["vrkm", "mdtm", "mkmp", "savr", "bibivr", "scvr", "slvr", "averv", "kbvr", "cbikmv"]
-        prestige_key = ["abp", "abw", "aka", "prdvr", "pvrbst", "sdvr", "docvr"]
-        if number_letter in kmp_key:
-            req_url = f"https://km-produce.com/img/title1/{number_lower_line}.jpg"
-            real_url = ""
-            if media_context is not None:
-                if (await media_context.get_size(req_url))[0]:
-                    real_url = req_url
-            else:
-                real_url = await check_url(req_url) or ""
-            if real_url:
-                result.thumb = real_url
-                result.thumb_from = "km-produce"
-                LogBuffer.log().write(f"\n 🖼 HD Thumb found! (km-produce)({get_used_time(start_time)}s)")
-                return result
-
-        # www.prestige-av.com 番号检查
-        elif number_letter in prestige_key:
-            number_num = re.findall(r"\d+", number)[0]
-            if number_letter == "abw" and int(number_num) > 280:
-                pass
-            else:
-                req_url = f"https://www.prestige-av.com/api/media/goods/prestige/{number_letter}/{number_num}/pb_{number_lower_line}.jpg"
-                if number_letter == "docvr":
-                    req_url = f"https://www.prestige-av.com/api/media/goods/doc/{number_letter}/{number_num}/pb_{number_lower_line}.jpg"
-                if (await _get_image_size(req_url, media_context))[0] >= 800:
-                    result.thumb = req_url
-                    result.poster = req_url.replace("/pb_", "/pf_")
-                    result.thumb_from = "prestige"
-                    result.poster_from = "prestige"
-                    other.poster_big = True
-                    LogBuffer.log().write(f"\n 🖼 HD Thumb found! (prestige)({get_used_time(start_time)}s)")
-                    return result
-
-    # 使用google以图搜图
-    pic_url = result.thumb
-    if HDPicSource.GOOGLE in manager.config.download_hd_pics and pic_url and result.thumb_from != "theporndb":
-        thumb_url, cover_size = await get_big_pic_by_google(
-            pic_url,
-            image_size_getter=media_context.probe_size if media_context is not None else None,
-        )
-        if thumb_url and cover_size[0] > thumb_width:
-            other.thumb_size = cover_size
-            pic_domain = re.findall(r"://([^/]+)", thumb_url)[0]
-            result.thumb_from = f"Google({pic_domain})"
-            result.thumb = thumb_url
-            LogBuffer.log().write(f"\n 🖼 HD Thumb found! ({result.thumb_from})({get_used_time(start_time)}s)")
-
-    return result
-
-
 async def _get_big_poster(
     result: CrawlersResult,
     other: OtherInfo,
@@ -639,27 +527,18 @@ async def _get_big_poster(
 ):
     start_time = time.time()
 
-    # 未勾选下载高清图poster时，返回
-    if "poster" not in manager.config.download_hd_pics:
-        return
-
-    # 如果有大图时，直接下载
-    if other.poster_big and (await _get_image_size(result.poster, media_context))[1] > 600:
-        result.image_download = True
-        LogBuffer.log().write(f"\n 🖼 HD Poster found! ({result.poster_from})({get_used_time(start_time)}s)")
+    if HDPicSource.AMAZON not in manager.config.download_hd_pics:
         return
 
     # 初始化数据
-    number = result.number
     poster_url = result.poster
     poster_from_before_amazon = result.poster_from
     hd_pic_url = ""
-    poster_width = 0
 
     # 保持原有类型白名单，仅额外排除素人番号
-    if HDPicSource.AMAZON in manager.config.download_hd_pics and result.scraping_type == FixedScrapingType.SUREN:
+    if result.scraping_type == FixedScrapingType.SUREN:
         LogBuffer.log().write("\n 🔎 Amazon搜索：检测为素人番号，已跳过")
-    elif HDPicSource.AMAZON in manager.config.download_hd_pics and _should_search_amazon(result):
+    elif _should_search_amazon(result):
         originaltitle_amazon_raw = result.originaltitle_amazon
         originaltitle_amazon_replaced = originaltitle_amazon_raw
         series_raw = result.series
@@ -695,49 +574,6 @@ async def _get_big_poster(
                 if result.poster_from == "Amazon":
                     result.poster = poster_url
                     result.poster_from = poster_from_before_amazon
-
-    # 通过番号去 官网 查询获取稍微大一些的封面图，以便去 Google 搜索
-    if not hd_pic_url and HDPicSource.OFFICIAL in manager.config.download_hd_pics and result.poster_from != "Amazon":
-        letters = result.letters.upper()
-        async with manager.acquire_computed() as computed:
-            official_url = computed.official_websites.get(letters)
-            if official_url:
-                url_search = official_url + "/search/list?keyword=" + number.replace("-", "")
-                html_search, error = await computed.async_client.get_text(url_search)
-            else:
-                html_search = None
-        if official_url and html_search is not None:
-            poster_url_list = re.findall(r'img class="c-main-bg lazyload" data-src="([^"]+)"', html_search)
-            if poster_url_list:
-                # 使用官网图作为封面去 google 搜索
-                poster_url = poster_url_list[0]
-                result.poster = poster_url
-                result.poster_from = official_url.split(".")[-2].replace("https://", "")
-                # vr作品或者官网图片高度大于500时，下载封面图开
-                if "VR" in number.upper() or (await _get_image_size(poster_url, media_context))[1] > 500:
-                    result.image_download = True
-
-    # 使用google以图搜图，放在最后是因为有时有错误，比如 kawd-943
-    poster_url = result.poster
-    if (
-        not hd_pic_url
-        and poster_url
-        and HDPicSource.GOOGLE in manager.config.download_hd_pics
-        and result.poster_from != "theporndb"
-    ):
-        hd_pic_url, poster_size = await get_big_pic_by_google(
-            poster_url,
-            poster=True,
-            image_size_getter=media_context.probe_size if media_context is not None else None,
-        )
-        if hd_pic_url:
-            if "prestige" in result.poster or result.poster_from == "Amazon":
-                poster_width, _ = await _get_image_size(poster_url, media_context)
-            if poster_size[0] > poster_width:
-                result.poster = hd_pic_url
-                other.poster_size = poster_size
-                pic_domain = re.findall(r"://([^/]+)", hd_pic_url)[0]
-                result.poster_from = f"Google({pic_domain})"
 
     # 如果找到了高清链接，则替换
     if hd_pic_url:
@@ -791,9 +627,6 @@ async def thumb_download(
             other.thumb_path = thumb_final_path
             return True
 
-    # 获取高清背景图
-    await _get_big_thumb(result, other, media_context)
-
     # 下载图片
     cover_url = result.thumb
     cover_from = result.thumb_from
@@ -823,30 +656,16 @@ async def thumb_download(
             if downloaded:
                 cover_size = await check_pic_async(thumb_final_path_temp)
                 if cover_size:
-                    if (
-                        not cover_from.startswith("Google")
-                        or cover_size == other.thumb_size
-                        or (
-                            cover_size[0] >= 800
-                            and abs(cover_size[0] / cover_size[1] - other.thumb_size[0] / other.thumb_size[1]) <= 0.1
-                        )
-                    ):
-                        # 图片下载正常，替换旧的 thumb.jpg
-                        if thumb_final_path_temp != thumb_final_path:
-                            await move_file_async(thumb_final_path_temp, thumb_final_path)
-                            await delete_file_async(thumb_final_path_temp)
-                        if cd_part:
-                            Flags.file_done_dic[result.number].update({"thumb": thumb_final_path})
-                        other.thumb_marked = False  # 表示还没有走加水印流程
-                        LogBuffer.log().write(f"\n 🍀 Thumb done! ({result.thumb_from})({get_used_time(start_time)}s) ")
-                        other.thumb_path = thumb_final_path
-                        return True
-                    else:
+                    # 图片下载正常，替换旧的 thumb.jpg
+                    if thumb_final_path_temp != thumb_final_path:
+                        await move_file_async(thumb_final_path_temp, thumb_final_path)
                         await delete_file_async(thumb_final_path_temp)
-                        LogBuffer.log().write(
-                            f"\n 🟠 检测到 Thumb 分辨率不对{str(cover_size)}! 已删除 ({cover_from})({get_used_time(start_time)}s)"
-                        )
-                        continue
+                    if cd_part:
+                        Flags.file_done_dic[result.number].update({"thumb": thumb_final_path})
+                    other.thumb_marked = False  # 表示还没有走加水印流程
+                    LogBuffer.log().write(f"\n 🍀 Thumb done! ({result.thumb_from})({get_used_time(start_time)}s) ")
+                    other.thumb_path = thumb_final_path
+                    return True
                 LogBuffer.log().write(f"\n 🟠 Thumb download failed! {cover_from}: {cover_url} ")
     else:
         LogBuffer.log().write("\n 🟠 Thumb url is empty! ")
@@ -969,23 +788,15 @@ async def poster_download(
         if downloaded:
             poster_size = await check_pic_async(poster_final_path_temp)
             if poster_size:
-                if (
-                    not poster_from.startswith("Google")
-                    or poster_size == other.poster_size
-                    or "media-amazon.com" in poster_url
-                ):
-                    if poster_final_path_temp != poster_final_path:
-                        await move_file_async(poster_final_path_temp, poster_final_path)
-                        await delete_file_async(poster_final_path_temp)
-                    if cd_part:
-                        Flags.file_done_dic[result.number].update({"poster": poster_final_path})
-                    other.poster_marked = False  # 下载的图，还没加水印
-                    other.poster_path = poster_final_path
-                    LogBuffer.log().write(f"\n 🍀 Poster done! ({poster_from})({get_used_time(start_time)}s)")
-                    return True
-                else:
+                if poster_final_path_temp != poster_final_path:
+                    await move_file_async(poster_final_path_temp, poster_final_path)
                     await delete_file_async(poster_final_path_temp)
-                    LogBuffer.log().write(f"\n 🟠 检测到 Poster 分辨率不对{str(poster_size)}! 已删除 ({poster_from})")
+                if cd_part:
+                    Flags.file_done_dic[result.number].update({"poster": poster_final_path})
+                other.poster_marked = False  # 下载的图，还没加水印
+                other.poster_path = poster_final_path
+                LogBuffer.log().write(f"\n 🍀 Poster done! ({poster_from})({get_used_time(start_time)}s)")
+                return True
 
     # 判断之前有没有 poster 和 thumb
     if not poster_path and not thumb_path:

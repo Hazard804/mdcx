@@ -321,16 +321,11 @@ class KeepableFile(Enum):
 
 
 class HDPicSource(Enum):
-    POSTER = "poster"
-    THUMB = "thumb"
     AMAZON = "amazon"
-    OFFICIAL = "official"
-    GOOGLE = "google"
-    GOO_ONLY = "goo_only"
 
     @classmethod
     def names(cls):
-        return ["poster", "thumb", "Amazon", "官网", "Google", "仅 Google"]
+        return ["Amazon"]
 
 
 class FieldRule(Enum):

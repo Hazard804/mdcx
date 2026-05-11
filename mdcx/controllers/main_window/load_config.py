@@ -579,24 +579,8 @@ def load_config(self: "MyMAinWindow"):
         download_hd_pics = manager.config.download_hd_pics
         set_checkboxes(
             download_hd_pics,
-            (self.Ui.checkBox_hd_poster, HDPicSource.POSTER),
-            (self.Ui.checkBox_hd_thumb, HDPicSource.THUMB),
             (self.Ui.checkBox_amazon_big_pic, HDPicSource.AMAZON),
-            (self.Ui.checkBox_official_big_pic, HDPicSource.OFFICIAL),
-            (self.Ui.checkBox_google_big_pic, HDPicSource.GOOGLE),
         )
-        set_radio_buttons(
-            "only" if HDPicSource.GOO_ONLY in download_hd_pics else "first",
-            (self.Ui.radioButton_google_only, "only"),
-            (self.Ui.radioButton_google_first, "first"),
-            default=self.Ui.radioButton_google_first,
-        )
-        # endregion
-
-        # Google下载词
-        self.Ui.lineEdit_google_used.setText(",".join(manager.config.google_used))
-        # Google过滤词
-        self.Ui.lineEdit_google_exclude.setText(",".join(manager.config.google_exclude))
         # endregion
 
         # region Name_Rule

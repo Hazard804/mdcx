@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import re
 
 import httpx
 
@@ -46,12 +45,6 @@ class Computed:
         self.official_websites = official_websites_dic
 
         self.escape_string_list = list(dict.fromkeys(k for k in config.string + ManualConfig.REPL_LIST if k.strip()))
-
-        # 生成 Google 关键词列表 迁移自 ConfigV1.init
-        temp_list = re.split(r"[,，]", ",".join(config.google_used))
-        self.google_keyused = [each for each in temp_list if each.strip()]  # 去空
-        temp_list = re.split(r"[,，]", ",".join(config.google_exclude))
-        self.google_keyword = [each for each in temp_list if each.strip()]  # 去空
 
     def retain(self) -> None:
         self.async_client.retain()

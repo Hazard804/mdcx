@@ -113,9 +113,7 @@ class ConfigV1:
     # file_download
     download_files: str = r",poster,thumb,fanart,nfo,ignore_wuma,ignore_fc2,ignore_guochan,"
     keep_files: str = r",extrafanart,trailer,theme_videos,"
-    download_hd_pics: str = r"poster,thumb,amazon,official,google,"
-    google_used: str = r"m.media-amazon.com,"
-    google_exclude: str = r"fake,javfree,idoljp.com,qqimg.top,u9a9,picturedata,abpic,pbs.twimg.com,naiwarp"
+    download_hd_pics: str = r"amazon,"
 
     # website
     scrape_like: str = r"info"

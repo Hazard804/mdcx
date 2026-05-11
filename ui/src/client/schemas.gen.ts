@@ -279,21 +279,7 @@ export const ConfigSchema = {
                 '$ref': '#/components/schemas/HDPicSource'
             },
             type: 'array',
-            title: '高清图片来源'
-        },
-        google_used: {
-            items: {
-                type: 'string'
-            },
-            type: 'array',
-            title: 'Google使用'
-        },
-        google_exclude: {
-            items: {
-                type: 'string'
-            },
-            type: 'array',
-            title: 'Google排除'
+            title: 'Amazon 高清封面图'
         },
         scrape_like: {
             type: 'string',
@@ -1330,9 +1316,9 @@ export const FileListResponseSchema = {
 
 export const HDPicSourceSchema = {
     type: 'string',
-    enum: ['poster', 'thumb', 'amazon', 'official', 'google', 'goo_only'],
+    enum: ['amazon'],
     title: 'HDPicSource',
-    showNames: ['poster', 'thumb', 'Amazon', '官网', 'Google', '仅 Google']
+    showNames: ['Amazon']
 } as const;
 
 export const HTTPValidationErrorSchema = {

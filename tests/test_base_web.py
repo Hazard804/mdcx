@@ -48,36 +48,6 @@ def test_normalize_media_url_collapses_duplicate_slashes_for_dmm_hosts():
 
 
 @pytest.mark.asyncio
-async def test_google_image_search_uses_injected_size_getter(monkeypatch: pytest.MonkeyPatch):
-    calls: list[str] = []
-
-    async def fake_get_text(url: str, **kwargs):
-        if "searchbyimage" in url:
-            return '<a href="/search?tbs=isz:l&amp;q=image">large</a>', ""
-        return '["https://cdn.example.test/poster.jpg",1200,900],x', ""
-
-    async def fake_size_getter(url: str):
-        calls.append(url)
-        return (900, 1200)
-
-    async def fake_check_url(url: str, *args, **kwargs):
-        raise AssertionError(f"check_url should not be called when image_size_getter is provided: {url}")
-
-    monkeypatch.setattr(manager.computed.async_client, "get_text", fake_get_text)
-    monkeypatch.setattr(base_web, "check_url", fake_check_url)
-    monkeypatch.setattr(manager.config, "download_hd_pics", [])
-
-    url, size = await base_web.get_big_pic_by_google(
-        "https://example.test/source.jpg",
-        image_size_getter=fake_size_getter,
-    )
-
-    assert url == "https://cdn.example.test/poster.jpg"
-    assert size == (900, 1200)
-    assert calls == ["https://cdn.example.test/poster.jpg"]
-
-
-@pytest.mark.asyncio
 async def test_check_url_cleans_dmm_probe_params_from_final_url(monkeypatch: pytest.MonkeyPatch):
     async def fake_request(method: str, url: str, **kwargs):
         assert method == "GET"

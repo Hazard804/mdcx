@@ -4,7 +4,6 @@ import random
 import re
 import threading
 import time
-from collections.abc import Awaitable, Callable
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, overload
@@ -837,98 +836,6 @@ def check_theporndb_api_token() -> str:
             tips = f"❌ 连接失败！请检查网络或代理设置！ {response.status_code} {response.text}"
     signal.show_log_text(tips.replace("❌", " ❌ ThePornDB").replace("✅", " ✅ ThePornDB"))
     return tips
-
-
-ImageSizeGetter = Callable[[str], Awaitable[tuple[int, int]]]
-
-
-async def _get_pic_by_google(pic_url, image_size_getter: ImageSizeGetter | None = None):
-    async with manager.acquire_computed() as computed:
-        google_keyused = computed.google_keyused
-        google_keyword = computed.google_keyword
-        client = computed.async_client
-        req_url = f"https://www.google.com/searchbyimage?sbisrc=2&image_url={pic_url}"
-        # req_url = f'https://lens.google.com/uploadbyurl?url={pic_url}&hl=zh-CN&re=df&ep=gisbubu'
-        response, error = await client.get_text(req_url)
-        big_pic = True
-        if response is None:
-            return "", (0, 0), False
-        url_list = re.findall(r'a href="([^"]+isz:l[^"]+)">', response)
-        url_list_middle = re.findall(r'a href="([^"]+isz:m[^"]+)">', response)
-        if not url_list and url_list_middle:
-            url_list = url_list_middle
-            big_pic = False
-        if url_list:
-            req_url = "https://www.google.com" + url_list[0].replace("amp;", "")
-            response, error = await client.get_text(req_url)
-    if response is None:
-        return "", (0, 0), False
-    url_list = re.findall(r'\["(http[^"]+)",(\d{3,4}),(\d{3,4})\],[^[]', response)
-    # 优先下载放前面
-    new_url_list = []
-    for each_url in url_list.copy():
-        if int(each_url[2]) < 800:
-            url_list.remove(each_url)
-
-    for each_key in google_keyused:
-        for each_url in url_list.copy():
-            if each_key in each_url[0]:
-                new_url_list.append(each_url)
-                url_list.remove(each_url)
-    # 只下载关时，追加剩余地址
-    if "goo_only" not in [item.value for item in manager.config.download_hd_pics]:
-        new_url_list += url_list
-    # 解析地址
-    for each in new_url_list:
-        temp_url = each[0]
-        for temp_keyword in google_keyword:
-            if temp_keyword in temp_url:
-                break
-        else:
-            h = int(each[1])
-            w = int(each[2])
-            if w > h and w / h < 1.4:  # thumb 被拉高时跳过
-                continue
-
-            p_url = temp_url.encode("utf-8").decode("unicode_escape")  # url中的Unicode字符转义，不转义，url请求会失败
-            if "m.media-amazon.com" in p_url:
-                p_url = re.sub(r"\._[_]?AC_[^\.]+\.", ".", p_url)
-                pic_size = await image_size_getter(p_url) if image_size_getter is not None else await get_imgsize(p_url)
-                if pic_size[0]:
-                    return p_url, pic_size, big_pic
-            else:
-                if image_size_getter is not None:
-                    pic_size = await image_size_getter(p_url)
-                    if pic_size[0]:
-                        return p_url, pic_size, big_pic
-                    continue
-                url = await check_url(p_url)
-                if url:
-                    pic_size = (w, h)
-                    return url, pic_size, big_pic
-    return "", (0, 0), False
-
-
-async def get_big_pic_by_google(
-    pic_url,
-    poster=False,
-    image_size_getter: ImageSizeGetter | None = None,
-) -> tuple[str, tuple[int, int]]:
-    url, pic_size, big_pic = await _get_pic_by_google(pic_url, image_size_getter)
-    if not poster:
-        if big_pic or (
-            pic_size and int(pic_size[0]) > 800 and int(pic_size[1]) > 539
-        ):  # cover 有大图时或者图片高度 > 800 时使用该图片
-            return url, pic_size
-        return "", (0, 0)
-    if url and int(pic_size[1]) < 1000:  # poster，图片高度小于 1500，重新搜索一次
-        url, pic_size, big_pic = await _get_pic_by_google(url, image_size_getter)
-    if pic_size and (
-        big_pic or "blogger.googleusercontent.com" in url or int(pic_size[1]) > 560
-    ):  # poster，大图或高度 > 560 时，使用该图片
-        return url, pic_size
-    else:
-        return "", (0, 0)
 
 
 async def get_actorname(number: str) -> tuple[bool, str]:

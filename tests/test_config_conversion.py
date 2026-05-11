@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from mdcx.config.enums import DownloadableFile, FixedScrapingType, Website
+from mdcx.config.enums import DownloadableFile, FixedScrapingType, HDPicSource, Website
 from mdcx.config.models import DEFAULT_FIELD_SITE_PRIORITY, Config
 from mdcx.config.v1 import ConfigV1
 from mdcx.controllers.main_window.site_priority_dialog import (
@@ -154,6 +154,23 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.FC2HUB,
         Website.FC2,
     ]
+
+
+def test_removed_hd_pic_sources_are_filtered_from_old_config():
+    config = Config.model_validate(
+        {
+            "download_hd_pics": [
+                "poster",
+                "thumb",
+                "amazon",
+                "official",
+                "google",
+                "goo_only",
+            ],
+        }
+    )
+
+    assert config.download_hd_pics == [HDPicSource.AMAZON]
 
 
 def test_frontend_field_priority_fields_include_legacy_configurable_fields():

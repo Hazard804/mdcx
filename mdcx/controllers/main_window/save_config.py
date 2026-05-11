@@ -403,18 +403,8 @@ def save_config(self: "MyMAinWindow"):
     )
 
     manager.config.download_hd_pics = get_checkboxes(
-        (self.Ui.checkBox_hd_poster, HDPicSource.POSTER),
-        (self.Ui.checkBox_hd_thumb, HDPicSource.THUMB),
         (self.Ui.checkBox_amazon_big_pic, HDPicSource.AMAZON),
-        (self.Ui.checkBox_official_big_pic, HDPicSource.OFFICIAL),
-        (self.Ui.checkBox_google_big_pic, HDPicSource.GOOGLE),
-        (self.Ui.radioButton_google_only, HDPicSource.GOO_ONLY),
     )
-
-    google_used_text = self.Ui.lineEdit_google_used.text()
-    manager.config.google_used = str_to_list(google_used_text)
-    google_exclude_text = self.Ui.lineEdit_google_exclude.text()
-    manager.config.google_exclude = str_to_list(google_exclude_text)
     # endregion
 
     # region name

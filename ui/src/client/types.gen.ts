@@ -172,17 +172,9 @@ export type Config = {
      */
     keep_files?: Array<KeepableFile>;
     /**
-     * 高清图片来源
+     * Amazon 高清封面图
      */
     download_hd_pics?: Array<HdPicSource>;
-    /**
-     * Google使用
-     */
-    google_used?: Array<string>;
-    /**
-     * Google排除
-     */
-    google_exclude?: Array<string>;
     /**
      * 刮削收藏
      */
@@ -900,7 +892,7 @@ export type FileListResponse = {
 /**
  * HDPicSource
  */
-export type HdPicSource = 'poster' | 'thumb' | 'amazon' | 'official' | 'google' | 'goo_only';
+export type HdPicSource = 'amazon';
 
 /**
  * HTTPValidationError

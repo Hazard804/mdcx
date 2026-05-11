@@ -368,7 +368,7 @@ async def test_get_big_poster_uses_amazon_only_for_non_suren_censored(monkeypatc
         result.amazon_match_is_hard = True
         return "https://m.media-amazon.com/images/I/81poster.jpg"
 
-    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
 
     result = CrawlersResult.empty()
@@ -394,7 +394,7 @@ async def test_get_big_poster_uses_amazon_for_youma_restored(monkeypatch: pytest
         result.amazon_match_is_hard = True
         return "https://m.media-amazon.com/images/I/81restored.jpg"
 
-    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
 
     result = CrawlersResult.empty()
@@ -420,7 +420,7 @@ async def test_get_big_poster_keeps_original_amazon_whitelist(monkeypatch: pytes
         result.amazon_match_is_hard = True
         return "https://m.media-amazon.com/images/I/81poster.jpg"
 
-    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
 
     result = CrawlersResult.empty()
@@ -444,7 +444,7 @@ async def test_get_big_poster_skips_amazon_for_suren(monkeypatch: pytest.MonkeyP
         called = True
         return "https://m.media-amazon.com/images/I/81poster.jpg"
 
-    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
 
     result = CrawlersResult.empty()
@@ -472,7 +472,7 @@ async def test_get_big_poster_skips_amazon_for_fc2_and_wuma(
         called = True
         return "https://m.media-amazon.com/images/I/81poster.jpg"
 
-    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
 
     result = CrawlersResult.empty()
@@ -497,7 +497,7 @@ async def test_get_big_poster_skips_amazon_for_non_censored(monkeypatch: pytest.
         called = True
         return "https://m.media-amazon.com/images/I/81poster.jpg"
 
-    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
 
     result = CrawlersResult.empty()
@@ -519,7 +519,7 @@ async def test_get_big_poster_rejects_soft_amazon_without_reference(monkeypatch:
         result.amazon_match_is_hard = False
         return "https://m.media-amazon.com/images/I/81soft.jpg"
 
-    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
 
     result = CrawlersResult.empty()
@@ -544,7 +544,7 @@ async def test_get_big_poster_accepts_soft_amazon_when_image_similarity_passes(m
     async def fake_verify(*args, **kwargs):
         return True
 
-    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
     monkeypatch.setattr("mdcx.core.web._verify_soft_amazon_poster", fake_verify)
 
@@ -562,27 +562,15 @@ async def test_get_big_poster_accepts_soft_amazon_when_image_similarity_passes(m
 
 
 @pytest.mark.asyncio
-async def test_get_big_poster_continues_google_after_low_res_amazon_match(monkeypatch: pytest.MonkeyPatch):
+async def test_get_big_poster_keeps_low_res_amazon_match_without_google_fallback(monkeypatch: pytest.MonkeyPatch):
     async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
         result.poster = "https://m.media-amazon.com/images/I/51lowres.jpg"
         result.poster_from = "Amazon"
         result.amazon_match_is_hard = True
         return ""
 
-    async def fake_get_big_pic_by_google(pic_url: str, **kwargs):
-        assert pic_url == "https://m.media-amazon.com/images/I/51lowres.jpg"
-        return "https://cdn.example.test/81google.jpg", (1200, 1800)
-
-    async def fake_get_image_size(url: str, media_context=None):
-        assert url == "https://m.media-amazon.com/images/I/51lowres.jpg"
-        return (500, 750)
-
-    monkeypatch.setattr(
-        manager.config, "download_hd_pics", [HDPicSource.POSTER, HDPicSource.AMAZON, HDPicSource.GOOGLE]
-    )
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
     monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
-    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_google", fake_get_big_pic_by_google)
-    monkeypatch.setattr("mdcx.core.web._get_image_size", fake_get_image_size)
 
     result = CrawlersResult.empty()
     result.mosaic = "有码"
@@ -594,8 +582,8 @@ async def test_get_big_poster_continues_google_after_low_res_amazon_match(monkey
 
     await _get_big_poster(result, other)
 
-    assert result.poster == "https://cdn.example.test/81google.jpg"
-    assert result.poster_from == "Google(cdn.example.test)"
+    assert result.poster == "https://m.media-amazon.com/images/I/51lowres.jpg"
+    assert result.poster_from == "Amazon"
     assert result.image_download is True
 
 

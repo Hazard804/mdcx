@@ -136,23 +136,7 @@
     "theme_videos"
   ],
   "download_hd_pics": [
-    "poster",
-    "amazon",
-    "goo_only"
-  ],
-  "google_used": [
-    "m.media-amazon.com"
-  ],
-  "google_exclude": [
-    "fake",
-    "javfree",
-    "idoljp.com",
-    "qqimg.top",
-    "u9a9",
-    "picturedata",
-    "abpic",
-    "pbs.twimg.com",
-    "naiwarp"
+    "amazon"
   ],
   "scrape_like": "info",
   "website_single": "fc2",
