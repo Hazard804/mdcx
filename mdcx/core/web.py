@@ -22,8 +22,9 @@ from ..base.web import (
     get_dmm_trailer,
     get_imgsize,
 )
-from ..config.enums import DownloadableFile, FixedScrapingType, HDPicSource
+from ..config.enums import DownloadableFile, FixedScrapingType, HDPicSource, KeepableFile
 from ..config.manager import manager
+from ..config.resource_policy import resource_policy
 from ..manual import ManualConfig
 from ..models.flags import Flags
 from ..models.log_buffer import LogBuffer
@@ -436,6 +437,13 @@ async def trailer_download(
     trailer_old_folder_path = folder_old / "trailers"
     trailer_new_folder_path = folder_new / "trailers"
 
+    trailer_policy = resource_policy(
+        DownloadableFile.TRAILER,
+        KeepableFile.TRAILER,
+        download_files=download_files,
+        keep_files=keep_files,
+    )
+
     # 预告片名字不含视频文件名（只让一个视频去下载即可）
     if trailer_name:
         trailer_folder_path = folder_new / "trailers"
@@ -449,7 +457,7 @@ async def trailer_download(
         await _cleanup_download_part_files(trailer_file_path, trailer_file_path.with_suffix(".[DOWNLOAD].mp4"))
 
         # 不下载不保留时删除返回
-        if DownloadableFile.TRAILER not in download_files and DownloadableFile.TRAILER not in keep_files:
+        if trailer_policy.should_remove_existing:
             # 删除目标文件夹即可，其他文件夹和文件已经删除了
             if await aiofiles.os.path.exists(trailer_folder_path):
                 await to_thread(shutil.rmtree, trailer_folder_path, ignore_errors=True)
@@ -463,7 +471,7 @@ async def trailer_download(
         await _cleanup_download_part_files(trailer_file_path, trailer_file_path.with_suffix(".[DOWNLOAD].mp4"))
 
         # 不下载不保留时删除返回
-        if DownloadableFile.TRAILER not in download_files and DownloadableFile.TRAILER not in keep_files:
+        if trailer_policy.should_remove_existing:
             # 删除目标文件，删除预告片旧文件夹、新文件夹（deal old file时没删除）
             if await aiofiles.os.path.exists(trailer_file_path):
                 await delete_file_async(trailer_file_path)
@@ -476,7 +484,7 @@ async def trailer_download(
             return
 
     # 选择保留文件，当存在文件时，不下载。（done trailer path 未设置时，把当前文件设置为 done trailer path，以便其他分集复制）
-    if DownloadableFile.TRAILER in keep_files and await aiofiles.os.path.exists(trailer_file_path):
+    if trailer_policy.should_keep and await aiofiles.os.path.exists(trailer_file_path):
         if not Flags.file_done_dic.get(result.number, {}).get("trailer"):
             Flags.file_done_dic[result.number].update({"trailer": trailer_file_path})
             # 带文件名时，删除掉新、旧文件夹，用不到了。（其他分集如果没有，可以复制第一个文件的预告片。此时不删，没机会删除了）
@@ -501,7 +509,7 @@ async def trailer_download(
         return
 
     # 不下载时返回（选择不下载保留，但本地并不存在，此时返回）
-    if DownloadableFile.TRAILER not in download_files:
+    if not trailer_policy.should_download:
         return
 
     if ".fc2.com/" in trailer_url and "mid=" in trailer_url and "/up/" in trailer_url:
@@ -647,19 +655,25 @@ async def thumb_download(
     poster_path = other.poster_path
     thumb_path = other.thumb_path
     fanart_path = other.fanart_path
+    thumb_policy = resource_policy(
+        DownloadableFile.THUMB,
+        KeepableFile.THUMB,
+        download_files=manager.config.download_files,
+        keep_files=manager.config.keep_files,
+    )
 
     # 本地存在 thumb.jpg，且勾选保留旧文件时，不下载
-    if thumb_path and DownloadableFile.THUMB in manager.config.keep_files:
+    if thumb_path and thumb_policy.should_keep:
         LogBuffer.log().write(f"\n 🍀 Thumb done! (old)({get_used_time(start_time)}s) ")
         return True
 
     # 如果thumb不下载，看fanart、poster要不要下载，都不下载则返回
-    if DownloadableFile.THUMB not in manager.config.download_files:
+    if not thumb_policy.should_download:
         if (
             DownloadableFile.POSTER in manager.config.download_files
-            and (DownloadableFile.POSTER not in manager.config.keep_files or not poster_path)
+            and (KeepableFile.POSTER not in manager.config.keep_files or not poster_path)
             or DownloadableFile.FANART in manager.config.download_files
-            and (DownloadableFile.FANART not in manager.config.keep_files or not fanart_path)
+            and (KeepableFile.FANART not in manager.config.keep_files or not fanart_path)
         ):
             pass
         else:
@@ -850,22 +864,28 @@ async def poster_download(
     start_time = time.time()
     download_files = manager.config.download_files
     keep_files = manager.config.keep_files
+    poster_policy = resource_policy(
+        DownloadableFile.POSTER,
+        KeepableFile.POSTER,
+        download_files=download_files,
+        keep_files=keep_files,
+    )
     poster_path = other.poster_path
     thumb_path = other.thumb_path
     fanart_path = other.fanart_path
     # 不下载poster、不保留poster时，返回
-    if DownloadableFile.POSTER not in download_files and DownloadableFile.POSTER not in keep_files:
+    if poster_policy.should_remove_existing:
         if poster_path:
             await delete_file_async(poster_path)
         return True
 
     # 本地有poster时，且勾选保留旧文件时，不下载
-    if poster_path and DownloadableFile.POSTER in keep_files:
+    if poster_path and poster_policy.should_keep:
         LogBuffer.log().write(f"\n 🍀 Poster done! (old)({get_used_time(start_time)}s)")
         return True
 
     # 不下载时返回
-    if DownloadableFile.POSTER not in download_files:
+    if not poster_policy.should_download:
         return True
 
     # 尝试复制其他分集。看分集有没有下载，如果下载完成则可以复制，否则就自行下载
@@ -1030,20 +1050,26 @@ async def fanart_download(
     fanart_path = other.fanart_path
     download_files = manager.config.download_files
     keep_files = manager.config.keep_files
+    fanart_policy = resource_policy(
+        DownloadableFile.FANART,
+        KeepableFile.FANART,
+        download_files=download_files,
+        keep_files=keep_files,
+    )
 
     # 不保留不下载时删除返回
-    if DownloadableFile.FANART not in keep_files and DownloadableFile.FANART not in download_files:
+    if fanart_policy.should_remove_existing:
         if fanart_path and await aiofiles.os.path.exists(fanart_path):
             await delete_file_async(fanart_path)
         return True
 
     # 保留，并且本地存在 fanart.jpg，不下载返回
-    if DownloadableFile.FANART in keep_files and fanart_path:
+    if fanart_policy.should_keep and fanart_path:
         LogBuffer.log().write(f"\n 🍀 Fanart done! (old)({get_used_time(start_time)}s)")
         return True
 
     # 不下载时，返回
-    if DownloadableFile.FANART not in download_files:
+    if not fanart_policy.should_download:
         return True
 
     # 尝试复制其他分集。看分集有没有下载，如果下载完成则可以复制，否则就自行下载
@@ -1098,22 +1124,28 @@ async def extrafanart_download(extrafanart: list[str], extrafanart_from: str, fo
     start_time = time.time()
     download_files = manager.config.download_files
     keep_files = manager.config.keep_files
+    extrafanart_policy = resource_policy(
+        DownloadableFile.EXTRAFANART,
+        KeepableFile.EXTRAFANART,
+        download_files=download_files,
+        keep_files=keep_files,
+    )
     extrafanart_list = extrafanart
     extrafanart_folder_path = folder_new_path / "extrafanart"
 
     # 不下载不保留时删除返回
-    if DownloadableFile.EXTRAFANART not in download_files and DownloadableFile.EXTRAFANART not in keep_files:
+    if extrafanart_policy.should_remove_existing:
         if await aiofiles.os.path.exists(extrafanart_folder_path):
             await to_thread(shutil.rmtree, extrafanart_folder_path, ignore_errors=True)
         return
 
     # 本地存在 extrafanart_folder，且勾选保留旧文件时，不下载
-    if DownloadableFile.EXTRAFANART in keep_files and await aiofiles.os.path.exists(extrafanart_folder_path):
+    if extrafanart_policy.should_keep and await aiofiles.os.path.exists(extrafanart_folder_path):
         LogBuffer.log().write(f"\n 🍀 Extrafanart done! (old)({get_used_time(start_time)}s) ")
         return True
 
     # 如果 extrafanart 不下载
-    if DownloadableFile.EXTRAFANART not in download_files:
+    if not extrafanart_policy.should_download:
         return True
 
     if extrafanart_list:

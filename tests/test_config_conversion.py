@@ -1,8 +1,9 @@
 import json
 from pathlib import Path
 
-from mdcx.config.enums import DownloadableFile, FixedScrapingType, HDPicSource, Website
+from mdcx.config.enums import DownloadableFile, FixedScrapingType, HDPicSource, KeepableFile, Website
 from mdcx.config.models import DEFAULT_FIELD_SITE_PRIORITY, Config
+from mdcx.config.resource_policy import resource_policy
 from mdcx.config.v1 import ConfigV1
 from mdcx.controllers.main_window.site_priority_dialog import (
     FIELD_PRIORITY_FIELDS,
@@ -57,6 +58,38 @@ def generate_random_config() -> Config:
     # assert dict_fields_all_different(d, default), "生成的随机配置中存在与默认值相同的字段: " + ", ".join(errors)
 
     return Config.model_validate(d)
+
+
+def test_config_default_keep_files_match_default_template():
+    data = json.loads(Path("resources/config/default_config.json").read_text(encoding="utf-8"))
+    Config.update(data)
+    template_config = Config.model_validate(data)
+
+    assert Config().keep_files == template_config.keep_files == [KeepableFile.TRAILER, KeepableFile.THEME_VIDEOS]
+
+
+def test_resource_policy_exposes_download_and_keep_semantics():
+    policy = resource_policy(
+        DownloadableFile.POSTER,
+        KeepableFile.POSTER,
+        download_files=[DownloadableFile.POSTER],
+        keep_files=[],
+    )
+
+    assert policy.should_download is True
+    assert policy.should_keep is False
+    assert policy.should_remove_existing is False
+
+    remove_policy = resource_policy(
+        DownloadableFile.POSTER,
+        KeepableFile.POSTER,
+        download_files=[],
+        keep_files=[],
+    )
+
+    assert remove_policy.should_download is False
+    assert remove_policy.should_keep is False
+    assert remove_policy.should_remove_existing is True
 
 
 def test_from_legacy():

@@ -308,13 +308,7 @@ class Config(BaseModel):
     )
     keep_files: list[KeepableFile] = Field(
         default_factory=lambda: [
-            KeepableFile.POSTER,
-            KeepableFile.THUMB,
-            KeepableFile.FANART,
-            KeepableFile.EXTRAFANART,
             KeepableFile.TRAILER,
-            KeepableFile.NFO,
-            KeepableFile.EXTRAFANART_COPY,
             KeepableFile.THEME_VIDEOS,
         ],
         title="保留文件类型",

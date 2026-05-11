@@ -9,6 +9,7 @@ from PIL import Image
 from ..config.enums import DownloadableFile, KeepableFile
 from ..config.extend import get_movie_path_setting
 from ..config.manager import manager
+from ..config.resource_policy import resource_policy
 from ..config.resources import resources
 from ..models.log_buffer import LogBuffer
 from ..signals import signal
@@ -21,23 +22,29 @@ async def extrafanart_copy2(folder_path: Path):
     start_time = time.time()
     download_files = manager.config.download_files
     keep_files = manager.config.keep_files
+    extrafanart_copy_policy = resource_policy(
+        DownloadableFile.EXTRAFANART_COPY,
+        KeepableFile.EXTRAFANART_COPY,
+        download_files=download_files,
+        keep_files=keep_files,
+    )
     extrafanart_copy_folder = manager.config.extrafanart_folder
     extrafanart_path = folder_path / "extrafanart"
     extrafanart_copy_path = folder_path / extrafanart_copy_folder
 
     # 如果不保留，不下载，删除返回
-    if KeepableFile.EXTRAFANART_COPY not in keep_files and DownloadableFile.EXTRAFANART_COPY not in download_files:
+    if extrafanart_copy_policy.should_remove_existing:
         if await aiofiles.os.path.exists(extrafanart_copy_path):
             shutil.rmtree(extrafanart_copy_path, ignore_errors=True)
         return
 
     # 如果保留，并且存在，返回
-    if KeepableFile.EXTRAFANART_COPY in keep_files and await aiofiles.os.path.exists(extrafanart_copy_path):
+    if extrafanart_copy_policy.should_keep and await aiofiles.os.path.exists(extrafanart_copy_path):
         LogBuffer.log().write(f"\n 🍀 Extrafanart_copy done! (old)({get_used_time(start_time)}s) ")
         return
 
     # 如果不下载，返回
-    if DownloadableFile.EXTRAFANART_COPY not in download_files:
+    if not extrafanart_copy_policy.should_download:
         return
 
     if not await aiofiles.os.path.exists(extrafanart_path):

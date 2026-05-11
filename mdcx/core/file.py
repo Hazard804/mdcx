@@ -868,7 +868,8 @@ async def deal_old_files(
                 shutil.rmtree(each, ignore_errors=True)
         return False, False
 
-    # 非视频模式，将本地已有的图片、剧照等文件，按照命名规则，重新命名和移动。这个环节仅应用设置-命名设置，没有应用设置-下载的设置
+    # 非视频模式，将本地已有的图片、剧照等文件按命名规则迁移到目标位置。
+    # 这里不应用下载/保留策略，避免后续下载失败时提前丢失旧资源；是否保留、替换或删除由资源处理函数决定。
     # 抢占图片的处理权
     single_folder_catched = False  # 剧照、剧照副本、主题视频 这些单文件夹的处理权，他们只需要处理一次
     pic_final_catched = False  # 最终图片（poster、thumb、fanart）的处理权

@@ -21,7 +21,7 @@ from ..base.file import (
     save_success_list,
 )
 from ..base.image import extrafanart_copy2, extrafanart_extras_copy
-from ..config.enums import DownloadableFile, EmbyAction, FixedScrapingType, ReadMode, Switch
+from ..config.enums import DownloadableFile, EmbyAction, FixedScrapingType, KeepableFile, ReadMode, Switch
 from ..config.extend import get_movie_path_setting
 from ..config.manager import manager
 from ..config.resources import resources
@@ -578,7 +578,7 @@ class Scraper:
             if DownloadableFile.NFO not in manager.config.download_files:
                 # [下载]处不勾选下载nfo时
                 update_nfo = False
-            if DownloadableFile.NFO in manager.config.keep_files and is_nfo_existed:
+            if KeepableFile.NFO in manager.config.keep_files and is_nfo_existed:
                 # [下载]处勾选保留nfo且nfo存在时
                 update_nfo = False
         elif manager.config.main_mode == 4:
@@ -823,10 +823,11 @@ class Scraper:
                 await extrafanart_copy2(folder_new_path)
                 await extrafanart_extras_copy(folder_new_path)
 
-            # 下载trailer、复制主题视频
-            # 因为 trailer也有带文件名，不带文件名两种情况，不能使用pic_final_catched。比如图片不带文件名，trailer带文件名这种场景需要支持每个分集去下载trailer
+        if file_can_download:
+            # trailer 有带文件名、不带文件名两种命名方式，不能依赖图片处理权。
             await trailer_download(res, folder_new_path, folder_old_path, naming_rule)
-            await copy_trailer_to_theme_videos(folder_new_path, naming_rule)
+            if single_folder_catched:
+                await copy_trailer_to_theme_videos(folder_new_path, naming_rule)
 
         # 生成nfo文件
         await write_nfo(file_info, res, nfo_new_path, folder_new_path, update_nfo)

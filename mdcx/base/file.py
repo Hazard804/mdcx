@@ -11,10 +11,11 @@ from uuid import uuid4
 import aiofiles
 import aiofiles.os
 
-from ..config.enums import DownloadableFile, NoEscape, Switch
+from ..config.enums import DownloadableFile, KeepableFile, NoEscape, Switch
 from ..config.extend import get_movie_path_setting, need_clean
 from ..config.manager import manager
 from ..config.models import CleanAction
+from ..config.resource_policy import resource_policy
 from ..config.resources import resources
 from ..models.enums import FileMode
 from ..models.flags import Flags
@@ -119,22 +120,28 @@ async def copy_trailer_to_theme_videos(folder_new_path: Path, naming_rule: str) 
     start_time = time.time()
     download_files = manager.config.download_files
     keep_files = manager.config.keep_files
+    theme_videos_policy = resource_policy(
+        DownloadableFile.THEME_VIDEOS,
+        KeepableFile.THEME_VIDEOS,
+        download_files=download_files,
+        keep_files=keep_files,
+    )
     theme_videos_folder_path = folder_new_path / "backdrops"
     theme_videos_new_path = theme_videos_folder_path / "theme_video.mp4"
 
     # 不保留不下载主题视频时，删除
-    if DownloadableFile.THEME_VIDEOS not in download_files and DownloadableFile.THEME_VIDEOS not in keep_files:
+    if theme_videos_policy.should_remove_existing:
         if await aiofiles.os.path.exists(theme_videos_folder_path):
             shutil.rmtree(theme_videos_folder_path, ignore_errors=True)
         return
 
     # 保留主题视频并存在时返回
-    if DownloadableFile.THEME_VIDEOS in keep_files and await aiofiles.os.path.exists(theme_videos_folder_path):
+    if theme_videos_policy.should_keep and await aiofiles.os.path.exists(theme_videos_folder_path):
         LogBuffer.log().write(f"\n 🍀 Theme video done! (old)({get_used_time(start_time)}s) ")
         return
 
     # 不下载主题视频时返回
-    if DownloadableFile.THEME_VIDEOS not in download_files:
+    if not theme_videos_policy.should_download:
         return
 
     # 不存在预告片时返回
@@ -157,7 +164,13 @@ async def copy_trailer_to_theme_videos(folder_new_path: Path, naming_rule: str) 
     LogBuffer.log().write("\n 🍀 Theme video done! (copy trailer)")
 
     # 不下载并且不保留预告片时，删除预告片
-    if DownloadableFile.TRAILER not in download_files and DownloadableFile.TRAILER not in manager.config.keep_files:
+    trailer_policy = resource_policy(
+        DownloadableFile.TRAILER,
+        KeepableFile.TRAILER,
+        download_files=download_files,
+        keep_files=manager.config.keep_files,
+    )
+    if trailer_policy.should_remove_existing:
         await delete_file_async(trailer_file_path)
         if trailer_name and trailer_folder:
             shutil.rmtree(trailer_folder, ignore_errors=True)
@@ -169,10 +182,13 @@ async def pic_some_deal(number: str, thumb_final_path: Path, fanart_final_path: 
     thumb、poster、fanart 删除冗余的图片
     """
     # 不保存thumb时，清理 thumb
-    if (
-        DownloadableFile.THUMB not in manager.config.download_files
-        and DownloadableFile.THUMB not in manager.config.keep_files
-    ):
+    thumb_policy = resource_policy(
+        DownloadableFile.THUMB,
+        KeepableFile.THUMB,
+        download_files=manager.config.download_files,
+        keep_files=manager.config.keep_files,
+    )
+    if thumb_policy.should_remove_existing:
         if await aiofiles.os.path.exists(fanart_final_path):
             Flags.file_done_dic[number].update(thumb=fanart_final_path)
         else:

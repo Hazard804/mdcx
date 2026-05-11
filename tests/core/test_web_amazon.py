@@ -38,6 +38,11 @@ def _save_test_image(path: Path, size: tuple[int, int]):
     Image.new("RGB", size, "white").save(path, format="JPEG")
 
 
+@pytest.fixture(autouse=True)
+def _reset_amazon_strict_pic_verify(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(manager.config, "amazon_strict_pic_verify", False)
+
+
 @pytest.mark.asyncio
 async def test_select_poster_auto_best_prefers_larger_search_candidate(monkeypatch: pytest.MonkeyPatch):
     async def fake_get_image_size(url: str, media_context=None):
