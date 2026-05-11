@@ -4,6 +4,7 @@ import random
 import re
 import threading
 import time
+from concurrent.futures import CancelledError
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, overload
@@ -822,8 +823,13 @@ def check_theporndb_api_token() -> str:
     if not api_token:
         tips = "❌ 未填写 API Token，影响欧美刮削！可在「设置」-「网络」添加！"
     else:
-        with manager.acquire_computed() as computed:
-            response, err = executor.run(computed.async_client.request("GET", url, headers=headers))
+        try:
+            with manager.acquire_computed() as computed:
+                response, err = executor.run(computed.async_client.request("GET", url, headers=headers))
+        except CancelledError:
+            tips = "❌ ThePornDB 连接检查已取消"
+            signal.show_log_text(tips)
+            return tips
         if response is None:
             tips = f"❌ ThePornDB 连接失败: {err}"
             signal.show_log_text(tips)

@@ -1,3 +1,4 @@
+from concurrent.futures import CancelledError
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,22 @@ class _FakeResponse:
         self.headers = headers or {}
         self.content = content
         self.status_code = status_code
+
+
+class _FakeComputed:
+    class _AsyncClient:
+        def request(self, method: str, url: str, **kwargs):
+            return (method, url, kwargs)
+
+    async_client = _AsyncClient()
+
+
+class _FakeComputedLease:
+    def __enter__(self):
+        return _FakeComputed()
+
+    def __exit__(self, exc_type, exc, traceback):
+        return None
 
 
 def test_normalize_media_url_removes_empty_query_and_probe_params():
@@ -45,6 +62,23 @@ def test_normalize_media_url_collapses_duplicate_slashes_for_dmm_hosts():
         )
         == "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/ssis00100/ssis00100pl.jpg"
     )
+
+
+def test_check_theporndb_api_token_handles_cancelled_executor(monkeypatch: pytest.MonkeyPatch):
+    logs: list[str] = []
+
+    def fake_run(_coro):
+        raise CancelledError()
+
+    monkeypatch.setattr(manager.config, "theporndb_api_token", "token")
+    monkeypatch.setattr(base_web.manager, "acquire_computed", lambda: _FakeComputedLease())
+    monkeypatch.setattr(base_web.executor, "run", fake_run)
+    monkeypatch.setattr(base_web.signal, "show_log_text", logs.append)
+
+    result = base_web.check_theporndb_api_token()
+
+    assert result == "❌ ThePornDB 连接检查已取消"
+    assert logs == ["❌ ThePornDB 连接检查已取消"]
 
 
 @pytest.mark.asyncio
