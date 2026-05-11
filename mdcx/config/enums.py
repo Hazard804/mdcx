@@ -1,4 +1,4 @@
-from .ui_schema import Enum
+from enum import StrEnum as Enum
 
 
 class NoEscape(Enum):

@@ -581,6 +581,8 @@ def load_config(self: "MyMAinWindow"):
             download_hd_pics,
             (self.Ui.checkBox_amazon_big_pic, HDPicSource.AMAZON),
         )
+        self.Ui.checkBox_amazon_strict_pic_verify.setChecked(manager.config.amazon_strict_pic_verify)
+        self.update_amazon_strict_pic_verify_state()
         # endregion
 
         # region Name_Rule

@@ -319,8 +319,10 @@ async def _verify_soft_amazon_poster(
     original_poster_url: str,
     original_poster_from: str,
     media_context: MediaResourceContext | None = None,
+    strict: bool = False,
 ) -> bool:
-    LogBuffer.log().write("\n 🔎 Amazon图片校验：软匹配，开始与已获取图片比对")
+    verify_mode = "严格模式" if strict else "软匹配"
+    LogBuffer.log().write(f"\n 🔎 Amazon图片校验：{verify_mode}，开始与已获取图片比对")
     amazon_img = await _download_image_to_memory(amazon_url, media_context)
     if amazon_img is None:
         LogBuffer.log().write("\n 🟡 Amazon图片校验未通过：Amazon图片读取失败")
@@ -558,13 +560,17 @@ async def _get_big_poster(
         amazon_url = hd_pic_url or (result.poster if result.poster_from == "Amazon" else "")
         amazon_is_hd = bool(hd_pic_url)
         if amazon_url:
-            if is_amazon_hard_match(result) or await _verify_soft_amazon_poster(
+            amazon_match_is_hard = is_amazon_hard_match(result)
+            should_verify_amazon = manager.config.amazon_strict_pic_verify or not amazon_match_is_hard
+            amazon_verify_passed = not should_verify_amazon or await _verify_soft_amazon_poster(
                 amazon_url,
                 thumb_path=other.thumb_path,
                 original_poster_url=poster_url,
                 original_poster_from=poster_from_before_amazon,
                 media_context=media_context,
-            ):
+                strict=manager.config.amazon_strict_pic_verify,
+            )
+            if amazon_verify_passed:
                 result.poster = amazon_url
                 result.poster_from = "Amazon"
                 result.image_download = True

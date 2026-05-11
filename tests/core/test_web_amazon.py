@@ -562,6 +562,41 @@ async def test_get_big_poster_accepts_soft_amazon_when_image_similarity_passes(m
 
 
 @pytest.mark.asyncio
+async def test_get_big_poster_strict_amazon_verifies_hard_match(monkeypatch: pytest.MonkeyPatch):
+    verify_called = False
+
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
+        result.amazon_match_is_hard = True
+        return "https://m.media-amazon.com/images/I/81hard.jpg"
+
+    async def fake_verify(*args, **kwargs):
+        nonlocal verify_called
+        verify_called = True
+        assert kwargs["strict"] is True
+        return False
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "amazon_strict_pic_verify", True)
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+    monkeypatch.setattr("mdcx.core.web._verify_soft_amazon_poster", fake_verify)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "有码"
+    result.scraping_type = FixedScrapingType.YOUMA
+    result.originaltitle_amazon = "测试标题"
+    result.poster = "https://example.test/original.jpg"
+    result.poster_from = "crawler"
+    other = OtherInfo.empty()
+
+    await _get_big_poster(result, other)
+
+    assert verify_called is True
+    assert result.poster == "https://example.test/original.jpg"
+    assert result.poster_from == "crawler"
+    assert result.image_download is False
+
+
+@pytest.mark.asyncio
 async def test_get_big_poster_keeps_low_res_amazon_match_without_google_fallback(monkeypatch: pytest.MonkeyPatch):
     async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
         result.poster = "https://m.media-amazon.com/images/I/51lowres.jpg"

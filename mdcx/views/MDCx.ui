@@ -8874,7 +8874,7 @@
                       <x>0</x>
                       <y>0</y>
                       <width>760</width>
-                      <height>1900</height>
+                    <height>1640</height>
                     </rect>
                   </property>
                   <widget class="QGroupBox" name="groupBox_24">
@@ -9737,7 +9737,7 @@
                         <x>30</x>
                         <y>670</y>
                         <width>701</width>
-                        <height>111</height>
+                        <height>151</height>
                       </rect>
                     </property>
                     <property name="minimumSize">
@@ -9753,9 +9753,9 @@
                       <property name="geometry">
                         <rect>
                           <x>60</x>
-                          <y>60</y>
+                          <y>95</y>
                           <width>641</width>
-                          <height>31</height>
+                          <height>41</height>
                         </rect>
                       </property>
                       <property name="sizePolicy">
@@ -9768,7 +9768,13 @@
                         <string notr="true">color: rgb(8, 128, 128);</string>
                       </property>
                       <property name="text">
-                        <string>将从日亚官网搜索高清封面图，当找到时直接使用日亚结果</string>
+                        <string>将从日亚官网搜索高清封面图；严格校验会对所有 Amazon 结果做相似度比对，可能降低搜图成功率。</string>
+                      </property>
+                      <property name="alignment">
+                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                      </property>
+                      <property name="wordWrap">
+                        <bool>true</bool>
                       </property>
                     </widget>
                     <widget class="QWidget" name="horizontalLayoutWidget_24">
@@ -9812,12 +9818,53 @@
                         </item>
                       </layout>
                     </widget>
+                    <widget class="QWidget" name="horizontalLayoutWidget_25">
+                      <property name="geometry">
+                        <rect>
+                          <x>100</x>
+                          <y>60</y>
+                          <width>581</width>
+                          <height>31</height>
+                        </rect>
+                      </property>
+                      <layout class="QHBoxLayout" name="horizontalLayout_39">
+                        <item>
+                          <widget class="QCheckBox" name="checkBox_amazon_strict_pic_verify">
+                            <property name="sizePolicy">
+                              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                              </sizepolicy>
+                            </property>
+                            <property name="text">
+                              <string>严格校验 Amazon 图片</string>
+                            </property>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QLabel" name="label_amazon_strict_pic_verify">
+                            <property name="sizePolicy">
+                              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                              </sizepolicy>
+                            </property>
+                            <property name="styleSheet">
+                              <string notr="true">color: rgb(8, 128, 128);</string>
+                            </property>
+                            <property name="text">
+                              <string>对所有 Amazon 结果做图片相似度校验</string>
+                            </property>
+                          </widget>
+                        </item>
+                      </layout>
+                    </widget>
                   </widget>
                   <widget class="QGroupBox" name="groupBox_66">
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>800</y>
+                        <y>840</y>
                         <width>701</width>
                         <height>201</height>
                       </rect>

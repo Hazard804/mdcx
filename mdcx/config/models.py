@@ -10,7 +10,6 @@ from pydantic.fields import FieldInfo
 
 from ..gen.field_enums import CrawlerResultFields
 from ..manual import ManualConfig
-from ..server.config import SAFE_DIRS
 from .enums import (
     CDChar,
     CleanAction,
@@ -33,7 +32,6 @@ from .enums import (
     Website,
 )
 from .migrations import migrate_config_data
-from .ui_schema import ServerPathDirectory, extract_ui_schema_recursive
 
 
 def str_to_list(v: str | list[Any] | None, sep: Literal[",", "|"] = ",", unique: bool = True) -> list[str]:
@@ -157,11 +155,11 @@ class Config(BaseModel):
     model_config = ConfigDict()
     # region: General Settings
     config_version: int = Field(default=2, title="配置版本")
-    media_path: str = ServerPathDirectory("./media", title="媒体路径", initial_path=SAFE_DIRS[0].as_posix())
-    softlink_path: str = ServerPathDirectory("softlink", title="软链接路径", ref_field="media_path")
-    success_output_folder: str = ServerPathDirectory("JAV_output", title="成功输出目录", ref_field="media_path")
-    failed_output_folder: str = ServerPathDirectory("failed", title="失败输出目录", ref_field="media_path")
-    extrafanart_folder: str = ServerPathDirectory("extrafanart_copy", title="额外剧照目录")
+    media_path: str = Field(default="./media", title="媒体路径")
+    softlink_path: str = Field(default="softlink", title="软链接路径")
+    success_output_folder: str = Field(default="JAV_output", title="成功输出目录")
+    failed_output_folder: str = Field(default="failed", title="失败输出目录")
+    extrafanart_folder: str = Field(default="extrafanart_copy", title="额外剧照目录")
     media_type: list[str] = Field(
         default_factory=lambda: [
             ".mp4",
@@ -325,6 +323,7 @@ class Config(BaseModel):
         default_factory=lambda: [HDPicSource.AMAZON],
         title="Amazon 高清封面图",
     )
+    amazon_strict_pic_verify: bool = Field(default=False, title="严格校验 Amazon 图片")
     scrape_like: Literal["info", "speed", "single"] = Field(default="info", title="刮削模式")  # speed, info, single
     # endregion
 
@@ -947,11 +946,6 @@ class Config(BaseModel):
         data = handle_dict(cls.model_fields, data)
         cls.update(data)
         return cls.model_validate(data)
-
-    @classmethod
-    @lru_cache
-    def ui_schema(cls) -> dict[str, Any]:
-        return extract_ui_schema_recursive(cls.json_schema())
 
     @classmethod
     @lru_cache

@@ -139,6 +139,7 @@
   "download_hd_pics": [
     "amazon"
   ],
+  "amazon_strict_pic_verify": false,
   "scrape_like": "info",
   "website_single": "fc2",
   "website_youma": [

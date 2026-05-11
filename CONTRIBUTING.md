@@ -5,7 +5,6 @@
 ### 依赖
 
 * [uv](https://docs.astral.sh/uv/getting-started/installation/)
-* pnpm
 
 ### clone
 
@@ -23,19 +22,6 @@ uv pip install -e .
 
 ```bash
 uv run main.py
-```
-
-启动 web server
-
-```bash
-# 构建前端
-cd ui && pnpm i && pnpm build && cd ..
-
-# Windows
-$env:MDCX_DEV=1; fastapi dev server.py
-
-# Linux/macOS
-MDCX_DEV=1 fastapi dev server.py
 ```
 
 ## Test
@@ -72,18 +58,11 @@ mdcx
 │   │   ├── base
 │   │   ├── core
 │   │   └── tools
-│   ├── server # Web server
-│   │   ├── api
-│   │   │   └── v1
-│   │   └── ws
 │   ├── utils
 │   └── views # Qt UI 定义
 ├── scripts # 开发/构建脚本
 │   ├── build.sh # 构建 Qt 版本
 │   ├── changelog.sh # 生成变更日志模板
 │   └── pyuic.sh # 从 Qt UI 生成 Python 代码
-├── tests # 测试
-└── ui # WebUI 前端
-    ├── dist # 构建结果
-    └── src
+└── tests # 测试
 ```

@@ -1,14 +1,11 @@
 import threading
 import time
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from .models.types import ShowData
 from .utils import singleton
-
-if TYPE_CHECKING:
-    from .server.signals import ServerSignals
 
 
 @singleton
@@ -76,9 +73,9 @@ class Signals(QObject):
 
 
 signal_qt = Signals()
-signal: "Signals | ServerSignals" = signal_qt
+signal: Signals = signal_qt
 
 
-def set_signal(signal_instance: "Signals | ServerSignals"):
+def set_signal(signal_instance: Signals):
     global signal
     signal = signal_instance
