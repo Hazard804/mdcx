@@ -20,6 +20,7 @@ from ping3 import ping
 from ..config.manager import manager
 from ..consts import GITHUB_RELEASES_API_LATEST
 from ..models.log_buffer import LogBuffer
+from ..network_fingerprint import build_amazon_headers
 from ..signals import signal
 from ..utils import executor
 from ..utils.file import check_pic_async
@@ -506,11 +507,7 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
 
     async with manager.acquire_computed() as computed:
         client = computed.async_client
-        headers = {
-            "accept-encoding": "gzip, deflate, br",
-            "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Host": "www.amazon.co.jp",
-        }
+        headers = build_amazon_headers(req_url)
         html_info, error = await _request_with_amazon_throttle(headers)
         if html_info is None:
             html_info, error = await _request_with_amazon_throttle(headers)
@@ -529,10 +526,7 @@ async def get_amazon_data(req_url: str) -> tuple[bool, str]:
         if html_info is None:
             return False, error
         if "HTTP 503" in html_info:
-            headers = {
-                "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
-                "Host": "www.amazon.co.jp",
-            }
+            headers = build_amazon_headers(req_url)
             html_info, error = await _request_with_amazon_throttle(headers)
         if html_info is None:
             return False, error

@@ -22,6 +22,15 @@ from curl_cffi.requests.session import HttpMethod
 from curl_cffi.requests.utils import not_set
 from PIL import Image
 
+from .network_fingerprint import (
+    BrowserFingerprint,
+    RequestPurpose,
+    build_fingerprint_headers,
+    infer_request_purpose,
+    merge_headers,
+    select_fingerprint,
+    should_apply_fingerprint,
+)
 from .utils import collapse_inline_script_splits
 
 
@@ -46,15 +55,17 @@ class HostConnectionPool:
         self,
         *,
         key: str,
-        session_factory: Callable[[], AsyncSession],
+        session_factory: Callable[[BrowserFingerprint | None], AsyncSession],
         log_fn: Callable[[str], None],
         max_clients: int,
+        fingerprint: BrowserFingerprint | None = None,
     ):
         self.key = key
         self._session_factory = session_factory
         self._log = log_fn
+        self.fingerprint = fingerprint
         self._request_slots = asyncio.BoundedSemaphore(max(int(max_clients), 1))
-        self.session = self._session_factory()
+        self.session = self._new_session()
         self._sessions: dict[int, AsyncSession] = {0: self.session}
         self._active_by_generation: dict[int, int] = {}
         self._retired_generations: set[int] = set()
@@ -63,6 +74,9 @@ class HostConnectionPool:
         self._closed = False
         self._generation = 0
         self.last_used_at = time.monotonic()
+
+    def _new_session(self) -> AsyncSession:
+        return self._session_factory(self.fingerprint)
 
     async def begin_request(self) -> tuple[AsyncSession, int]:
         waiting_registered = False
@@ -130,7 +144,7 @@ class HostConnectionPool:
 
     def _rotate_locked(self, reason: str) -> list[AsyncSession]:
         old_generation = self._generation
-        self.session = self._session_factory()
+        self.session = self._new_session()
         self._generation += 1
         self._sessions[self._generation] = self.session
         self.last_used_at = time.monotonic()
@@ -170,7 +184,7 @@ class HostPoolManager:
     def __init__(
         self,
         *,
-        session_factory: Callable[[], AsyncSession],
+        session_factory: Callable[[BrowserFingerprint | None], AsyncSession],
         log_fn: Callable[[str], None],
         max_clients: int,
         idle_ttl: float = 600.0,
@@ -194,7 +208,19 @@ class HostPoolManager:
         proxy_part = (proxy or "").strip()
         return f"{scheme}://{host}{port_part}|proxy={proxy_part}"
 
-    async def get(self, key: str) -> HostConnectionPool:
+    @classmethod
+    def key_for_request(
+        cls,
+        url: str,
+        proxy: str | None = None,
+        fingerprint: BrowserFingerprint | None = None,
+    ) -> str:
+        key = cls.key_for_url(url, proxy)
+        if fingerprint is None:
+            return key
+        return f"{key}|fp={fingerprint.fingerprint_id}"
+
+    async def get(self, key: str, *, fingerprint: BrowserFingerprint | None = None) -> HostConnectionPool:
         if self._closed:
             raise RuntimeError("网络连接池管理器已关闭")
         async with self._lock:
@@ -208,6 +234,7 @@ class HostPoolManager:
                     session_factory=self._session_factory,
                     log_fn=self._log,
                     max_clients=self._max_clients,
+                    fingerprint=fingerprint,
                 )
                 self._pools[key] = pool
             return pool
@@ -215,8 +242,16 @@ class HostPoolManager:
     async def reset(self, key: str, reason: str) -> None:
         async with self._lock:
             pool = self._pools.get(key)
+            if pool is None:
+                matched = [
+                    each_pool for each_key, each_pool in self._pools.items() if each_key.startswith(f"{key}|fp=")
+                ]
+            else:
+                matched = []
         if pool is not None:
             await pool.reset(reason)
+        elif matched:
+            await asyncio.gather(*(each_pool.reset(reason) for each_pool in matched), return_exceptions=True)
 
     async def reset_all(self, reason: str) -> None:
         async with self._lock:
@@ -310,11 +345,18 @@ class AsyncWebClient:
         self._cf_retry_after_bypass_base_delay = 1.2
         self._cf_retry_after_bypass_jitter = 1.3
         self._retry_sleep_jitter = 0.4
+        self._fingerprints_by_pool_base: dict[str, BrowserFingerprint] = {}
+        self._excluded_fingerprint_by_pool_base: dict[str, str] = {}
 
-    def _new_curl_session(self) -> AsyncSession:
+    def _new_curl_session(self, fingerprint: BrowserFingerprint | None = None) -> AsyncSession:
+        impersonate = (
+            fingerprint.impersonate
+            if fingerprint is not None
+            else random.choice(["chrome123", "chrome124", "chrome131", "chrome136", "firefox133", "firefox135"])
+        )
         return AsyncSession(
             **self._session_kwargs,
-            impersonate=random.choice(["chrome123", "chrome124", "chrome131", "chrome136", "firefox133", "firefox135"]),
+            impersonate=impersonate,
         )
 
     def retain(self) -> None:
@@ -372,8 +414,14 @@ class AsyncWebClient:
         if self._closed:
             return
         if pool_key is None:
+            self._fingerprints_by_pool_base.clear()
+            self._excluded_fingerprint_by_pool_base.clear()
             await self._pool_manager.reset_all(reason)
         else:
+            pool_base_key, _, failed_fingerprint_id = pool_key.partition("|fp=")
+            if failed_fingerprint_id:
+                self._excluded_fingerprint_by_pool_base[pool_base_key] = failed_fingerprint_id
+            self._fingerprints_by_pool_base.pop(pool_base_key, None)
             await self._pool_manager.reset(pool_key, reason)
 
     async def _record_transport_failure(self, error_msg: str, *, pool_key: str) -> None:
@@ -382,13 +430,36 @@ class AsyncWebClient:
     async def _record_transport_success(self, *, pool_key: str) -> None:
         return
 
-    async def _curl_request(self, **kwargs) -> Response:
+    async def _record_retryable_response_failure(self, error_msg: str, *, pool_key: str) -> None:
+        await self.reset_connections(error_msg, pool_key=pool_key)
+
+    def _get_fingerprint_for_request(
+        self,
+        url: str,
+        proxy: str | None,
+        host: str,
+        purpose: RequestPurpose,
+    ) -> BrowserFingerprint | None:
+        if not host:
+            return None
+        pool_base_key = HostPoolManager.key_for_url(url, proxy)
+        fingerprint = self._fingerprints_by_pool_base.get(pool_base_key)
+        if fingerprint is None:
+            fingerprint = select_fingerprint(
+                host,
+                purpose=purpose,
+                exclude_fingerprint_id=self._excluded_fingerprint_by_pool_base.pop(pool_base_key, ""),
+            )
+            self._fingerprints_by_pool_base[pool_base_key] = fingerprint
+        return fingerprint
+
+    async def _curl_request(self, *, fingerprint: BrowserFingerprint | None = None, **kwargs) -> Response:
         url = str(kwargs.get("url") or "")
         proxy = kwargs.get("proxy")
-        pool_key = HostPoolManager.key_for_url(url, str(proxy) if proxy else None)
+        pool_key = HostPoolManager.key_for_request(url, str(proxy) if proxy else None, fingerprint)
         if self._closed or (self._close_requested and self._lease_count() == 0):
             raise RuntimeError("网络客户端已关闭")
-        pool = await self._pool_manager.get(pool_key)
+        pool = await self._pool_manager.get(pool_key, fingerprint=fingerprint)
         session, generation = await pool.begin_request()
         release_now = True
         try:
@@ -478,25 +549,38 @@ class AsyncWebClient:
         except Exception:
             pass
 
-    def _prepare_headers(self, url: str | None = None, headers: dict[str, str] | None = None) -> dict[str, str]:
+    def _prepare_headers(
+        self,
+        url: str | None = None,
+        headers: dict[str, str] | None = None,
+        *,
+        fingerprint: BrowserFingerprint | None = None,
+        purpose: RequestPurpose = "document",
+        apply_fingerprint: bool = True,
+    ) -> dict[str, str]:
         """预处理请求头"""
-        if not headers:
-            headers = {}
+        explicit_headers = dict(headers or {})
+        site_headers: dict[str, str] = {}
 
         # 根据URL设置特定的Referer
         if url:
             if "getchu" in url:
-                headers.update({"Referer": "http://www.getchu.com/top.html"})
+                site_headers.update({"Referer": "http://www.getchu.com/top.html"})
             elif "xcity" in url:
-                headers.update(
+                site_headers.update(
                     {"referer": "https://xcity.jp/result_published/?genre=%2Fresult_published%2F&q=2&sg=main&num=60"}
                 )
             elif "javbus" in url:
-                headers.update({"Referer": "https://www.javbus.com/"})
+                site_headers.update({"Referer": "https://www.javbus.com/"})
             elif "giga" in url and "cookie_set.php" not in url:
-                headers.update({"Referer": "https://www.giga-web.jp/top.html"})
+                site_headers.update({"Referer": "https://www.giga-web.jp/top.html"})
 
-        return headers
+        fingerprint_headers = (
+            build_fingerprint_headers(url or "", fingerprint=fingerprint, purpose=purpose)
+            if apply_fingerprint and fingerprint is not None
+            else None
+        )
+        return merge_headers(fingerprint_headers, site_headers, explicit_headers)
 
     async def _get_cf_host_lock(self, host: str) -> asyncio.Lock:
         async with self._cf_locks_guard:
@@ -1102,10 +1186,19 @@ class AsyncWebClient:
 
             u = httpx.URL(url)
             host = u.host or ""
-            prepared_headers = self._prepare_headers(url, dict(headers or {}))
-            limiter = self.limiters.get(u.host)
             request_proxy = self.proxy if use_proxy else None
-            pool_key = HostPoolManager.key_for_url(url, request_proxy)
+            purpose = infer_request_purpose(
+                url,
+                method=str(method),
+                headers=dict(headers or {}),
+                stream=stream,
+                json_data=json_data,
+            )
+            apply_fingerprint = should_apply_fingerprint(
+                url,
+                cf_bypass_url=self.cf_bypass_url,
+            )
+            limiter = self.limiters.get(u.host)
             retry_count = max(int(self.retry if retry_count is None else retry_count), 1)
             error_msg = ""
             bypass_round = 0
@@ -1116,6 +1209,19 @@ class AsyncWebClient:
                 should_sleep_before_retry = True
                 sleep_after_cf_bypass = False
                 resp: Response | None = None
+                fingerprint = (
+                    self._get_fingerprint_for_request(url, request_proxy, host, purpose)
+                    if apply_fingerprint and host
+                    else None
+                )
+                prepared_headers = self._prepare_headers(
+                    url,
+                    dict(headers or {}),
+                    fingerprint=fingerprint,
+                    purpose=purpose,
+                    apply_fingerprint=apply_fingerprint,
+                )
+                pool_key = HostPoolManager.key_for_request(url, request_proxy, fingerprint)
                 try:
                     await limiter.acquire()
                     req_headers = dict(prepared_headers)
@@ -1129,6 +1235,7 @@ class AsyncWebClient:
                                 method=method,
                                 url=url,
                                 proxy=request_proxy,
+                                fingerprint=fingerprint,
                                 headers=req_headers,
                                 cookies=req_cookies,
                                 params=params,
@@ -1143,6 +1250,7 @@ class AsyncWebClient:
                             method=method,
                             url=url,
                             proxy=request_proxy,
+                            fingerprint=fingerprint,
                             headers=req_headers,
                             cookies=req_cookies,
                             params=params,
@@ -1219,6 +1327,8 @@ class AsyncWebClient:
                     elif resp.status_code >= 300 and not (resp.status_code == 302 and resp.headers.get("Location")):
                         error_msg = f"HTTP {resp.status_code}"
                         retry = self._is_retryable_status_code(resp.status_code)
+                        if retry and attempt < retry_count - 1:
+                            await self._record_retryable_response_failure(error_msg, pool_key=pool_key)
                     else:
                         self._log(f"✅ {method} {url} 成功")
                         if host:

@@ -33,7 +33,7 @@ async def test_async_web_client_close_closes_underlying_session():
     client = AsyncWebClient(timeout=1)
     old_session = _FakeSession()
     monkeypatch = pytest.MonkeyPatch()
-    client._pool_manager._session_factory = lambda: old_session  # type: ignore[assignment]
+    client._pool_manager._session_factory = lambda _fingerprint=None: old_session  # type: ignore[assignment]
     monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
 
     response, error = await client.request("GET", "https://example.test/image.jpg")
@@ -52,7 +52,7 @@ async def test_async_web_client_close_closes_underlying_session():
 async def test_async_web_client_close_when_idle_waits_for_lease():
     client = AsyncWebClient(timeout=1)
     fake_session = _FakeSession()
-    client._pool_manager._session_factory = lambda: fake_session  # type: ignore[assignment]
+    client._pool_manager._session_factory = lambda _fingerprint=None: fake_session  # type: ignore[assignment]
     monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
 
@@ -78,7 +78,7 @@ async def test_async_web_client_close_when_idle_waits_for_lease():
 async def test_async_web_client_lease_allows_requests_after_close_requested(monkeypatch: pytest.MonkeyPatch):
     client = AsyncWebClient(timeout=1)
     fake_session = _FakeSession()
-    client._pool_manager._session_factory = lambda: fake_session  # type: ignore[assignment]
+    client._pool_manager._session_factory = lambda _fingerprint=None: fake_session  # type: ignore[assignment]
     monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
 
     client.retain()
@@ -154,15 +154,16 @@ async def test_reset_connections_rotates_new_requests_and_closes_old_after_activ
             return _FakeResponse()
 
     old_session = SlowSession()
-    new_session = _FakeSession()
-    sessions = iter([old_session, new_session])
-    client._pool_manager._session_factory = lambda: next(sessions)  # type: ignore[assignment]
+    rotated_session = _FakeSession()
+    request_session = _FakeSession()
+    sessions = iter([old_session, rotated_session, request_session])
+    client._pool_manager._session_factory = lambda _fingerprint=None: next(sessions)  # type: ignore[assignment]
     monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
 
     request_task = asyncio.create_task(client.request("GET", "https://example.test/image.jpg"))
     await asyncio.wait_for(old_session.started.wait(), timeout=1)
 
-    pool_key = "https://example.test|proxy="
+    pool_key = next(iter(client._pool_manager._pools))
     await client.reset_connections("test", pool_key=pool_key)
 
     assert old_session.closed is False
@@ -170,7 +171,7 @@ async def test_reset_connections_rotates_new_requests_and_closes_old_after_activ
     response, error = await client.request("GET", "https://example.test/next.jpg")
     assert response is not None
     assert error == ""
-    assert len(new_session.requests) == 1
+    assert len(request_session.requests) == 1
     assert old_session.closed is False
 
     old_session.finish.set()
@@ -179,7 +180,7 @@ async def test_reset_connections_rotates_new_requests_and_closes_old_after_activ
     assert response is not None
     assert error == ""
     assert old_session.closed is True
-    assert new_session.closed is False
+    assert request_session.closed is False
     await client.close()
 
 
@@ -193,9 +194,10 @@ async def test_transport_error_retry_uses_rotated_host_pool(monkeypatch: pytest.
             raise Timeout("timed out")
 
     failing_session = FailingSession()
+    rotated_session = _FakeSession()
     recovery_session = _FakeSession()
-    sessions = iter([failing_session, recovery_session])
-    client._pool_manager._session_factory = lambda: next(sessions)  # type: ignore[assignment]
+    sessions = iter([failing_session, rotated_session, recovery_session])
+    client._pool_manager._session_factory = lambda _fingerprint=None: next(sessions)  # type: ignore[assignment]
     monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
 
     async def fake_sleep(delay: float):
@@ -221,7 +223,7 @@ async def test_pool_slot_wait_is_not_counted_by_request_watchdog(monkeypatch: py
     monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
 
     fake_session = _FakeSession()
-    client._pool_manager._session_factory = lambda: fake_session  # type: ignore[assignment]
+    client._pool_manager._session_factory = lambda _fingerprint=None: fake_session  # type: ignore[assignment]
 
     first_response, first_error = await client.request("GET", "https://example.test/hold.jpg", stream=True)
 
@@ -258,7 +260,7 @@ async def test_request_watchdog_still_applies_after_pool_slot_is_acquired(monkey
             return _FakeResponse()
 
     fake_session = HangingSession()
-    client._pool_manager._session_factory = lambda: fake_session  # type: ignore[assignment]
+    client._pool_manager._session_factory = lambda _fingerprint=None: fake_session  # type: ignore[assignment]
 
     response, error = await client.request("GET", "https://example.test/hang.jpg")
 

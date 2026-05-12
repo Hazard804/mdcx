@@ -35,6 +35,9 @@ def _patch_session_request(client: AsyncWebClient, request):
     class FakeSession:
         closed = False
 
+        def __init__(self, _fingerprint=None):
+            pass
+
         async def close(self):
             self.closed = True
 
