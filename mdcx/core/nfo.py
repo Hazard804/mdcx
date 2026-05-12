@@ -22,6 +22,7 @@ from ..utils.file import delete_file_async
 from ..utils.language import is_japanese
 from .mosaic import normalize_mosaic
 from .naming import NameRenderOptions, NamingTarget, render_name
+from .tag_priority import prioritize_nfo_tags
 
 
 def get_external_id_tag_name(site: Website | str) -> str:
@@ -139,9 +140,10 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
     number = data.number
     poster = data.poster
     runtime = data.runtime
-    tags = data.tags
     trailer = data.trailer
     year = data.year
+    series_tag = manager.config.nfo_tag_series.replace("series", series) if series else ""
+    tags = prioritize_nfo_tags(data.tags, series_tag=series_tag, series_template=manager.config.nfo_tag_series)
 
     try:
         if not await aiofiles.os.path.exists(output_dir):
