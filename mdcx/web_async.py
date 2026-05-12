@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -48,6 +49,15 @@ class AsyncWebLimiters:
     def remove(self, key: str):
         if key in self.limiters:
             del self.limiters[key]
+
+
+@dataclass
+class _FingerprintState:
+    fingerprint: BrowserFingerprint
+    created_at: float
+    expires_at: float
+    request_count: int
+    max_requests: int
 
 
 class HostConnectionPool:
@@ -345,8 +355,12 @@ class AsyncWebClient:
         self._cf_retry_after_bypass_base_delay = 1.2
         self._cf_retry_after_bypass_jitter = 1.3
         self._retry_sleep_jitter = 0.4
-        self._fingerprints_by_pool_base: dict[str, BrowserFingerprint] = {}
+        self._fingerprint_states_by_pool_base: dict[str, _FingerprintState] = {}
         self._excluded_fingerprint_by_pool_base: dict[str, str] = {}
+        self._fingerprint_default_lifetime_range = (20 * 60.0, 45 * 60.0)
+        self._fingerprint_default_request_range = (120, 240)
+        self._fingerprint_amazon_lifetime_range = (8 * 60.0, 18 * 60.0)
+        self._fingerprint_amazon_request_range = (60, 140)
 
     def _new_curl_session(self, fingerprint: BrowserFingerprint | None = None) -> AsyncSession:
         impersonate = (
@@ -414,14 +428,14 @@ class AsyncWebClient:
         if self._closed:
             return
         if pool_key is None:
-            self._fingerprints_by_pool_base.clear()
+            self._fingerprint_states_by_pool_base.clear()
             self._excluded_fingerprint_by_pool_base.clear()
             await self._pool_manager.reset_all(reason)
         else:
             pool_base_key, _, failed_fingerprint_id = pool_key.partition("|fp=")
             if failed_fingerprint_id:
                 self._excluded_fingerprint_by_pool_base[pool_base_key] = failed_fingerprint_id
-            self._fingerprints_by_pool_base.pop(pool_base_key, None)
+            self._fingerprint_states_by_pool_base.pop(pool_base_key, None)
             await self._pool_manager.reset(pool_key, reason)
 
     async def _record_transport_failure(self, error_msg: str, *, pool_key: str) -> None:
@@ -439,19 +453,59 @@ class AsyncWebClient:
         proxy: str | None,
         host: str,
         purpose: RequestPurpose,
+        allow_lifetime_rotation: bool = True,
     ) -> BrowserFingerprint | None:
         if not host:
             return None
         pool_base_key = HostPoolManager.key_for_url(url, proxy)
-        fingerprint = self._fingerprints_by_pool_base.get(pool_base_key)
-        if fingerprint is None:
-            fingerprint = select_fingerprint(
+        state = self._fingerprint_states_by_pool_base.get(pool_base_key)
+        now = time.monotonic()
+        if state is not None and allow_lifetime_rotation and self._is_fingerprint_state_expired(state, now=now):
+            self._excluded_fingerprint_by_pool_base[pool_base_key] = state.fingerprint.fingerprint_id
+            self._fingerprint_states_by_pool_base.pop(pool_base_key, None)
+            state = None
+        if state is None:
+            state = self._new_fingerprint_state(
                 host,
                 purpose=purpose,
-                exclude_fingerprint_id=self._excluded_fingerprint_by_pool_base.pop(pool_base_key, ""),
+                pool_base_key=pool_base_key,
+                now=now,
             )
-            self._fingerprints_by_pool_base[pool_base_key] = fingerprint
-        return fingerprint
+            self._fingerprint_states_by_pool_base[pool_base_key] = state
+        state.request_count += 1
+        return state.fingerprint
+
+    def _is_fingerprint_state_expired(self, state: _FingerprintState, *, now: float) -> bool:
+        return now >= state.expires_at or state.request_count >= state.max_requests
+
+    def _new_fingerprint_state(
+        self,
+        host: str,
+        *,
+        purpose: RequestPurpose,
+        pool_base_key: str,
+        now: float,
+    ) -> _FingerprintState:
+        fingerprint = select_fingerprint(
+            host,
+            purpose=purpose,
+            exclude_fingerprint_id=self._excluded_fingerprint_by_pool_base.pop(pool_base_key, ""),
+        )
+        lifetime_min, lifetime_max = self._fingerprint_default_lifetime_range
+        request_min, request_max = self._fingerprint_default_request_range
+        if host.lower().endswith("amazon.co.jp"):
+            lifetime_min, lifetime_max = self._fingerprint_amazon_lifetime_range
+            request_min, request_max = self._fingerprint_amazon_request_range
+
+        lifetime = random.uniform(max(lifetime_min, 1.0), max(lifetime_max, lifetime_min, 1.0))
+        max_requests = random.randint(max(int(request_min), 1), max(int(request_max), int(request_min), 1))
+        return _FingerprintState(
+            fingerprint=fingerprint,
+            created_at=now,
+            expires_at=now + lifetime,
+            request_count=0,
+            max_requests=max_requests,
+        )
 
     async def _curl_request(self, *, fingerprint: BrowserFingerprint | None = None, **kwargs) -> Response:
         url = str(kwargs.get("url") or "")
@@ -1202,6 +1256,7 @@ class AsyncWebClient:
             retry_count = max(int(self.retry if retry_count is None else retry_count), 1)
             error_msg = ""
             bypass_round = 0
+            allow_lifetime_rotation = purpose != "download"
 
             for attempt in range(retry_count):
                 # 增强的重试策略: 对网络错误和特定状态码都进行重试
@@ -1210,7 +1265,13 @@ class AsyncWebClient:
                 sleep_after_cf_bypass = False
                 resp: Response | None = None
                 fingerprint = (
-                    self._get_fingerprint_for_request(url, request_proxy, host, purpose)
+                    self._get_fingerprint_for_request(
+                        url,
+                        request_proxy,
+                        host,
+                        purpose,
+                        allow_lifetime_rotation=allow_lifetime_rotation,
+                    )
                     if apply_fingerprint and host
                     else None
                 )

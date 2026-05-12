@@ -180,6 +180,161 @@ async def test_retryable_http_status_switches_fingerprint(monkeypatch: pytest.Mo
     await client.close()
 
 
+@pytest.mark.asyncio
+async def test_expired_fingerprint_state_switches_profile_for_new_document_request(monkeypatch: pytest.MonkeyPatch):
+    client = AsyncWebClient(timeout=1)
+    client._fingerprint_default_lifetime_range = (1.0, 1.0)
+    first = BrowserFingerprint(
+        fingerprint_id="test_chrome_a",
+        impersonate="chrome136",
+        family="chrome",
+        platform="Windows",
+        headers={"User-Agent": "ua-a"},
+    )
+    second = BrowserFingerprint(
+        fingerprint_id="test_chrome_b",
+        impersonate="chrome131",
+        family="chrome",
+        platform="Windows",
+        headers={"User-Agent": "ua-b"},
+    )
+    selected = iter([first, second])
+    now_values = iter([10.0, 12.0])
+    current_now = 12.0
+    fingerprints: list[str] = []
+
+    def fake_select_fingerprint(host: str, *, purpose="document", exclude_fingerprint_id=""):
+        return next(selected)
+
+    async def fake_curl_request(**kwargs):
+        fingerprint = kwargs.get("fingerprint")
+        fingerprints.append(fingerprint.fingerprint_id if fingerprint is not None else "")
+        return SimpleNamespace(status_code=200, headers={}, content=b"", url=kwargs["url"])
+
+    def fake_monotonic():
+        nonlocal current_now
+        try:
+            current_now = next(now_values)
+        except StopIteration:
+            pass
+        return current_now
+
+    monkeypatch.setattr(web_async, "select_fingerprint", fake_select_fingerprint)
+    monkeypatch.setattr(web_async.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(client, "_curl_request", fake_curl_request)
+    monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
+
+    response1, error1 = await client.request("GET", "https://example.test/a")
+    response2, error2 = await client.request("GET", "https://example.test/b")
+
+    assert response1 is not None
+    assert response2 is not None
+    assert error1 == ""
+    assert error2 == ""
+    assert fingerprints == ["test_chrome_a", "test_chrome_b"]
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_download_request_does_not_rotate_expired_fingerprint_state(monkeypatch: pytest.MonkeyPatch):
+    client = AsyncWebClient(timeout=1)
+    client._fingerprint_default_lifetime_range = (1.0, 1.0)
+    first = BrowserFingerprint(
+        fingerprint_id="test_chrome_a",
+        impersonate="chrome136",
+        family="chrome",
+        platform="Windows",
+        headers={"User-Agent": "ua-a"},
+    )
+    second = BrowserFingerprint(
+        fingerprint_id="test_chrome_b",
+        impersonate="chrome131",
+        family="chrome",
+        platform="Windows",
+        headers={"User-Agent": "ua-b"},
+    )
+    selected = iter([first, second])
+    now_values = iter([10.0, 12.0])
+    current_now = 12.0
+    fingerprints: list[str] = []
+
+    def fake_select_fingerprint(host: str, *, purpose="document", exclude_fingerprint_id=""):
+        return next(selected)
+
+    async def fake_curl_request(**kwargs):
+        fingerprint = kwargs.get("fingerprint")
+        fingerprints.append(fingerprint.fingerprint_id if fingerprint is not None else "")
+        return SimpleNamespace(status_code=206, headers={}, content=b"abc", url=kwargs["url"])
+
+    def fake_monotonic():
+        nonlocal current_now
+        try:
+            current_now = next(now_values)
+        except StopIteration:
+            pass
+        return current_now
+
+    monkeypatch.setattr(web_async, "select_fingerprint", fake_select_fingerprint)
+    monkeypatch.setattr(web_async.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(client, "_curl_request", fake_curl_request)
+    monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
+
+    response1, error1 = await client.request("GET", "https://media.example.test/video.mp4", stream=True)
+    response2, error2 = await client.request("GET", "https://media.example.test/video.mp4", stream=True)
+
+    assert response1 is not None
+    assert response2 is not None
+    assert error1 == ""
+    assert error2 == ""
+    assert fingerprints == ["test_chrome_a", "test_chrome_a"]
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_request_count_limit_switches_fingerprint(monkeypatch: pytest.MonkeyPatch):
+    client = AsyncWebClient(timeout=1)
+    client._fingerprint_default_lifetime_range = (3600.0, 3600.0)
+    client._fingerprint_default_request_range = (1, 1)
+    first = BrowserFingerprint(
+        fingerprint_id="test_chrome_a",
+        impersonate="chrome136",
+        family="chrome",
+        platform="Windows",
+        headers={"User-Agent": "ua-a"},
+    )
+    second = BrowserFingerprint(
+        fingerprint_id="test_chrome_b",
+        impersonate="chrome131",
+        family="chrome",
+        platform="Windows",
+        headers={"User-Agent": "ua-b"},
+    )
+    selected = iter([first, second])
+    fingerprints: list[str] = []
+
+    def fake_select_fingerprint(host: str, *, purpose="document", exclude_fingerprint_id=""):
+        return next(selected)
+
+    async def fake_curl_request(**kwargs):
+        fingerprint = kwargs.get("fingerprint")
+        fingerprints.append(fingerprint.fingerprint_id if fingerprint is not None else "")
+        return SimpleNamespace(status_code=200, headers={}, content=b"", url=kwargs["url"])
+
+    monkeypatch.setattr(web_async, "select_fingerprint", fake_select_fingerprint)
+    monkeypatch.setattr(client, "_curl_request", fake_curl_request)
+    monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
+
+    response1, error1 = await client.request("GET", "https://example.test/a")
+    response2, error2 = await client.request("GET", "https://example.test/b")
+
+    assert response1 is not None
+    assert response2 is not None
+    assert error1 == ""
+    assert error2 == ""
+    assert fingerprints == ["test_chrome_a", "test_chrome_b"]
+    await client.close()
+
+
 def test_amazon_headers_use_japanese_desktop_profile():
     headers = build_amazon_headers("https://www.amazon.co.jp/s?k=test")
 
