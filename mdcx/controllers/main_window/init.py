@@ -355,9 +355,8 @@ def Init_QSystemTrayIcon(self: "MyMAinWindow"):
 def init_QTreeWidget(self: "MyMAinWindow"):
     # 初始化树状控件
     try:
-        self.set_label_file_path.emit(
-            f"🎈 当前刮削路径: \n {get_movie_path_setting().movie_path}"
-        )  # 主界面右上角显示提示信息
+        movie_path_text = ";".join(str(path) for path in get_movie_path_setting().movie_paths)
+        self.set_label_file_path.emit(f"🎈 当前刮削路径: \n {movie_path_text}")  # 主界面右上角显示提示信息
     except Exception:
         signal_qt.show_traceback_log(traceback.format_exc())
     signal_qt.set_main_info()

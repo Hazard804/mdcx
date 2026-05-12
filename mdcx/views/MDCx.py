@@ -929,12 +929,13 @@ class Ui_MDCx(object):
         self.horizontalLayout_45.addWidget(self.checkBox_no_escape_dir)
         self.gridLayout_7.addLayout(self.horizontalLayout_45, 9, 1, 1, 1)
         self.label_56 = QtWidgets.QLabel(parent=self.gridLayoutWidget_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_56.sizePolicy().hasHeightForWidth())
         self.label_56.setSizePolicy(sizePolicy)
         self.label_56.setStyleSheet("color: rgb(8, 128, 128);")
+        self.label_56.setWordWrap(True)
         self.label_56.setObjectName("label_56")
         self.gridLayout_7.addWidget(self.label_56, 1, 1, 1, 1)
         self.checkBox_scrape_softlink_path = QtWidgets.QCheckBox(parent=self.gridLayoutWidget_7)
@@ -10362,7 +10363,13 @@ class Ui_MDCx(object):
         self.label_58.setText(_translate("MDCx", "指不想要刮削的目录，可以填写多个目录，以逗号分开（中英文逗号都可以）"))
         self.label_49.setText(_translate("MDCx", "待刮削视频目录："))
         self.checkBox_no_escape_dir.setText(_translate("MDCx", "不排除"))
-        self.label_56.setText(_translate("MDCx", "指含有视频的文件夹，将刮削该目录（含子目录）所有视频的元数据信息"))
+        self.label_56.setText(
+            _translate(
+                "MDCx",
+                "可填写一个或多个含视频的文件夹，多个目录请用英文分号 ; 或中文分号 ；分隔。\n"
+                "将刮削各目录（含子目录）中的视频元数据。",
+            )
+        )
         self.checkBox_scrape_softlink_path.setText(_translate("MDCx", "在以下目录为待刮削目录中的视频创建软链接，然后刮削以下目录（适合网盘用户）"))
         self.label_47.setText(_translate("MDCx", "成功输出目录："))
         self.pushButton_select_media_folder_setting_page.setText(_translate("MDCx", "选择目录"))

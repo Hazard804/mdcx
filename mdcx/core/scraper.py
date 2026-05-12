@@ -22,7 +22,7 @@ from ..base.file import (
 )
 from ..base.image import extrafanart_copy2, extrafanart_extras_copy
 from ..config.enums import DownloadableFile, EmbyAction, FixedScrapingType, KeepableFile, ReadMode, Switch
-from ..config.extend import get_movie_path_setting
+from ..config.extend import get_movie_path_setting, parse_media_paths
 from ..config.manager import manager
 from ..config.resources import resources
 from ..crawler import CrawlerProvider
@@ -36,7 +36,7 @@ from ..tools.emby_actor_info import creat_kodi_actors
 from ..utils import executor, get_current_time, get_real_time, get_used_time, split_path
 from ..utils.dataclass import update
 from ..utils.file import copy_file_async, move_file_async
-from ..utils.path import is_descendant
+from ..utils.path import is_any_descendant
 from .file import creat_folder, deal_old_files, get_file_info_v2, get_output_name, move_movie
 from .file_crawler import FileScraper, classify_existing_scrape_result, classify_scrape_task
 from .image import add_mark
@@ -178,18 +178,25 @@ class Scraper:
         # 获取设置的媒体目录、失败目录、成功目录
         path_settings = get_movie_path_setting()
         movie_path = path_settings.movie_path
-        ignore_dirs = path_settings.ignore_dirs
-        softlink_path = path_settings.softlink_path
+        movie_paths = path_settings.movie_paths
 
         # 获取待刮削文件列表的相关信息
         if not movie_list:
-            if manager.config.scrape_softlink_path:
-                await newtdisk_creat_symlink(
-                    Switch.COPY_NETDISK_NFO in manager.config.switch_on, movie_path, softlink_path
-                )
-                movie_path = softlink_path
             signal.show_log_text("\n ⏰ Start time: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-            movie_list = await get_movie_list(file_mode, movie_path, ignore_dirs)
+            movie_list = []
+            scan_movie_paths = movie_paths if file_mode == FileMode.Default else [movie_path]
+            for media_path in scan_movie_paths:
+                current_paths = get_movie_path_setting(movie_path_override=media_path)
+                scan_path = current_paths.movie_path
+                scan_ignore_dirs = current_paths.ignore_dirs
+                if manager.config.scrape_softlink_path:
+                    await newtdisk_creat_symlink(
+                        Switch.COPY_NETDISK_NFO in manager.config.switch_on,
+                        current_paths.movie_path,
+                        current_paths.softlink_path,
+                    )
+                    scan_path = current_paths.softlink_path
+                movie_list.extend(await get_movie_list(file_mode, scan_path, scan_ignore_dirs))
         else:
             signal.show_log_text("\n ⏰ Start time: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         Flags.remain_list = movie_list.copy()
@@ -229,7 +236,10 @@ class Scraper:
                 return
 
         signal.show_log_text("================================================================================")
-        await _clean_empty_fodlers(movie_path, file_mode)
+        for media_path in movie_paths:
+            current_paths = get_movie_path_setting(movie_path_override=media_path)
+            clean_path = current_paths.softlink_path if manager.config.scrape_softlink_path else media_path
+            await _clean_empty_fodlers(clean_path, file_mode)
         end_time = time.time()
         used_time = str(round((end_time - Flags.start_time), 2))
         average_time = str(round((end_time - Flags.start_time) / task_count, 2)) if task_count else used_time
@@ -931,17 +941,14 @@ def get_remain_list() -> bool:
         signal.show_log_text("🍯 🍯 🍯 NOTE: 已取消本次刮削启动。")
         return True  # 不刮削（包括点取消、ESC、右上角关闭）
 
-    movie_path = manager.config.media_path
-    if movie_path == "":
-        movie_path = manager.data_folder
-    movie_path = Path(movie_path)
+    movie_paths = parse_media_paths()
 
     p = Flags.remain_list[0]
-    if not is_descendant(p, movie_path):
+    if not is_any_descendant(p, *movie_paths):
         box = QMessageBox(
             QMessageBox.Icon.Warning,
             "提醒",
-            f"很重要！！请注意：\n当前待刮削目录：{movie_path}\n剩余任务文件路径：{p.resolve()}\n"
+            f"很重要！！请注意：\n当前待刮削目录：{';'.join(str(path) for path in movie_paths)}\n剩余任务文件路径：{p.resolve()}\n"
             "文件不在当前待刮削目录中, 可能是使用其他配置扫描的！\n"
             "请确认成功输出目录和失败目录是否正确！如果配置不正确，继续刮削可能会导致文件被移动到新配置的输出位置！\n是否继续刮削？",
         )

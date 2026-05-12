@@ -44,7 +44,7 @@ from mdcx.base.video import add_del_extras, add_del_theme_videos
 from mdcx.base.web import check_theporndb_api_token, check_version
 from mdcx.base.web_sync import get_text_sync
 from mdcx.config.enums import NfoInclude, Switch, Website
-from mdcx.config.extend import deal_url, get_movie_path_setting
+from mdcx.config.extend import deal_url, get_movie_path_setting, parse_media_paths
 from mdcx.config.manager import manager
 from mdcx.config.resources import resources
 from mdcx.consts import GITHUB_ISSUES_URL, GITHUB_RELEASES_URL, IS_WINDOWS, LOCAL_VERSION
@@ -2409,7 +2409,7 @@ class MyMAinWindow(QMainWindow):
         if not media_path:
             media_path = manager.data_folder
         else:
-            media_path = Path(media_path)
+            media_path = parse_media_paths(media_path)[0]
         file_path, filetype = QFileDialog.getOpenFileName(
             None,
             "选取视频文件",
@@ -2462,6 +2462,8 @@ class MyMAinWindow(QMainWindow):
         path = self.Ui.lineEdit_movie_path.text()
         if not path:
             path = manager.data_folder.as_posix()
+        else:
+            path = parse_media_paths(path)[0].as_posix()
         file_path, fileType = QFileDialog.getOpenFileName(
             None, "选取缩略图", path, "Picture Files(*.jpg *.png);;All Files(*)", options=self.options
         )
@@ -2489,25 +2491,30 @@ class MyMAinWindow(QMainWindow):
 
     def _move_file_thread(self):
         signal_qt.change_buttons_status.emit()
-        c = get_movie_path_setting()
-        movie_path = c.movie_path
-        ignore_dirs = c.ignore_dirs
-        ignore_dirs.append(movie_path / "Movie_moved")
-        movie_list = executor.run(
-            movie_lists(ignore_dirs, manager.config.media_type + manager.config.sub_type, movie_path)
-        )
-        if not movie_list:
+        movie_items = []
+        for movie_path in get_movie_path_setting().movie_paths:
+            if not Path(movie_path).exists():
+                signal_qt.show_log_text(f" 🔴 Movie folder does not exist: {movie_path}")
+                continue
+            c = get_movie_path_setting(movie_path_override=movie_path)
+            ignore_dirs = c.ignore_dirs
+            ignore_dirs.append(movie_path / "Movie_moved")
+            movie_list = executor.run(
+                movie_lists(ignore_dirs, manager.config.media_type + manager.config.sub_type, movie_path)
+            )
+            movie_items.extend((movie_path, file_path) for file_path in movie_list)
+        if not movie_items:
             signal_qt.show_log_text("No movie found!")
             signal_qt.show_log_text("================================================================================")
             signal_qt.reset_buttons_status.emit()
             return
-        des_path = movie_path / "Movie_moved"
-        if not des_path.exists():
-            signal_qt.show_log_text("Created folder: Movie_moved")
-            os.makedirs(des_path)
         signal_qt.show_log_text("Start move movies...")
         skip_list = []
-        for file_path in movie_list:
+        for movie_path, file_path in movie_items:
+            des_path = movie_path / "Movie_moved"
+            if not des_path.exists():
+                signal_qt.show_log_text(f"Created folder: {des_path}")
+                os.makedirs(des_path)
             file_name = file_path.name
             file_ext = file_path.suffix.lower()
             try:
@@ -3195,6 +3202,8 @@ class MyMAinWindow(QMainWindow):
         media_path = self.Ui.lineEdit_movie_path.text()  # 获取待刮削目录作为打开目录
         if not media_path:
             media_path = manager.data_folder.as_posix()
+        else:
+            media_path = parse_media_paths(media_path)[0].as_posix()
         media_folder_path = QFileDialog.getExistingDirectory(
             None, "选择目录", media_path, options=self.options | QFileDialog.Option.ShowDirsOnly
         )

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..manual import ManualConfig
+from ..utils.path import is_descendant
 from .enums import Website
 from .manager import manager
 from .models import CleanAction
@@ -12,6 +13,7 @@ class MoviePathSetting:
     """路径设置"""
 
     movie_path: Path  # 电影路径
+    movie_paths: list[Path]  # 电影路径列表
     success_folder: Path  # 成功目录
     failed_folder: Path  # 失败目录
     ignore_dirs: list[Path]  # 排除目录列表
@@ -19,12 +21,48 @@ class MoviePathSetting:
     softlink_path: Path  # 软链接路径
 
 
-def get_movie_path_setting(file_path: Path | None = None) -> MoviePathSetting:
-    # 先把'\'转成'/'以便判断是路径还是目录
-    movie_path = manager.config.media_path  # 用户设置的扫描媒体路径
-    if movie_path == "":  # 未设置为空时，使用用户数据目录
-        movie_path = manager.data_folder
-    movie_path = Path(movie_path)
+def parse_media_paths(media_path: str | Path | None = None) -> list[Path]:
+    """解析待刮削目录，支持使用英文/中文分号分隔多个目录。"""
+    if media_path is None:
+        media_path = manager.config.media_path
+    if media_path == "":
+        return [manager.data_folder]
+    if isinstance(media_path, Path):
+        return [media_path]
+
+    paths: list[Path] = []
+    for item in str(media_path).replace("；", ";").split(";"):
+        path_text = item.strip().strip("\"'")
+        if not path_text:
+            continue
+        path = Path(path_text)
+        if path not in paths:
+            paths.append(path)
+    return paths or [manager.data_folder]
+
+
+def _select_movie_path(movie_paths: list[Path], file_path: Path | None) -> Path:
+    if not file_path:
+        return movie_paths[0]
+    for movie_path in movie_paths:
+        if is_descendant(file_path, movie_path):
+            return movie_path
+    if manager.config.scrape_softlink_path:
+        for movie_path in movie_paths:
+            end_folder_name = movie_path.name
+            softlink_path = Path(manager.config.softlink_path.replace("end_folder_name", end_folder_name))
+            if not softlink_path.is_absolute():
+                softlink_path = movie_path / softlink_path
+            if is_descendant(file_path, softlink_path):
+                return movie_path
+    return movie_paths[0]
+
+
+def get_movie_path_setting(
+    file_path: Path | None = None, movie_path_override: str | Path | None = None
+) -> MoviePathSetting:
+    movie_paths = parse_media_paths(movie_path_override)  # 用户设置的扫描媒体路径
+    movie_path = _select_movie_path(movie_paths, file_path)
     end_folder_name = movie_path.name
     # 用户设置的软链接输出目录
     softlink_path = Path(manager.config.softlink_path.replace("end_folder_name", end_folder_name))
@@ -56,13 +94,17 @@ def get_movie_path_setting(file_path: Path | None = None) -> MoviePathSetting:
         if manager.config.scrape_softlink_path:
             temp_path = softlink_path
         if "first_folder_name" in success_folder.as_posix() or "first_folder_name" in failed_folder.as_posix():
-            first_folder_name = file_path.relative_to(temp_path).parts
+            try:
+                first_folder_name = file_path.relative_to(temp_path).parts
+            except ValueError:
+                first_folder_name = ()
             first_folder_name = first_folder_name[0] if first_folder_name else ""
             success_folder = Path(success_folder.as_posix().replace("first_folder_name", first_folder_name))
             failed_folder = Path(failed_folder.as_posix().replace("first_folder_name", first_folder_name))
 
     return MoviePathSetting(
         movie_path=movie_path,
+        movie_paths=movie_paths,
         success_folder=success_folder,
         failed_folder=failed_folder,
         ignore_dirs=ignore_dirs,

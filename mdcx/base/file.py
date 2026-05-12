@@ -248,7 +248,7 @@ async def _clean_empty_fodlers(path: Path, file_mode: FileMode) -> None:
     if NoEscape.FOLDER in manager.config.no_escape:
         ignore_dirs = []
     else:
-        ignore_dirs = get_movie_path_setting().ignore_dirs
+        ignore_dirs = get_movie_path_setting(movie_path_override=path).ignore_dirs
 
     if not await aiofiles.os.path.exists(path):
         signal.show_log_text(f" 🍀 Clean done!({get_used_time(start_time)}s)")
@@ -290,31 +290,38 @@ async def _clean_empty_fodlers(path: Path, file_mode: FileMode) -> None:
 async def check_and_clean_files() -> None:
     signal.change_buttons_status.emit()
     start_time = time.time()
-    movie_path = get_movie_path_setting().movie_path
+    movie_paths = get_movie_path_setting().movie_paths
     signal.show_log_text("🍯 🍯 🍯 NOTE: START CHECKING AND CLEAN FILE NOW!!!")
     signal.show_log_text(f"\n ⏰ Start time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
-    signal.show_log_text(f" 🖥 Movie path: {movie_path} \n ⏳ Checking all videos and cleaning, Please wait...")
+    signal.show_log_text(
+        f" 🖥 Movie path: {';'.join(str(path) for path in movie_paths)} \n ⏳ Checking all videos and cleaning, Please wait..."
+    )
     total = 0
     succ = 0
     fail = 0
     # 只有主界面点击会运行此函数, 因此此 walk 无需后台执行
-    for root, dirs, files in Path(movie_path).walk(top_down=True):
-        for f in files:
-            # 判断清理文件
-            path = root / f
-            file_type_current = os.path.splitext(f)[1]
-            if need_clean(path, f, file_type_current):
-                total += 1
-                result, error_info = delete_file_sync(path)
-                if result:
-                    succ += 1
-                    signal.show_log_text(f" 🗑 Clean: {str(path)} ")
-                else:
-                    fail += 1
-                    signal.show_log_text(f" 🗑 Clean error: {error_info} ")
+    for movie_path in movie_paths:
+        if not Path(movie_path).exists():
+            signal.show_log_text(f" 🔴 Movie folder does not exist: {movie_path}")
+            continue
+        for root, dirs, files in Path(movie_path).walk(top_down=True):
+            for f in files:
+                # 判断清理文件
+                path = root / f
+                file_type_current = os.path.splitext(f)[1]
+                if need_clean(path, f, file_type_current):
+                    total += 1
+                    result, error_info = delete_file_sync(path)
+                    if result:
+                        succ += 1
+                        signal.show_log_text(f" 🗑 Clean: {str(path)} ")
+                    else:
+                        fail += 1
+                        signal.show_log_text(f" 🗑 Clean error: {error_info} ")
     signal.show_log_text(f" 🍀 Clean done!({get_used_time(start_time)}s)")
     signal.show_log_text("================================================================================")
-    await _clean_empty_fodlers(movie_path, FileMode.Default)
+    for movie_path in movie_paths:
+        await _clean_empty_fodlers(movie_path, FileMode.Default)
     signal.set_label_file_path.emit("🗑 清理完成！")
     signal.show_log_text(
         f" 🎉🎉🎉 All finished!!!({get_used_time(start_time)}s) Total {total} , Success {succ} , Failed {fail} "
