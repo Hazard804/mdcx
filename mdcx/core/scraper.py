@@ -178,7 +178,7 @@ class Scraper:
         # 获取设置的媒体目录、失败目录、成功目录
         path_settings = get_movie_path_setting()
         movie_path = path_settings.movie_path
-        movie_paths = getattr(path_settings, "movie_paths", [movie_path])
+        movie_paths = path_settings.movie_paths
 
         # 获取待刮削文件列表的相关信息
         if not movie_list:

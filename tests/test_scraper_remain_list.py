@@ -1,8 +1,8 @@
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
+from mdcx.config.extend import MoviePathSetting
 from mdcx.models.enums import FileMode
 from mdcx.models.flags import Flags
 
@@ -31,8 +31,17 @@ async def test_run_uses_copied_remain_list(monkeypatch: pytest.MonkeyPatch):
     async def fake_clean_empty_folders(_path: Path, _file_mode: FileMode):
         return None
 
-    def fake_get_movie_path_setting(_file_path=None):
-        return SimpleNamespace(movie_path=Path("."), ignore_dirs=[], softlink_path=Path("."))
+    def fake_get_movie_path_setting(_file_path=None, movie_path_override=None):
+        movie_path = Path(movie_path_override) if movie_path_override is not None else Path(".")
+        return MoviePathSetting(
+            movie_path=movie_path,
+            movie_paths=[movie_path],
+            success_folder=movie_path,
+            failed_folder=movie_path,
+            ignore_dirs=[],
+            extrafanart_folder=movie_path,
+            softlink_path=movie_path,
+        )
 
     monkeypatch.setattr(scraper_module.Scraper, "_run_tasks_with_limit", fake_run_tasks_with_limit)
     monkeypatch.setattr(scraper_module, "save_success_list", fake_save_success_list)
