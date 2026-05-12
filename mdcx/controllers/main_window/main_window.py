@@ -2346,28 +2346,28 @@ class MyMAinWindow(QMainWindow):
 
     # 工具页面本地资源库点选择目录
     def pushButton_select_local_library_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_local_library_path)
         if media_folder_path:
             self.Ui.lineEdit_local_library_path.setText(media_folder_path)
             self.pushButton_save_config_clicked()
 
     # 工具页面网盘目录点选择目录
     def pushButton_select_netdisk_path_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_netdisk_path)
         if media_folder_path:
             self.Ui.lineEdit_netdisk_path.setText(media_folder_path)
             self.pushButton_save_config_clicked()
 
     # 工具页面本地目录点选择目录
     def pushButton_select_localdisk_path_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_localdisk_path)
         if media_folder_path:
             self.Ui.lineEdit_localdisk_path.setText(media_folder_path)
             self.pushButton_save_config_clicked()
 
     # 工具/设置页面点选择目录
     def pushButton_select_media_folder_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_movie_path)
         if media_folder_path:
             self.Ui.lineEdit_movie_path.setText(media_folder_path)
             self.pushButton_save_config_clicked()
@@ -2541,42 +2541,42 @@ class MyMAinWindow(QMainWindow):
     # region 选择目录
     # 设置-目录-软链接目录-点选择目录
     def pushButton_select_softlink_folder_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_movie_softlink_path)
         if media_folder_path:
             self.Ui.lineEdit_movie_softlink_path.setText(media_folder_path)
             self.pushButton_save_config_clicked()
 
     # 设置-目录-成功输出目录-点选择目录
     def pushButton_select_sucess_folder_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_success)
         if media_folder_path:
             self.Ui.lineEdit_success.setText(media_folder_path)
             self.pushButton_save_config_clicked()
 
     # 设置-目录-失败输出目录-点选择目录
     def pushButton_select_failed_folder_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_fail)
         if media_folder_path:
             self.Ui.lineEdit_fail.setText(media_folder_path)
             self.pushButton_save_config_clicked()
 
     # 设置-字幕-字幕文件目录-点选择目录
     def pushButton_select_subtitle_folder_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_sub_folder)
         if media_folder_path:
             self.Ui.lineEdit_sub_folder.setText(media_folder_path)
             self.pushButton_save_config_clicked()
 
     # 设置-头像-头像文件目录-点选择目录
     def pushButton_select_actor_photo_folder_clicked(self):
-        media_folder_path = self._get_select_folder_path()
+        media_folder_path = self._get_select_folder_path(self.Ui.lineEdit_actor_photo_folder)
         if media_folder_path:
             self.Ui.lineEdit_actor_photo_folder.setText(media_folder_path)
             self.pushButton_save_config_clicked()
 
     # 设置-其他-配置文件目录-点选择目录
     def pushButton_select_config_folder_clicked(self):
-        p = self._get_select_folder_path()
+        p = self._get_select_folder_path(self.Ui.lineEdit_config_folder)
         if not p:
             return
         p = Path(p)
@@ -3198,16 +3198,46 @@ class MyMAinWindow(QMainWindow):
 
     # region 其它
     # 点选择目录弹窗
-    def _get_select_folder_path(self):
-        media_path = self.Ui.lineEdit_movie_path.text()  # 获取待刮削目录作为打开目录
-        if not media_path:
-            media_path = manager.data_folder.as_posix()
-        else:
-            media_path = parse_media_paths(media_path)[0].as_posix()
+    def _get_select_folder_path(self, default_source: QLineEdit | str | Path | None = None):
+        media_path = self._get_select_folder_default_path(default_source).as_posix()
         media_folder_path = QFileDialog.getExistingDirectory(
             None, "选择目录", media_path, options=self.options | QFileDialog.Option.ShowDirsOnly
         )
         return media_folder_path
+
+    def _get_select_folder_default_path(self, default_source: QLineEdit | str | Path | None = None) -> Path:
+        if isinstance(default_source, QLineEdit):
+            default_text = default_source.text()
+        elif default_source is None:
+            default_text = ""
+        else:
+            default_text = str(default_source)
+
+        for path in self._iter_select_folder_candidates(default_text):
+            if path.is_dir():
+                return path
+
+        for path in self._iter_select_folder_candidates(self.Ui.lineEdit_movie_path.text()):
+            if path.is_dir():
+                return path
+
+        if manager.data_folder.is_dir():
+            return manager.data_folder
+        return Path.home()
+
+    def _iter_select_folder_candidates(self, path_text: str):
+        movie_roots = [path for path in parse_media_paths(self.Ui.lineEdit_movie_path.text()) if path.is_dir()]
+        for item in re.split(r"[;；,，]", path_text):
+            item = item.strip().strip("\"'")
+            if not item:
+                continue
+            path = Path(item)
+            if path.is_absolute():
+                yield path
+                continue
+            for movie_root in movie_roots:
+                yield movie_root / path
+            yield path
 
     # 改回接受焦点状态
     def recover_windowflags(self):
