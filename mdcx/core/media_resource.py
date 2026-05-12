@@ -34,6 +34,23 @@ class FetchedImage:
 MAX_IMAGE_PROBE_BYTES = 512 * 1024
 
 
+def _configured_retry_delays(base_delay: float) -> list[float]:
+    retry_count = max(int(manager.config.retry), 1)
+    return [base_delay * attempt for attempt in range(1, retry_count + 1)]
+
+
+def _get_header(headers: Any, name: str) -> str:
+    value = headers.get(name) if hasattr(headers, "get") else None
+    if value is not None:
+        return str(value)
+
+    normalized_name = name.lower()
+    for key, value in getattr(headers, "items", lambda: [])():
+        if str(key).lower() == normalized_name:
+            return str(value)
+    return ""
+
+
 class MediaResourceContext:
     """单次刮削媒体资源上下文，按 URL 复用已获取的内容与探测元数据。"""
 
@@ -114,8 +131,9 @@ class MediaResourceContext:
             self._validated_image_urls[normalized_url] = normalized_url
             return normalized_url
 
-        validated = await self._check_dmm_image_url(normalized_url)
-        self._validated_image_urls[normalized_url] = validated
+        validated, cacheable = await self._check_dmm_image_url(normalized_url)
+        if cacheable:
+            self._validated_image_urls[normalized_url] = validated
         if validated and validated != normalized_url:
             self._validated_image_urls[validated] = validated
         return validated
@@ -167,11 +185,12 @@ class MediaResourceContext:
             return length
 
         length = await self._fetch_content_length(normalized_url)
-        self._content_lengths[normalized_url] = length
+        if length is not None:
+            self._content_lengths[normalized_url] = length
         return length
 
     async def _fetch_content_length(self, url: str) -> int | None:
-        retry_delays = [0.5, 1.0, 1.5]
+        retry_delays = _configured_retry_delays(0.5)
         async with manager.acquire_computed() as computed:
             client = computed.async_client
             if is_dmm_image_url(url):
@@ -236,31 +255,52 @@ class MediaResourceContext:
                 await asyncio.sleep(delay)
         return None
 
-    async def _check_dmm_image_url(self, url: str) -> str | None:
+    async def _check_dmm_image_url(self, url: str) -> tuple[str | None, bool]:
         request_url, added_probe = self._build_request_url(url)
-        retry_delays = [0.6, 1.2, 1.8]
+        retry_delays = _configured_retry_delays(0.6)
         async with manager.acquire_computed() as computed:
             client = computed.async_client
             for attempt, delay in enumerate(retry_delays, start=1):
                 response, error = await client.request("GET", request_url, retry_count=1)
                 if response is None:
                     if not _should_retry_link_error(error) or attempt == len(retry_delays):
-                        return None
+                        return None, False
                     await asyncio.sleep(delay)
                     continue
 
                 true_url = normalize_media_url(str(response.url), strip_dmm_probe_params=added_probe)
-                if self._is_invalid_image_url(url, true_url):
-                    return None
+                invalid, cacheable = self._classify_invalid_validated_image_response(url, true_url, response)
+                if invalid:
+                    return None, cacheable
 
                 if _parse_content_length(response.headers.get("Content-Length")):
-                    return true_url
+                    return true_url, True
                 if response.content and len(response.content) > 0:
-                    return true_url
+                    return true_url, True
 
                 if attempt < len(retry_delays):
                     await asyncio.sleep(delay)
-        return None
+        return None, False
+
+    @classmethod
+    def _classify_invalid_validated_image_response(
+        cls,
+        request_url: str,
+        true_url: str,
+        response: Any,
+    ) -> tuple[bool, bool]:
+        normalized_true_url = normalize_media_url(true_url).lower()
+        if not normalized_true_url:
+            return True, False
+        if "login" in normalized_true_url:
+            return True, True
+        if cls._is_invalid_image_url(request_url, true_url):
+            return True, True
+
+        content_type = _get_header(getattr(response, "headers", {}), "Content-Type").lower()
+        if content_type and "image/" not in content_type:
+            return True, False
+        return False, False
 
     async def open_rgb_image(self, url: str) -> Image.Image | None:
         image = await self.fetch_image(url)

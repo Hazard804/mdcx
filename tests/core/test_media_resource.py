@@ -342,6 +342,33 @@ async def test_media_resource_context_reuses_content_length_probe(monkeypatch: p
 
 
 @pytest.mark.asyncio
+async def test_media_resource_context_does_not_cache_failed_content_length_probe(monkeypatch: pytest.MonkeyPatch):
+    calls: list[tuple[str, str]] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        calls.append((method, url))
+        return None, "HTTP 503"
+
+    async def fake_sleep(_delay: float):
+        return None
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+    monkeypatch.setattr("mdcx.core.media_resource.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr(manager.config, "retry", 1)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://example.test/cover.jpg"
+
+        assert await context.get_content_length(url) is None
+        assert await context.get_content_length(url) is None
+    finally:
+        context.close()
+
+    assert calls == [("HEAD", "https://example.test/cover.jpg"), ("HEAD", "https://example.test/cover.jpg")]
+
+
+@pytest.mark.asyncio
 async def test_media_resource_context_reuses_dmm_image_validation_without_caching_probe_bytes(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -375,3 +402,92 @@ async def test_media_resource_context_reuses_dmm_image_validation_without_cachin
         ("https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg?w=120&h=90", False),
         ("https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg", False),
     ]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_rejects_and_caches_dmm_login_redirect(monkeypatch: pytest.MonkeyPatch):
+    calls: list[str] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append(url)
+        return _FakeResponse(
+            "https://www.dmm.co.jp/login/",
+            b"<html>login</html>",
+            headers={"Content-Length": "18", "content-type": "text/html"},
+        ), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg"
+
+        assert await context.check_image_url(url) is None
+        assert await context.check_image_url(url) is None
+    finally:
+        context.close()
+
+    assert calls == ["https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg?w=120&h=90"]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_does_not_cache_transient_dmm_validation_failure(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    calls: list[str] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append(url)
+        return None, "HTTP 503"
+
+    async def fake_sleep(_delay: float):
+        return None
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+    monkeypatch.setattr("mdcx.core.media_resource.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr(manager.config, "retry", 3)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg"
+
+        assert await context.check_image_url(url) is None
+        assert await context.check_image_url(url) is None
+    finally:
+        context.close()
+
+    request_url = "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg?w=120&h=90"
+    assert calls == [request_url, request_url, request_url, request_url, request_url, request_url]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_dmm_validation_uses_configured_retry_count(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    calls: list[str] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append(url)
+        return None, "HTTP 503"
+
+    async def fake_sleep(_delay: float):
+        return None
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+    monkeypatch.setattr("mdcx.core.media_resource.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr(manager.config, "retry", 1)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg"
+
+        assert await context.check_image_url(url) is None
+        assert await context.check_image_url(url) is None
+    finally:
+        context.close()
+
+    request_url = "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg?w=120&h=90"
+    assert calls == [request_url, request_url]
