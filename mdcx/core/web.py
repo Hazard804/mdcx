@@ -334,16 +334,12 @@ async def _should_skip_amazon_for_existing_poster(
         return False
 
     if content_length < POSTER_SKIP_AMAZON_MIN_BYTES:
-        LogBuffer.log().write(
-            f"\n 🖼 Amazon搜索：当前 Poster 大小({content_length // 1024}KB)低于阈值，继续搜索高清图"
-        )
+        LogBuffer.log().write(f"\n 🖼 Amazon搜索：当前 Poster 大小({content_length // 1024}KB)低于阈值，继续搜索高清图")
         return False
 
     if result.scraping_type == FixedScrapingType.YOUMA and not poster_auto_best:
         result.image_download = True
-    LogBuffer.log().write(
-        f"\n 🖼 Amazon搜索：当前 Poster 已足够清晰({content_length // 1024}KB)，跳过 Amazon"
-    )
+    LogBuffer.log().write(f"\n 🖼 Amazon搜索：当前 Poster 已足够清晰({content_length // 1024}KB)，跳过 Amazon")
     return True
 
 

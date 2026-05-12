@@ -178,7 +178,7 @@ class Scraper:
         # 获取设置的媒体目录、失败目录、成功目录
         path_settings = get_movie_path_setting()
         movie_path = path_settings.movie_path
-        movie_paths = path_settings.movie_paths
+        movie_paths = getattr(path_settings, "movie_paths", [movie_path])
 
         # 获取待刮削文件列表的相关信息
         if not movie_list:
@@ -237,7 +237,9 @@ class Scraper:
 
         signal.show_log_text("================================================================================")
         for media_path in movie_paths:
-            current_paths = get_movie_path_setting(movie_path_override=media_path)
+            current_paths = (
+                path_settings if media_path == movie_path else get_movie_path_setting(movie_path_override=media_path)
+            )
             clean_path = current_paths.softlink_path if manager.config.scrape_softlink_path else media_path
             await _clean_empty_fodlers(clean_path, file_mode)
         end_time = time.time()
@@ -817,14 +819,18 @@ class Scraper:
         # 如果 final_pic_path 没处理过，这时才需要下载和加水印
         if pic_final_catched and file_can_download:
             # 下载thumb
-            if not await thumb_download(res, other, file_info.cd_part, folder_new_path, thumb_final_path, media_context):
+            if not await thumb_download(
+                res, other, file_info.cd_part, folder_new_path, thumb_final_path, media_context
+            ):
                 return None, None
 
             # 下载艺术图
             await fanart_download(res.number, other, file_info.cd_part, fanart_final_path)
 
             # 下载poster
-            if not await poster_download(res, other, file_info.cd_part, folder_new_path, poster_final_path, media_context):
+            if not await poster_download(
+                res, other, file_info.cd_part, folder_new_path, poster_final_path, media_context
+            ):
                 return None, None
 
             # 清理冗余图片

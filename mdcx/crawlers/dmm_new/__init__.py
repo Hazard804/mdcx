@@ -194,9 +194,7 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
 
         media_context = getattr(ctx.input, "media_context", None)
         validated = (
-            await media_context.check_image_url(preferred)
-            if media_context is not None
-            else await check_url(preferred)
+            await media_context.check_image_url(preferred) if media_context is not None else await check_url(preferred)
         )
         if not validated:
             ctx.debug(f"{label} 抽检失败，回退全量校验: {preferred}")

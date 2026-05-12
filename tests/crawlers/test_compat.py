@@ -1,36 +1,20 @@
-from mdcx.crawlers.base.compat import _select_language_payload
-
 from mdcx.config.models import Language
+from mdcx.crawlers.javlibrary import language_path, normalize_language
 
 
-def test_select_language_payload_prefers_requested_language():
-    payloads = {
-        "jp": {"title": "jp", "outline": "jp"},
-        "zh_cn": {"title": "zh_cn", "outline": "zh_cn"},
-        "zh_tw": {"title": "zh_tw", "outline": "zh_tw"},
-    }
-
-    res = _select_language_payload(payloads, Language.ZH_CN, Language.ZH_CN)
-
-    assert res["title"] == "zh_cn"
+def test_normalize_language_keeps_language_enum():
+    assert normalize_language(Language.ZH_CN) is Language.ZH_CN
 
 
-def test_select_language_payload_falls_back_to_other_chinese_variant():
-    payloads = {
-        "jp": {"title": "jp", "outline": "jp"},
-        "zh_tw": {"title": "zh_tw", "outline": "zh_tw"},
-    }
-
-    res = _select_language_payload(payloads, Language.ZH_CN, Language.ZH_CN)
-
-    assert res["title"] == "zh_tw"
+def test_normalize_language_accepts_language_value():
+    assert normalize_language("zh_tw") is Language.ZH_TW
 
 
-def test_select_language_payload_keeps_single_language_behavior():
-    payloads = {
-        "zh_cn": {"title": "only", "outline": "only"},
-    }
+def test_normalize_language_keeps_unknown_language_value():
+    assert normalize_language("unknown") is Language.UNKNOWN
 
-    res = _select_language_payload(payloads, Language.JP, Language.UNDEFINED)
 
-    assert res["title"] == "only"
+def test_language_path_maps_supported_javlibrary_languages():
+    assert language_path(Language.ZH_CN) == "cn"
+    assert language_path(Language.ZH_TW) == "tw"
+    assert language_path(Language.JP) == "ja"

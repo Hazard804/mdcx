@@ -529,7 +529,7 @@ class Website(Enum):
 
     @classmethod
     def __get_pydantic_json_schema__(cls, core_schema, handler):
-        json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
+        json_schema = handler(core_schema)
         try:
             from mdcx.crawlers import get_registered_crawler_site_values
 
