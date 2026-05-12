@@ -185,6 +185,30 @@ async def test_media_resource_context_adds_probe_params_for_dmm_aws_image_probe(
 
 
 @pytest.mark.asyncio
+async def test_media_resource_context_can_probe_original_dmm_aws_image_size(monkeypatch: pytest.MonkeyPatch):
+    calls: list[str] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append(url)
+        if "w=120" in url:
+            return _FakeResponse(url, _jpeg_bytes((63, 90))), ""
+        return _FakeResponse(url, _jpeg_bytes((1518, 2149))), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg"
+
+        assert await context.probe_original_size(url) == (1518, 2149)
+    finally:
+        context.close()
+
+    assert calls == ["https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg"]
+
+
+@pytest.mark.asyncio
 async def test_media_resource_context_saves_original_dmm_image_after_probe(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

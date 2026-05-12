@@ -38,6 +38,10 @@ def _save_test_image(path: Path, size: tuple[int, int]):
     Image.new("RGB", size, "white").save(path, format="JPEG")
 
 
+async def _async_chunk(content: bytes) -> bytes:
+    return content
+
+
 @pytest.fixture(autouse=True)
 def _reset_amazon_strict_pic_verify(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(manager.config, "amazon_strict_pic_verify", False)
@@ -125,6 +129,62 @@ async def test_poster_auto_best_removes_failed_candidate_and_reselects(monkeypat
     assert result.poster == "https://example.test/second.jpg"
     assert result.poster_from == "second"
     assert other.poster_path == poster_path
+
+
+@pytest.mark.asyncio
+async def test_poster_auto_best_uses_original_dmm_poster_size(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    async def fake_get_big_poster(*args, **kwargs):
+        return None
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        if "w=120" in url:
+            pytest.fail("poster选优不应使用DMM缩略探测尺寸")
+        size = (1518, 2149) if url.endswith("ps.jpg") else (2184, 1541)
+        output = tmp_path / ("poster-source.jpg" if url.endswith("ps.jpg") else "thumb-source.jpg")
+        _save_test_image(output, size)
+        return type(
+            "FakeResponse",
+            (),
+            {
+                "url": url,
+                "content": output.read_bytes(),
+                "status_code": 200,
+                "iter_content": lambda self, chunk_size: iter([_async_chunk(self.content[:chunk_size])]),
+            },
+        )(), ""
+
+    async def fake_close_response(response):
+        return None
+
+    monkeypatch.setattr(
+        manager.config,
+        "download_files",
+        [DownloadableFile.POSTER, DownloadableFile.THUMB, DownloadableFile.POSTER_AUTO_BEST],
+    )
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr("mdcx.core.web._get_big_poster", fake_get_big_poster)
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+    monkeypatch.setattr(manager.computed.async_client, "_close_response", fake_close_response)
+
+    thumb_path = tmp_path / "thumb.jpg"
+    _save_test_image(thumb_path, (2184, 1541))
+
+    result = CrawlersResult.empty()
+    result.number = "SDJS-093"
+    result.scraping_type = FixedScrapingType.YOUMA
+    result.poster = "https://awsimgsrc.dmm.co.jp/pics_dig/digital/video/1sdjs00093/1sdjs00093ps.jpg"
+    result.poster_from = "avbase"
+    other = OtherInfo.empty()
+    other.thumb_path = thumb_path
+
+    poster_path = tmp_path / "poster.jpg"
+    assert await poster_download(result, other, "", tmp_path, poster_path) is True
+    assert result.poster_from == "avbase"
+    assert other.poster_path == poster_path
+
+    with Image.open(poster_path) as img:
+        assert img.size == (1518, 2149)
 
 
 @pytest.mark.asyncio

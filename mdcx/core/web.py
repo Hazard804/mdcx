@@ -118,7 +118,7 @@ async def _cleanup_download_part_files(*file_paths: Path) -> None:
 
 async def _get_image_size(url: str, media_context: MediaResourceContext | None = None) -> tuple[int, int]:
     if media_context is not None:
-        return await media_context.probe_size(url)
+        return await media_context.probe_original_size(url)
     return await get_imgsize(url)
 
 

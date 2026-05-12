@@ -78,6 +78,13 @@ class MediaResourceContext:
 
     async def probe_size(self, url: str) -> tuple[int, int]:
         """轻量探测图片尺寸，不缓存完整内容。"""
+        return await self._probe_size(url, use_dmm_probe=True)
+
+    async def probe_original_size(self, url: str) -> tuple[int, int]:
+        """探测原图尺寸，不使用 DMM 缩略参数。"""
+        return await self._probe_size(url, use_dmm_probe=False)
+
+    async def _probe_size(self, url: str, *, use_dmm_probe: bool) -> tuple[int, int]:
         normalized_url = self.normalize_url(url)
         if not normalized_url:
             return 0, 0
@@ -85,7 +92,7 @@ class MediaResourceContext:
         if cached is not None:
             return cached.size
 
-        request_url, added_probe = self._build_request_url(normalized_url)
+        request_url, added_probe = self._build_request_url(normalized_url) if use_dmm_probe else (normalized_url, False)
         async with manager.acquire_computed() as computed:
             client = computed.async_client
             response, error = await client.request("GET", request_url, stream=True)
