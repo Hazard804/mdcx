@@ -9,9 +9,10 @@ from mdcx.core.media_resource import MediaResourceContext
 
 
 class _FakeResponse:
-    def __init__(self, url: str, content: bytes = b""):
+    def __init__(self, url: str, content: bytes = b"", headers: dict[str, str] | None = None):
         self.url = url
         self.content = content
+        self.headers = headers or {}
         self.status_code = 200
 
     def iter_content(self, chunk_size: int):
@@ -270,3 +271,71 @@ async def test_media_resource_context_probe_size_does_not_cache_full_image(
         ("https://example.test/probe.jpg", True),
         ("https://example.test/probe.jpg", False),
     ]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_reuses_probe_size(monkeypatch: pytest.MonkeyPatch):
+    calls: list[tuple[str, bool]] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append((url, bool(kwargs.get("stream"))))
+        return _FakeResponse(url, _jpeg_bytes((120, 180))), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://example.test/poster.jpg"
+
+        assert await context.probe_original_size(url) == (120, 180)
+        assert await context.probe_original_size(url) == (120, 180)
+    finally:
+        context.close()
+
+    assert calls == [("https://example.test/poster.jpg", True)]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_reuses_full_image_for_content_length(monkeypatch: pytest.MonkeyPatch):
+    calls: list[tuple[str, str]] = []
+    content = _jpeg_bytes((16, 24))
+
+    async def fake_request(method: str, url: str, **kwargs):
+        calls.append((method, url))
+        return _FakeResponse(url, content), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://example.test/cover.jpg"
+
+        assert await context.fetch_bytes(url) == content
+        assert await context.get_content_length(url) == len(content)
+    finally:
+        context.close()
+
+    assert calls == [("GET", "https://example.test/cover.jpg")]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_reuses_content_length_probe(monkeypatch: pytest.MonkeyPatch):
+    calls: list[tuple[str, str]] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        calls.append((method, url))
+        return _FakeResponse(url, headers={"Content-Length": "12345"}), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://example.test/cover.jpg"
+
+        assert await context.get_content_length(url) == 12345
+        assert await context.get_content_length(url) == 12345
+    finally:
+        context.close()
+
+    assert calls == [("HEAD", "https://example.test/cover.jpg")]

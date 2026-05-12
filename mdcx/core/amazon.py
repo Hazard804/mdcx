@@ -511,6 +511,12 @@ def _detect_amazon_barcode_from_image_bytes(image_bytes: bytes) -> str:
     return barcode
 
 
+async def _get_image_size(url: str, media_context: MediaResourceContext | None = None) -> tuple[int, int]:
+    if media_context is not None:
+        return await media_context.probe_original_size(url)
+    return await get_imgsize(url)
+
+
 async def try_get_amazon_barcodes_from_covers(
     result: CrawlersResult,
     media_context: MediaResourceContext | None = None,
@@ -1133,7 +1139,7 @@ async def get_big_pic_by_amazon(
         fallback_candidates = sorted(fallback_candidates, key=lambda item: item[0], reverse=True)
         best_fallback_match: tuple[tuple[int, float, int], str, str, str, int] | None = None
         for current_match, matched_url, matched_title, matched_actor in fallback_candidates:
-            width, _ = await get_imgsize(matched_url)
+            width, _ = await _get_image_size(matched_url, media_context)
             width = width or 0
             if best_fallback_match is None:
                 best_fallback_match = (current_match, matched_url, matched_title, matched_actor, width)
@@ -1505,7 +1511,7 @@ async def get_big_pic_by_amazon(
             accepted_candidates: list[dict[str, object]] = []
             for each_candidate in probe_candidates:
                 await enrich_candidate(each_candidate)
-                width, _ = await get_imgsize(str(each_candidate["url"]))
+                width, _ = await _get_image_size(str(each_candidate["url"]), media_context)
                 each_candidate["width"] = width or 0
                 if bool(each_candidate.get("detail_barcode_match")):
                     confirmed_candidates.append(each_candidate)
@@ -1681,7 +1687,7 @@ async def get_big_pic_by_amazon(
             ]
             best_fallback_candidate: dict[str, object] | None = None
             for each_candidate in probe_candidates:
-                width, _ = await get_imgsize(str(each_candidate["url"]))
+                width, _ = await _get_image_size(str(each_candidate["url"]), media_context)
                 each_candidate["width"] = width or 0
                 if best_fallback_candidate is None:
                     best_fallback_candidate = each_candidate

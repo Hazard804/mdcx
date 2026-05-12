@@ -2,6 +2,7 @@
 刮削流程内的媒体资源获取与内存复用。
 """
 
+import asyncio
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -11,7 +12,14 @@ import aiofiles
 import aiofiles.os
 from PIL import Image
 
-from ..base.web import _build_dmm_probe_url, _is_invalid_image_redirect_url, is_dmm_image_url, normalize_media_url
+from ..base.web import (
+    _build_dmm_probe_url,
+    _is_invalid_image_redirect_url,
+    _parse_content_length,
+    _should_retry_link_error,
+    is_dmm_image_url,
+    normalize_media_url,
+)
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 
@@ -23,14 +31,21 @@ class FetchedImage:
     size: tuple[int, int] = (0, 0)
 
 
+MAX_IMAGE_PROBE_BYTES = 512 * 1024
+
+
 class MediaResourceContext:
-    """单次刮削图片资源上下文，按 URL 复用已获取的图片内容。"""
+    """单次刮削媒体资源上下文，按 URL 复用已获取的内容与探测元数据。"""
 
     def __init__(self):
         self._images: dict[str, FetchedImage] = {}
+        self._image_sizes: dict[tuple[str, bool], tuple[int, int]] = {}
+        self._content_lengths: dict[str, int | None] = {}
 
     def close(self) -> None:
         self._images.clear()
+        self._image_sizes.clear()
+        self._content_lengths.clear()
 
     @staticmethod
     def normalize_url(url: str) -> str:
@@ -64,8 +79,10 @@ class MediaResourceContext:
 
         image = FetchedImage(true_url, response.content, await self._read_size(response.content))
         self._images[normalized_url] = image
+        self._image_sizes[(normalized_url, False)] = image.size
         if true_url != normalized_url:
             self._images[true_url] = image
+            self._image_sizes[(true_url, False)] = image.size
         return image
 
     async def fetch_bytes(self, url: str) -> bytes | None:
@@ -88,6 +105,9 @@ class MediaResourceContext:
         normalized_url = self.normalize_url(url)
         if not normalized_url:
             return 0, 0
+        cache_key = (normalized_url, use_dmm_probe)
+        if cache_key in self._image_sizes:
+            return self._image_sizes[cache_key]
         cached = self._images.get(normalized_url)
         if cached is not None:
             return cached.size
@@ -105,10 +125,97 @@ class MediaResourceContext:
             try:
                 if self._is_invalid_image_url(normalized_url, true_url):
                     LogBuffer.log().write(f"\n 💡 图片已失效: {true_url}")
+                    self._image_sizes[cache_key] = (0, 0)
                     return 0, 0
-                return await self._read_stream_size(response)
+                size = await self._read_stream_size(response)
+                self._image_sizes[cache_key] = size
+                true_cache_key = (true_url, use_dmm_probe)
+                self._image_sizes[true_cache_key] = size
+                return size
             finally:
                 await client._close_response(response)
+
+    async def get_content_length(self, url: str) -> int | None:
+        normalized_url = self.normalize_url(url)
+        if not normalized_url:
+            return None
+        if normalized_url in self._content_lengths:
+            return self._content_lengths[normalized_url]
+        cached = self._images.get(normalized_url)
+        if cached is not None:
+            length = len(cached.content)
+            self._content_lengths[normalized_url] = length
+            return length
+
+        length = await self._fetch_content_length(normalized_url)
+        self._content_lengths[normalized_url] = length
+        return length
+
+    async def _fetch_content_length(self, url: str) -> int | None:
+        retry_delays = [0.5, 1.0, 1.5]
+        async with manager.acquire_computed() as computed:
+            client = computed.async_client
+            if is_dmm_image_url(url):
+                return await self._fetch_dmm_content_length(client, url, retry_delays)
+
+            for attempt, delay in enumerate(retry_delays, start=1):
+                response, error = await client.request("HEAD", url, retry_count=1)
+                if response is not None:
+                    if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                        return content_length
+                elif "HTTP 405" in str(error):
+                    break
+                elif not _should_retry_link_error(error) or attempt == len(retry_delays):
+                    return None
+
+                if attempt < len(retry_delays):
+                    await asyncio.sleep(delay)
+
+            for attempt, delay in enumerate(retry_delays, start=1):
+                response, error = await client.request("GET", url, retry_count=1)
+                if response is None:
+                    if not _should_retry_link_error(error) or attempt == len(retry_delays):
+                        return None
+                    await asyncio.sleep(delay)
+                    continue
+
+                if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                    return content_length
+                if response.content and len(response.content) > 0:
+                    return len(response.content)
+
+                if attempt < len(retry_delays):
+                    await asyncio.sleep(delay)
+        return None
+
+    async def _fetch_dmm_content_length(self, client: Any, url: str, retry_delays: list[float]) -> int | None:
+        for attempt, delay in enumerate(retry_delays, start=1):
+            response, error = await client.request("GET", url, retry_count=1)
+            if response is None:
+                if not _should_retry_link_error(error) or attempt == len(retry_delays):
+                    return None
+                await asyncio.sleep(delay)
+                continue
+
+            true_url = normalize_media_url(str(response.url))
+            if true_url and true_url != url and true_url not in self._content_lengths:
+                self._content_lengths[true_url] = None
+            if self._is_invalid_image_url(url, true_url):
+                return None
+
+            if content_length := _parse_content_length(response.headers.get("Content-Length")):
+                if true_url:
+                    self._content_lengths[true_url] = content_length
+                return content_length
+            if response.content and len(response.content) > 0:
+                content_length = len(response.content)
+                if true_url:
+                    self._content_lengths[true_url] = content_length
+                return content_length
+
+            if attempt < len(retry_delays):
+                await asyncio.sleep(delay)
+        return None
 
     async def open_rgb_image(self, url: str) -> Image.Image | None:
         image = await self.fetch_image(url)
@@ -158,6 +265,8 @@ class MediaResourceContext:
                 return 0, 0
             for chunk in response.iter_content(chunk_size):
                 file_head.write(await chunk)
+                if file_head.tell() > MAX_IMAGE_PROBE_BYTES:
+                    return 0, 0
                 try:
                     with Image.open(file_head) as img:
                         return img.size

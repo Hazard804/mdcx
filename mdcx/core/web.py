@@ -324,7 +324,11 @@ async def _should_skip_amazon_for_existing_poster(
         LogBuffer.log().write("\n 🖼 Amazon搜索：当前 Poster 尺寸未知，继续搜索高清图")
         return False
 
-    content_length = await get_url_content_length(result.poster)
+    content_length = (
+        await media_context.get_content_length(result.poster)
+        if media_context is not None
+        else await get_url_content_length(result.poster)
+    )
     if not content_length:
         LogBuffer.log().write("\n 🖼 Amazon搜索：当前 Poster 大小未知，继续搜索高清图")
         return False
