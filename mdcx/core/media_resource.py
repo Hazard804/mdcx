@@ -164,6 +164,12 @@ class MediaResourceContext:
                     LogBuffer.log().write(f"\n 💡 图片已失效: {true_url}")
                     self._image_sizes[cache_key] = (0, 0)
                     return 0, 0
+                if not added_probe and (
+                    content_length := _parse_content_length(response.headers.get("Content-Length"))
+                ):
+                    self._content_lengths[normalized_url] = content_length
+                    if true_url:
+                        self._content_lengths[true_url] = content_length
                 size = await self._read_stream_size(response)
                 self._image_sizes[cache_key] = size
                 true_cache_key = (true_url, use_dmm_probe)

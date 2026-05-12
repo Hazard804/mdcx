@@ -297,6 +297,57 @@ async def test_media_resource_context_reuses_probe_size(monkeypatch: pytest.Monk
 
 
 @pytest.mark.asyncio
+async def test_media_resource_context_reuses_probe_content_length(monkeypatch: pytest.MonkeyPatch):
+    calls: list[tuple[str, str, bool]] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        calls.append((method, url, bool(kwargs.get("stream"))))
+        return _FakeResponse(url, _jpeg_bytes((120, 180)), headers={"Content-Length": "23456"}), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://example.test/poster.jpg"
+
+        assert await context.probe_original_size(url) == (120, 180)
+        assert await context.get_content_length(url) == 23456
+    finally:
+        context.close()
+
+    assert calls == [("GET", "https://example.test/poster.jpg", True)]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_does_not_reuse_dmm_thumbnail_probe_content_length(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    calls: list[tuple[str, str, bool]] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        calls.append((method, url, bool(kwargs.get("stream"))))
+        if "w=120" in url:
+            return _FakeResponse(url, _jpeg_bytes((120, 90)), headers={"Content-Length": "1234"}), ""
+        return _FakeResponse(url, headers={"Content-Length": "23456"}), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg"
+
+        assert await context.probe_size(url) == (120, 90)
+        assert await context.get_content_length(url) == 23456
+    finally:
+        context.close()
+
+    assert calls == [
+        ("GET", "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg?w=120&h=90", True),
+        ("GET", "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg", False),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_media_resource_context_reuses_full_image_for_content_length(monkeypatch: pytest.MonkeyPatch):
     calls: list[tuple[str, str]] = []
     content = _jpeg_bytes((16, 24))

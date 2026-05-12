@@ -10,6 +10,7 @@ from mdcx.config.enums import DownloadableFile, FixedScrapingType, HDPicSource
 from mdcx.config.manager import manager
 from mdcx.core.image import cut_thumb_to_poster
 from mdcx.core.web import (
+    PosterCandidate,
     _beam_search_amazon_ean13_from_ranked_digits,
     _extract_amazon_barcode_label_roi,
     _get_big_poster,
@@ -893,6 +894,48 @@ async def test_get_big_poster_auto_best_checks_size_without_youma_crop_compare(
     assert called is False
     assert result.poster == "https://example.test/direct.jpg"
     assert result.poster_from == "crawler"
+
+
+@pytest.mark.asyncio
+async def test_get_big_poster_auto_best_returns_amazon_candidate_without_replacing_poster(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
+        result.amazon_match_is_hard = True
+        return "https://m.media-amazon.com/images/I/81poster.jpg"
+
+    async def fake_get_image_size(url: str, media_context=None):
+        assert url == "https://example.test/direct.jpg"
+        return 200, 300
+
+    async def fake_get_url_content_length(url: str):
+        assert url == "https://example.test/direct.jpg"
+        return 300 * 1024
+
+    thumb_path = tmp_path / "thumb.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+    monkeypatch.setattr("mdcx.core.web._get_image_size", fake_get_image_size)
+    monkeypatch.setattr("mdcx.core.web.get_url_content_length", fake_get_url_content_length)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "有码"
+    result.scraping_type = FixedScrapingType.YOUMA
+    result.originaltitle_amazon = "测试标题"
+    result.poster = "https://example.test/direct.jpg"
+    result.poster_from = "crawler"
+    result.image_download = False
+    other = OtherInfo.empty()
+    other.thumb_path = thumb_path
+
+    candidate = await _get_big_poster(result, other, poster_auto_best=True)
+
+    assert candidate == PosterCandidate("Amazon", "https://m.media-amazon.com/images/I/81poster.jpg", True)
+    assert result.poster == "https://example.test/direct.jpg"
+    assert result.poster_from == "crawler"
+    assert result.image_download is False
 
 
 @pytest.mark.asyncio

@@ -657,6 +657,7 @@ async def _get_big_poster(
     # 初始化数据
     poster_url = result.poster
     poster_from_before_amazon = result.poster_from
+    image_download_before_amazon = result.image_download
     hd_pic_url = ""
 
     # 保持原有类型白名单，仅额外排除素人番号
@@ -700,15 +701,25 @@ async def _get_big_poster(
                 strict=manager.config.amazon_strict_pic_verify,
             )
             if amazon_verify_passed:
-                result.poster = amazon_url
-                result.poster_from = "Amazon"
-                result.image_download = True
-                hd_pic_url = amazon_url if amazon_is_hd else ""
+                if poster_auto_best:
+                    result.poster = poster_url
+                    result.poster_from = poster_from_before_amazon
+                    result.image_download = image_download_before_amazon
+                    hd_pic_url = amazon_url if amazon_is_hd else ""
+                    if hd_pic_url:
+                        LogBuffer.log().write(f"\n 🖼 HD Poster found! (Amazon)({get_used_time(start_time)}s)")
+                    return PosterCandidate("Amazon", amazon_url, True)
+                else:
+                    result.poster = amazon_url
+                    result.poster_from = "Amazon"
+                    result.image_download = True
+                    hd_pic_url = amazon_url if amazon_is_hd else ""
             else:
                 hd_pic_url = ""
                 if result.poster_from == "Amazon":
                     result.poster = poster_url
                     result.poster_from = poster_from_before_amazon
+                    result.image_download = image_download_before_amazon
 
     # 如果找到了高清链接，则替换
     if hd_pic_url:
@@ -1013,7 +1024,7 @@ async def poster_download(
         )
 
     # 获取高清 poster
-    await _get_big_poster(result, other, media_context, poster_auto_best=poster_auto_best)
+    amazon_poster_candidate = await _get_big_poster(result, other, media_context, poster_auto_best=poster_auto_best)
     if _is_vr_result(result) and result.poster:
         result.image_download = True
         if poster_auto_best:
@@ -1029,7 +1040,10 @@ async def poster_download(
     poster_candidates = await _build_poster_candidates(
         result,
         poster_auto_best=poster_auto_best,
-        extra_candidates=direct_poster_candidates,
+        extra_candidates=[
+            *direct_poster_candidates,
+            *([amazon_poster_candidate] if isinstance(amazon_poster_candidate, PosterCandidate) else []),
+        ],
         media_context=media_context,
     )
     if poster_auto_best and not _is_vr_result(result):
