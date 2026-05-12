@@ -2575,17 +2575,32 @@
                         <item row="1" column="1">
                           <widget class="QLabel" name="label_56">
                             <property name="sizePolicy">
-                              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                                 <horstretch>0</horstretch>
                                 <verstretch>0</verstretch>
                               </sizepolicy>
+                            </property>
+                            <property name="minimumSize">
+                              <size>
+                                <width>0</width>
+                                <height>32</height>
+                              </size>
+                            </property>
+                            <property name="maximumSize">
+                              <size>
+                                <width>16777215</width>
+                                <height>36</height>
+                              </size>
                             </property>
                             <property name="styleSheet">
                               <string notr="true">color: rgb(8, 128, 128);</string>
                             </property>
                             <property name="text">
-                              <string>可填写一个或多个含视频的文件夹，多个目录请用英文分号 ; 或中文分号 ；分隔。
-将刮削各目录（含子目录）中的视频元数据。</string>
+                              <string>可填一个或多个视频目录，多个目录用英文 ; 或中文 ；分隔。
+刮削各目录（含子目录）中的视频元数据。</string>
+                            </property>
+                            <property name="alignment">
+                              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                             </property>
                             <property name="wordWrap">
                               <bool>true</bool>
