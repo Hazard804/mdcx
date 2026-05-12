@@ -21,6 +21,7 @@ from ..base.web import (
     download_file_with_filepath,
     get_dmm_trailer,
     get_imgsize,
+    get_url_content_length,
 )
 from ..config.enums import DownloadableFile, FixedScrapingType, HDPicSource, KeepableFile
 from ..config.manager import manager
@@ -65,6 +66,7 @@ POSTER_DIRECT_DOWNLOAD_TYPES = {
 }
 POSTER_AUTO_BEST_MIN_CROP_AREA_RATIO = 0.70
 POSTER_AUTO_BEST_MIN_CROP_HEIGHT_RATIO = 0.80
+POSTER_SKIP_AMAZON_MIN_BYTES = 400 * 1024
 
 
 @dataclass(frozen=True)
@@ -275,6 +277,70 @@ async def _select_poster_auto_best(
     result.poster_from = best_from
     result.image_download = True
     LogBuffer.log().write(f"\n 🖼 Poster选优: 使用 {best_from} {best_size}")
+
+
+async def _is_existing_poster_better_than_youma_crop(
+    result: CrawlersResult,
+    other: OtherInfo,
+    media_context: MediaResourceContext | None = None,
+) -> bool:
+    poster_size = await _get_image_size(result.poster, media_context)
+    if not _is_known_image_size(poster_size):
+        LogBuffer.log().write("\n 🖼 Amazon搜索：当前 Poster 尺寸未知，继续搜索高清图")
+        return False
+
+    crop_size = await _get_thumb_right_crop_size_from_path(other.fanart_path or other.thumb_path)
+    if not _is_known_image_size(crop_size):
+        return True
+
+    poster_area = _image_area(poster_size)
+    crop_area = _image_area(crop_size)
+    if (
+        poster_area < crop_area * POSTER_AUTO_BEST_MIN_CROP_AREA_RATIO
+        or poster_size[1] < crop_size[1] * POSTER_AUTO_BEST_MIN_CROP_HEIGHT_RATIO
+    ):
+        LogBuffer.log().write(
+            f"\n 🖼 Amazon搜索：当前 Poster{poster_size} 明显小于 thumb 右裁剪{crop_size}，继续搜索高清图"
+        )
+        return False
+
+    return True
+
+
+async def _should_skip_amazon_for_existing_poster(
+    result: CrawlersResult,
+    other: OtherInfo,
+    *,
+    poster_auto_best: bool = False,
+    media_context: MediaResourceContext | None = None,
+) -> bool:
+    if not result.poster or result.poster_from == "Amazon":
+        return False
+
+    if result.scraping_type == FixedScrapingType.YOUMA and not poster_auto_best:
+        if not await _is_existing_poster_better_than_youma_crop(result, other, media_context):
+            return False
+    elif not _is_known_image_size(await _get_image_size(result.poster, media_context)):
+        LogBuffer.log().write("\n 🖼 Amazon搜索：当前 Poster 尺寸未知，继续搜索高清图")
+        return False
+
+    content_length = await get_url_content_length(result.poster)
+    if not content_length:
+        LogBuffer.log().write("\n 🖼 Amazon搜索：当前 Poster 大小未知，继续搜索高清图")
+        return False
+
+    if content_length < POSTER_SKIP_AMAZON_MIN_BYTES:
+        LogBuffer.log().write(
+            f"\n 🖼 Amazon搜索：当前 Poster 大小({content_length // 1024}KB)低于阈值，继续搜索高清图"
+        )
+        return False
+
+    if result.scraping_type == FixedScrapingType.YOUMA and not poster_auto_best:
+        result.image_download = True
+    LogBuffer.log().write(
+        f"\n 🖼 Amazon搜索：当前 Poster 已足够清晰({content_length // 1024}KB)，跳过 Amazon"
+    )
+    return True
 
 
 def _prepare_similarity_image(img: Image.Image) -> Image.Image:
@@ -580,6 +646,8 @@ async def _get_big_poster(
     result: CrawlersResult,
     other: OtherInfo,
     media_context: MediaResourceContext | None = None,
+    *,
+    poster_auto_best: bool = False,
 ):
     start_time = time.time()
 
@@ -595,6 +663,13 @@ async def _get_big_poster(
     if result.scraping_type == FixedScrapingType.SUREN:
         LogBuffer.log().write("\n 🔎 Amazon搜索：检测为素人番号，已跳过")
     elif _should_search_amazon(result):
+        if await _should_skip_amazon_for_existing_poster(
+            result,
+            other,
+            poster_auto_best=poster_auto_best,
+            media_context=media_context,
+        ):
+            return result
         originaltitle_amazon_raw = result.originaltitle_amazon
         originaltitle_amazon_replaced = originaltitle_amazon_raw
         series_raw = result.series
@@ -853,6 +928,18 @@ async def _download_poster_candidate(
     return True
 
 
+async def _allow_youma_direct_poster_without_auto_best(
+    result: CrawlersResult,
+    other: OtherInfo,
+    media_context: MediaResourceContext | None = None,
+) -> None:
+    if result.scraping_type != FixedScrapingType.YOUMA or result.image_download or not result.poster:
+        return
+    if await _is_existing_poster_better_than_youma_crop(result, other, media_context):
+        result.image_download = True
+        LogBuffer.log().write("\n 🖼 Poster策略: 当前 Poster 不弱于 thumb 右裁剪，允许直下")
+
+
 async def poster_download(
     result: CrawlersResult,
     other: OtherInfo,
@@ -926,11 +1013,13 @@ async def poster_download(
         )
 
     # 获取高清 poster
-    await _get_big_poster(result, other, media_context)
+    await _get_big_poster(result, other, media_context, poster_auto_best=poster_auto_best)
     if _is_vr_result(result) and result.poster:
         result.image_download = True
         if poster_auto_best:
             LogBuffer.log().write("\n 🖼 Poster选优: VR作品保持直下 Poster 策略")
+    if not poster_auto_best:
+        await _allow_youma_direct_poster_without_auto_best(result, other, media_context)
 
     # 下载图片
     poster_final_path_temp = poster_final_path
