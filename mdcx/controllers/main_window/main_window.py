@@ -1,3 +1,4 @@
+import html
 import os
 import re
 import shutil
@@ -47,6 +48,7 @@ from mdcx.config.extend import deal_url, get_movie_path_setting
 from mdcx.config.manager import manager
 from mdcx.config.resources import resources
 from mdcx.consts import GITHUB_ISSUES_URL, GITHUB_RELEASES_URL, IS_WINDOWS, LOCAL_VERSION
+from mdcx.core.naming import NameRenderOptions, NamingTarget, render_name
 from mdcx.core.network_check import run_network_check
 from mdcx.core.nfo import write_nfo
 from mdcx.core.scraper import again_search, get_remain_list, start_new_scrape
@@ -209,6 +211,7 @@ class MyMAinWindow(QMainWindow):
         self.Init_Singal()  # 信号连接
         self.Init_Ui()  # 设置Ui初始状态
         self.load_config()  # 加载配置
+        self._setup_name_template_preview()
         get_success_list()  # 获取历史成功刮削列表
         # endregion
 
@@ -227,6 +230,74 @@ class MyMAinWindow(QMainWindow):
         self.pushButton_main_clicked()  # 切换到主界面
         self.auto_start()  # 自动开始刮削
         # endregion
+
+    def _setup_name_template_preview(self) -> None:
+        self.Ui.plainTextEdit_name_template_preview.setPlainText(
+            self.Ui.lineEdit_media_name.text()
+            or "{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }}"
+        )
+        self.Ui.plainTextEdit_name_template_preview.textChanged.connect(self._update_name_template_preview)
+        self._update_name_template_preview()
+
+    def _build_name_preview_sample(self) -> tuple[FileInfo, CrawlersResult]:
+        file_info = FileInfo.empty()
+        file_info.number = "ABC-123"
+        file_info.file_path = Path("D:/Media/Input/ABC-123.mp4")
+        file_info.folder_path = file_info.file_path.parent
+        file_info.file_name = "ABC-123"
+        file_info.definition = "4K"
+        file_info.c_word = "-中字"
+        file_info.wuma = "-无码"
+
+        result = CrawlersResult.empty()
+        result.number = "ABC-123"
+        result.title = "中文标题"
+        result.originaltitle = "Original Title"
+        result.actors = ["演员A", "演员B"]
+        result.all_actors = ["演员A", "演员B", "男演员C"]
+        result.directors = ["导演A"]
+        result.series = "系列A"
+        result.studio = "Studio A"
+        result.publisher = "发行商A"
+        result.release = "2024-01-02"
+        result.runtime = "120"
+        result.mosaic = "有码"
+        result.letters = "ABC"
+        result.wanted = "123"
+        result.score = "4.5"
+        result.outline = "示例简介"
+        return file_info, result
+
+    def _update_name_template_preview(self) -> None:
+        template = self.Ui.plainTextEdit_name_template_preview.toPlainText()
+        if not template.strip():
+            self.Ui.label_name_template_preview_result.setText("状态：等待输入模板")
+            return
+        try:
+            file_info, result = self._build_name_preview_sample()
+            rendered = render_name(
+                template,
+                file_info,
+                result,
+                NameRenderOptions(
+                    target=NamingTarget.FILE,
+                    show_definition_suffix=False,
+                    show_cnword_suffix=False,
+                    show_moword_suffix=False,
+                    max_length=120,
+                ),
+            )
+        except Exception as exc:
+            self.Ui.label_name_template_preview_result.setStyleSheet("color: rgb(190, 0, 0);")
+            self.Ui.label_name_template_preview_result.setText("状态：语法错误\n" + html.escape(str(exc), quote=False))
+            return
+
+        self.Ui.label_name_template_preview_result.setStyleSheet("color: rgb(8, 128, 128);")
+        self.Ui.label_name_template_preview_result.setText(
+            "状态：语法正确\n"
+            f"结果：{html.escape(rendered.text, quote=False)}\n"
+            "示例字段：number=ABC-123, studio=Studio A, originaltitle=Original Title, definition=4K"
+        )
 
     # region Init
     def _setup_fc2ppvdb_cookie_ui(self):

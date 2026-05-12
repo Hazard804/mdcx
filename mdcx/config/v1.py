@@ -98,11 +98,13 @@ class ConfigV1:
     main_mode: int = 1
     read_mode: str = r""
     update_mode: str = r"c"
-    update_a_folder: str = r"actor"
-    update_b_folder: str = r"number actor"
-    update_c_filetemplate: str = r"number"
-    update_d_folder: str = r"number actor"
-    update_titletemplate: str = r"number title"
+    update_a_folder: str = r"{{ actor }}"
+    update_b_folder: str = r"{{ number }} {{ actor }}"
+    update_c_filetemplate: str = r"{{ number }}"
+    update_d_folder: str = r"{{ number }} {{ actor }}"
+    update_titletemplate: str = (
+        r"[{% if number %}{{ number }}{% endif %}]{% if title and title != number %}{{ title }}{% endif %}"
+    )
     soft_link: int = 0
     success_file_move: bool = True
     failed_file_move: bool = True
@@ -208,9 +210,11 @@ class ConfigV1:
     nfo_tag_actor_contains: str = r""
 
     # name
-    folder_name: str = r"actor/number actor"
-    naming_file: str = r"number"
-    naming_media: str = r"number title"
+    folder_name: str = r"{{ actor }}/{{ number }} {{ actor }}"
+    naming_file: str = r"{{ number }}"
+    naming_media: str = (
+        r"[{% if number %}{{ number }}{% endif %}]{% if title and title != number %}{{ title }}{% endif %}"
+    )
     prevent_char: str = r""
     fields_rule: str = r"del_actor,del_char,"
     suffix_sort: str = r"moword,cnword,definition"

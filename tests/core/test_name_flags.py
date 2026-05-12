@@ -44,8 +44,8 @@ def test_name_flags_control_folder_and_file_independently(
     file_info = _build_file_info()
     result = _build_result()
 
-    monkeypatch.setattr(manager.config, "folder_name", "number")
-    monkeypatch.setattr(manager.config, "naming_file", "number")
+    monkeypatch.setattr(manager.config, "folder_name", "{{ number }}")
+    monkeypatch.setattr(manager.config, "naming_file", "{{ number }}")
     monkeypatch.setattr(manager.config, "folder_moword", folder_moword)
     monkeypatch.setattr(manager.config, "file_moword", file_moword)
     monkeypatch.setattr(manager.config, "folder_hd", folder_hd)

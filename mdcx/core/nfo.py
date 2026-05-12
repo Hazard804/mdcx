@@ -21,7 +21,7 @@ from ..utils import get_used_time
 from ..utils.file import delete_file_async
 from ..utils.language import is_japanese
 from .mosaic import normalize_mosaic
-from .utils import render_name_template
+from .naming import NameRenderOptions, NamingTarget, render_name
 
 
 def get_external_id_tag_name(site: Website | str) -> str:
@@ -119,16 +119,17 @@ async def write_nfo(file_info: FileInfo, data: CrawlersResult, nfo_file: Path, o
     show_cnword = False
     show_moword = False
     # 获取在媒体文件中显示的规则，不需要过滤Windows异常字符
-    should_escape_result = False
-    nfo_title, *_ = render_name_template(
+    nfo_title = render_name(
         nfo_title_template,
         file_info,
         data,
-        show_4k,
-        show_cnword,
-        show_moword,
-        should_escape_result,
-    )
+        NameRenderOptions(
+            target=NamingTarget.NFO_TITLE,
+            show_definition_suffix=show_4k,
+            show_cnword_suffix=show_cnword,
+            show_moword_suffix=show_moword,
+        ),
+    ).text
 
     # 获取字段
     nfo_include_new = manager.config.nfo_include_new

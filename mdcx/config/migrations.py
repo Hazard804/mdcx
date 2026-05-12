@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from .enums import DownloadableFile, HDPicSource, Website
@@ -63,6 +64,72 @@ def _migrate_removed_hd_pic_sources(data: dict[str, Any]) -> None:
     data["download_hd_pics"] = [item for item in items if str(_enum_value(item)) in valid_values]
 
 
+def _migrate_builtin_naming_templates(data: dict[str, Any]) -> None:
+    """将旧版内置命名模板迁移为 Jinja2 写法。"""
+
+    mapping = {
+        "actor": "{{ actor }}",
+        "number actor": "{{ number }} {{ actor }}",
+        "number": "{{ number }}",
+        "number title": "{{ number }} {{ title }}",
+        "[number]title": "[{{ number }}]{% if title and title != number %}{{ title }}{% endif %}",
+        "letters/number": "{{ letters }}/{{ number }}",
+        "actor/number actor": "{{ actor }}/{{ number }} {{ actor }}",
+        "{actor}": "{{ actor }}",
+        "{number} {actor}": "{{ number }} {{ actor }}",
+        "{number}": "{{ number }}",
+        "{number} {title}": "{{ number }} {{ title }}",
+        "[{number}]{title}": "[{{ number }}]{% if title and title != number %}{{ title }}{% endif %}",
+        "{letters}/{number}": "{{ letters }}/{{ number }}",
+        "{actor}/{number} {actor}": "{{ actor }}/{{ number }} {{ actor }}",
+    }
+
+    def convert_braced_template(template: str) -> str:
+        if "{{" in template or "{%" in template:
+            return template
+
+        def replace_field(text: str) -> str:
+            return re.sub(r"\{([A-Za-z0-9_]+)\}", r"{{ \1 }}", text)
+
+        while "{?" in template:
+            start = template.find("{?")
+            colon = template.find(":", start + 2)
+            if colon < 0:
+                break
+            depth = 0
+            end = -1
+            for index in range(colon + 1, len(template)):
+                if template[index] == "{":
+                    depth += 1
+                elif template[index] == "}":
+                    if depth == 0:
+                        end = index
+                        break
+                    depth -= 1
+            if end < 0:
+                break
+            field = template[start + 2 : colon].strip()
+            content = replace_field(template[colon + 1 : end])
+            optional = f"{{% if {field} %}}{content}{{% endif %}}"
+            template = template[:start] + optional + template[end + 1 :]
+        return replace_field(template)
+
+    for key in (
+        "folder_name",
+        "naming_file",
+        "naming_media",
+        "update_a_folder",
+        "update_b_folder",
+        "update_c_filetemplate",
+        "update_d_folder",
+        "update_titletemplate",
+    ):
+        value = data.get(key)
+        if not isinstance(value, str):
+            continue
+        data[key] = mapping.get(value, convert_braced_template(value))
+
+
 def migrate_config_data(data: dict[str, Any]) -> list[str]:
     """
     统一处理配置结构变更.
@@ -73,6 +140,7 @@ def migrate_config_data(data: dict[str, Any]) -> list[str]:
 
     data.pop("google_used", None)
     data.pop("google_exclude", None)
+    _migrate_builtin_naming_templates(data)
     _migrate_removed_hd_pic_sources(data)
 
     if _is_removed_airav_site(data.get("website_single")):

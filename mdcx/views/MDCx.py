@@ -4285,7 +4285,7 @@ class Ui_MDCx(object):
         self.scrollArea_7.setWidgetResizable(False)
         self.scrollArea_7.setObjectName("scrollArea_7")
         self.scrollAreaWidgetContents_mingming = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_mingming.setGeometry(QtCore.QRect(0, 0, 760, 3420))
+        self.scrollAreaWidgetContents_mingming.setGeometry(QtCore.QRect(0, 0, 760, 3660))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -4293,11 +4293,11 @@ class Ui_MDCx(object):
         self.scrollAreaWidgetContents_mingming.setSizePolicy(sizePolicy)
         self.scrollAreaWidgetContents_mingming.setObjectName("scrollAreaWidgetContents_mingming")
         self.groupBox_8 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_8.setGeometry(QtCore.QRect(30, 20, 701, 611))
+        self.groupBox_8.setGeometry(QtCore.QRect(30, 20, 701, 851))
         self.groupBox_8.setStyleSheet("font:\"Courier\";")
         self.groupBox_8.setObjectName("groupBox_8")
         self.gridLayoutWidget_8 = QtWidgets.QWidget(parent=self.groupBox_8)
-        self.gridLayoutWidget_8.setGeometry(QtCore.QRect(20, 30, 661, 561))
+        self.gridLayoutWidget_8.setGeometry(QtCore.QRect(20, 30, 661, 801))
         self.gridLayoutWidget_8.setObjectName("gridLayoutWidget_8")
         self.gridLayout_8 = QtWidgets.QGridLayout(self.gridLayoutWidget_8)
         self.gridLayout_8.setContentsMargins(0, 0, 0, 0)
@@ -4377,7 +4377,9 @@ class Ui_MDCx(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_68.sizePolicy().hasHeightForWidth())
         self.label_68.setSizePolicy(sizePolicy)
+        self.label_68.setMinimumSize(QtCore.QSize(0, 40))
         self.label_68.setStyleSheet("color: rgb(8, 128, 128);")
+        self.label_68.setWordWrap(True)
         self.label_68.setObjectName("label_68")
         self.gridLayout_8.addWidget(self.label_68, 5, 1, 1, 1)
         self.label_67 = QtWidgets.QLabel(parent=self.gridLayoutWidget_8)
@@ -4429,8 +4431,41 @@ class Ui_MDCx(object):
         self.label_147.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.label_147.setObjectName("label_147")
         self.gridLayout_8.addWidget(self.label_147, 1, 0, 1, 1)
+        self.label_name_template_preview = QtWidgets.QLabel(parent=self.gridLayoutWidget_8)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_name_template_preview.sizePolicy().hasHeightForWidth())
+        self.label_name_template_preview.setSizePolicy(sizePolicy)
+        self.label_name_template_preview.setMinimumSize(QtCore.QSize(130, 0))
+        self.label_name_template_preview.setLayoutDirection(QtCore.Qt.LayoutDirection.RightToLeft)
+        self.label_name_template_preview.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignTop)
+        self.label_name_template_preview.setObjectName("label_name_template_preview")
+        self.gridLayout_8.addWidget(self.label_name_template_preview, 8, 0, 1, 1)
+        self.plainTextEdit_name_template_preview = QtWidgets.QPlainTextEdit(parent=self.gridLayoutWidget_8)
+        self.plainTextEdit_name_template_preview.setMinimumSize(QtCore.QSize(450, 72))
+        self.plainTextEdit_name_template_preview.setStyleSheet(" font: \"Courier\";\n"
+"                                border: 1px solid rgba(0,0,0, 50);\n"
+"                                border-radius: 8px;\n"
+"")
+        self.plainTextEdit_name_template_preview.setTabChangesFocus(True)
+        self.plainTextEdit_name_template_preview.setObjectName("plainTextEdit_name_template_preview")
+        self.gridLayout_8.addWidget(self.plainTextEdit_name_template_preview, 8, 1, 1, 1)
+        self.label_name_template_preview_result = QtWidgets.QLabel(parent=self.gridLayoutWidget_8)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_name_template_preview_result.sizePolicy().hasHeightForWidth())
+        self.label_name_template_preview_result.setSizePolicy(sizePolicy)
+        self.label_name_template_preview_result.setMinimumSize(QtCore.QSize(0, 82))
+        self.label_name_template_preview_result.setStyleSheet("color: rgb(8, 128, 128);")
+        self.label_name_template_preview_result.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeading|QtCore.Qt.AlignmentFlag.AlignLeft|QtCore.Qt.AlignmentFlag.AlignTop)
+        self.label_name_template_preview_result.setWordWrap(True)
+        self.label_name_template_preview_result.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByKeyboard|QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.label_name_template_preview_result.setObjectName("label_name_template_preview_result")
+        self.gridLayout_8.addWidget(self.label_name_template_preview_result, 9, 1, 1, 1)
         self.groupBox_38 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_38.setGeometry(QtCore.QRect(30, 1990, 701, 441))
+        self.groupBox_38.setGeometry(QtCore.QRect(30, 2230, 701, 441))
         self.groupBox_38.setMinimumSize(QtCore.QSize(200, 0))
         self.groupBox_38.setMaximumSize(QtCore.QSize(739, 16777215))
         self.groupBox_38.setObjectName("groupBox_38")
@@ -4600,7 +4635,7 @@ class Ui_MDCx(object):
         self.label_430.setStyleSheet("color: rgb(8, 128, 128);")
         self.label_430.setObjectName("label_430")
         self.groupBox_77 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_77.setGeometry(QtCore.QRect(30, 1080, 701, 351))
+        self.groupBox_77.setGeometry(QtCore.QRect(30, 1320, 701, 351))
         self.groupBox_77.setStyleSheet("font:\"Courier\";")
         self.groupBox_77.setObjectName("groupBox_77")
         self.lineEdit_file_name_max = QtWidgets.QLineEdit(parent=self.groupBox_77)
@@ -4748,7 +4783,7 @@ class Ui_MDCx(object):
         self.label_290.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.label_290.setObjectName("label_290")
         self.groupBox_46 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_46.setGeometry(QtCore.QRect(30, 1450, 701, 521))
+        self.groupBox_46.setGeometry(QtCore.QRect(30, 1690, 701, 521))
         self.groupBox_46.setMinimumSize(QtCore.QSize(200, 0))
         self.groupBox_46.setMaximumSize(QtCore.QSize(739, 16777215))
         self.groupBox_46.setObjectName("groupBox_46")
@@ -4961,7 +4996,7 @@ class Ui_MDCx(object):
         self.checkBox_filename_mosaic.setMinimumSize(QtCore.QSize(100, 30))
         self.checkBox_filename_mosaic.setObjectName("checkBox_filename_mosaic")
         self.groupBox_37 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_37.setGeometry(QtCore.QRect(30, 2450, 701, 121))
+        self.groupBox_37.setGeometry(QtCore.QRect(30, 2690, 701, 121))
         self.groupBox_37.setMinimumSize(QtCore.QSize(200, 0))
         self.groupBox_37.setMaximumSize(QtCore.QSize(739, 16777215))
         self.groupBox_37.setObjectName("groupBox_37")
@@ -5005,7 +5040,7 @@ class Ui_MDCx(object):
         self.label_96.setObjectName("label_96")
         self.gridLayout_21.addWidget(self.label_96, 1, 1, 1, 1)
         self.groupBox_62 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_62.setGeometry(QtCore.QRect(30, 2590, 701, 121))
+        self.groupBox_62.setGeometry(QtCore.QRect(30, 2830, 701, 121))
         self.groupBox_62.setMinimumSize(QtCore.QSize(200, 0))
         self.groupBox_62.setMaximumSize(QtCore.QSize(739, 16777215))
         self.groupBox_62.setObjectName("groupBox_62")
@@ -5049,7 +5084,7 @@ class Ui_MDCx(object):
         self.label_122.setObjectName("label_122")
         self.gridLayout_38.addWidget(self.label_122, 1, 1, 1, 1)
         self.groupBox_40 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_40.setGeometry(QtCore.QRect(30, 650, 701, 411))
+        self.groupBox_40.setGeometry(QtCore.QRect(30, 890, 701, 411))
         self.groupBox_40.setMinimumSize(QtCore.QSize(200, 0))
         self.groupBox_40.setMaximumSize(QtCore.QSize(739, 16777215))
         self.groupBox_40.setObjectName("groupBox_40")
@@ -5207,7 +5242,7 @@ class Ui_MDCx(object):
         self.checkBox_actor_fc2_seller.setObjectName("checkBox_actor_fc2_seller")
         self.gridLayout_26.addWidget(self.checkBox_actor_fc2_seller, 3, 1, 1, 1)
         self.groupBox_65 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_65.setGeometry(QtCore.QRect(30, 2730, 701, 301))
+        self.groupBox_65.setGeometry(QtCore.QRect(30, 2970, 701, 301))
         self.groupBox_65.setMinimumSize(QtCore.QSize(200, 0))
         self.groupBox_65.setMaximumSize(QtCore.QSize(739, 16777215))
         self.groupBox_65.setObjectName("groupBox_65")
@@ -5337,7 +5372,7 @@ class Ui_MDCx(object):
         self.checkBox_foldername_4k.setMinimumSize(QtCore.QSize(100, 30))
         self.checkBox_foldername_4k.setObjectName("checkBox_foldername_4k")
         self.groupBox_67 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_67.setGeometry(QtCore.QRect(30, 3050, 701, 271))
+        self.groupBox_67.setGeometry(QtCore.QRect(30, 3290, 701, 271))
         self.groupBox_67.setMinimumSize(QtCore.QSize(200, 0))
         self.groupBox_67.setMaximumSize(QtCore.QSize(739, 16777215))
         self.groupBox_67.setObjectName("groupBox_67")
@@ -10623,26 +10658,26 @@ class Ui_MDCx(object):
         self.groupBox_8.setTitle(_translate("MDCx", "视频命名规则"))
         self.label_66.setText(_translate("MDCx", "<p\n"
 "                                style=\'line-height:20px\'>当刮削成功时，将为该视频创建一个视频目录，并移动该视频目录到成功输出目录。<br>\n"
-"                                目录名字支持自定义。命名字段有：<br>\n"
-"                                title （标题）, originaltitle （原标题）, actor （女演员）, all_actor\n"
-"                                （男女演员）,first_actor （首位演员）, number （番号）, letters （番号前缀）, first_letter\n"
-"                                （番号首字符）, outline （剧情简介）, director （导演）, series （系列）, studio （片商）,\n"
-"                                publisher （发行商）, release （发行日期）, year （年代）, runtime （时长）, mosaic\n"
-"                                （有码/无码）, definition （720P/1080P/4K）, cnword （自定义的字幕标识）, moword\n"
-"                                （自定义的无码标识）, filename （原文件名）, wanted （想看人数）, score （评分）, 4K\n"
-"                                （4K）<br>\n"
+"                                命名模板使用标准 Jinja2 语法，字段写作 {{ 字段名 }}，条件写作 {% if 字段名 %}...{% endif %}。<br>\n"
+"                                示例：{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }} {{ definition }}<br>\n"
+"                                字段为空时不会自动删除模板中的符号；如果不希望保留空 []、空括号或多余分隔符，请用 Jinja2 的 if 判断包住整段。<br>\n"
+"                                常用字段：{{ number }} 番号，{{ title }} 标题，{{ originaltitle }} 原标题，{{ actor }} 演员，{{ studio }} 片商，{{ series }} 系列，{{ release }} 发行日期，{{ definition }} 清晰度，{{ filename }} 原文件名。<br>\n"
+"                                其它字段：all_actor, first_actor, letters, first_letter, outline, director, publisher, year, runtime, mosaic, cnword, moword, wanted, score, four_k<br>\n"
 "                                注意：<br>\n"
-"                                1，可以添加命名字段以外的字符，命名时会原样保留；<br>\n"
-"                                2，当留空时，表示不创建视频目录；<br>\n"
-"                                3，当勾选「成功后不移动文件」时，将不会创建视频目录</p>"))
+"                                1，模板中的 / 表示创建子目录，字段值中的 / 会自动转为 -；Jinja2 只负责生成文本；<br>\n"
+"                                2，视频目录名留空时，表示不创建视频目录；<br>\n"
+"                                3，名称超长时会优先缩短简介、标题等长字段，保留番号等关键字段。</p>"))
         self.label_63.setText(_translate("MDCx", "视频文件名："))
         self.lineEdit_dir_name.setAccessibleDescription(_translate("MDCx", "测试"))
         self.label_43.setText(_translate("MDCx", "视频目录名："))
         self.label_240.setText(_translate("MDCx", "防屏蔽字符："))
-        self.label_68.setText(_translate("MDCx", "指在 nfo 文件中的标题(title)格式，在 Emby 中作为视频标题显示，命名字段同上"))
+        self.label_68.setText(_translate("MDCx", "指在 nfo 文件中的标题(title)格式，在 Emby 中作为视频标题显示，支持完整 Jinja2 语法"))
         self.label_67.setText(_translate("MDCx", "Emby视频标题："))
-        self.label_61.setText(_translate("MDCx", "指本地视频文件的文件名格式，命名字段同上"))
+        self.label_61.setText(_translate("MDCx", "指本地视频文件的文件名格式，命名字段同上，推荐 {{ number }}"))
         self.label_239.setText(_translate("MDCx", "视频文件命名时，可插入防屏蔽字符到文件名的每个字符之间"))
+        self.label_name_template_preview.setText(_translate("MDCx", "模板预览："))
+        self.plainTextEdit_name_template_preview.setPlaceholderText(_translate("MDCx", "{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }}"))
+        self.label_name_template_preview_result.setText(_translate("MDCx", "输入 Jinja2 命名模板后，将在这里显示示例渲染结果和语法状态。"))
         self.groupBox_38.setTitle(_translate("MDCx", "分集命名规则"))
         self.label_98.setText(_translate("MDCx", "大写，-CD1、-CD2"))
         self.radioButton_cd_part_lower.setText(_translate("MDCx", "-cd1"))

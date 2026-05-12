@@ -252,3 +252,39 @@ def test_default_config_template_is_valid_json_and_matches_current_model():
     assert config.get_field_config(CrawlerResultFields.TITLE).site_prority == DEFAULT_FIELD_SITE_PRIORITY
     for field in CrawlerResultFields:
         assert config.get_field_config(field) == Config().get_field_config(field)
+
+
+def test_builtin_naming_templates_are_migrated_to_jinja2_syntax():
+    data = {
+        "folder_name": "letters/number",
+        "naming_file": "number",
+        "naming_media": "[number]title",
+        "update_a_folder": "actor",
+        "update_b_folder": "number actor",
+        "update_c_filetemplate": "number",
+        "update_d_folder": "number actor",
+        "update_titletemplate": "number title",
+    }
+
+    Config.update(data)
+
+    assert data["folder_name"] == "{{ letters }}/{{ number }}"
+    assert data["naming_file"] == "{{ number }}"
+    assert data["naming_media"] == "[{{ number }}]{% if title and title != number %}{{ title }}{% endif %}"
+    assert data["update_a_folder"] == "{{ actor }}"
+    assert data["update_b_folder"] == "{{ number }} {{ actor }}"
+    assert data["update_c_filetemplate"] == "{{ number }}"
+    assert data["update_d_folder"] == "{{ number }} {{ actor }}"
+    assert data["update_titletemplate"] == "{{ number }} {{ title }}"
+    Config.model_validate(data)
+
+
+def test_braced_naming_templates_are_migrated_to_jinja2_syntax():
+    data = {
+        "naming_file": "{number}{?studio: [{studio}]} {definition}",
+    }
+
+    Config.update(data)
+
+    assert data["naming_file"] == "{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ definition }}"
+    Config.model_validate(data)

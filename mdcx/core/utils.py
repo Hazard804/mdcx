@@ -1,11 +1,9 @@
 import asyncio
-import os
 import re
 from pathlib import Path
 
 import aiofiles.os
 
-from ..base.number import deal_actor_more
 from ..config.enums import FieldRule, Language, NfoInclude, NoEscape, TagInclude
 from ..config.manager import manager
 from ..config.resources import resources
@@ -13,10 +11,11 @@ from ..gen.field_enums import CrawlerResultFields
 from ..manual import ManualConfig
 from ..models.log_buffer import LogBuffer
 from ..models.types import BaseCrawlerResult, CrawlersResult, FileInfo
-from ..number import get_number_first_letter, get_number_letters, strip_escape_strings
+from ..number import get_number_letters, strip_escape_strings
 from ..signals import signal
-from ..utils import get_new_release, get_used_time, split_path
+from ..utils import get_used_time
 from ..utils.video import get_video_metadata
+from .naming import NameRenderOptions, NamingTarget, render_name
 
 
 def replace_word(json_data: BaseCrawlerResult):
@@ -294,129 +293,27 @@ def render_name_template(
     should_escape_result: bool,
 ) -> tuple[str, str, str, str, str, str]:
     """
-    将模板字符串替换成实际值
+    将命名模板渲染成实际值。
 
-    :param template: 设置——命名——视频命名规则 下的三个模板字符串
-    :param file_path: 当前文件的完整路径，用于替换filename字段
-    :param should_escape_result: 作为文件名/文件夹名时需要去掉一些特殊字符，作为nfo的<title>时则不用
+    旧调用点仍使用这个函数，内部已切换到 mdcx.core.naming 的统一渲染器。
     """
-    file_path = file_info.file_path
-    folder_path, file_full_name = split_path(file_path)  # 当前文件的目录和文件名
-    filename = os.path.splitext(file_full_name)[0]
-
-    # 获取文件信息
-    destroyed = file_info.destroyed
-    leak = file_info.leak
-    wuma = file_info.wuma
-    youma = file_info.youma
-    m_word = destroyed + leak + wuma + youma
-    c_word = file_info.c_word
-    definition = file_info.definition
-
-    title = json_data.title
-    originaltitle = json_data.originaltitle
-    studio = json_data.studio
-    publisher = json_data.publisher
-    year = json_data.year
-    outline = json_data.outline
-    runtime = json_data.runtime
-    director = json_data.director
-    actor = json_data.actor
-    release = json_data.release
-    number = json_data.number
-    series = json_data.series
-    mosaic = json_data.mosaic
-    letters = json_data.letters
-
-    # 是否勾选文件名添加4k标识
-    temp_4k = ""
-    if show_4k:
-        definition = file_info.definition
-        if definition == "8K" or definition == "UHD8" or definition == "4K" or definition == "UHD":
-            temp_definition = definition.replace("UHD8", "UHD")
-            temp_4k = f"-{temp_definition}"
-    # 判断是否勾选文件名添加字幕标识
-    cnword = c_word
-    if not show_cnword:
-        c_word = ""
-    # 判断是否勾选文件名添加版本标识
-    moword = m_word
-    if not show_moword:
-        m_word = ""
-    # 判断后缀字段顺序
-    suffix_sort_list = manager.config.suffix_sort
-    for each in suffix_sort_list:
-        if each == "moword":
-            number += m_word
-        elif each == "cnword":
-            number += c_word
-        elif each == "definition":
-            number += temp_4k
-    # 生成number
-    first_letter = get_number_first_letter(number)
-    # 处理异常情况
-    score = str(json_data.score)
-    if not series:
-        series = "未知系列"
-    if not actor:
-        actor = manager.config.actor_no_name
-    if not year:
-        year = "0000"
-    if not score:
-        score = "0.0"
-    release = get_new_release(release, manager.config.release_rule)
-    # 获取演员
-    first_actor = actor.split(",").pop(0)
-    all_actor = deal_actor_more(json_data.all_actor)
-    actor = deal_actor_more(actor)
-
-    # 替换字段里的文件夹分隔符
-    if should_escape_result:
-        fields = [originaltitle, title, number, director, actor, release, series, studio, publisher, cnword, outline]
-        for i in range(len(fields)):
-            fields[i] = fields[i].replace("/", "-").replace("\\", "-").strip(". ")
-        originaltitle, title, number, director, actor, release, series, studio, publisher, cnword, outline = fields
-
-    # 更新4k
-    if definition == "8K" or definition == "UHD8" or definition == "4K" or definition == "UHD":
-        temp_4k = definition.replace("UHD8", "UHD")
-    # 替换文件名
-    repl_list = [
-        ("4K", temp_4k.strip("-")),
-        ("originaltitle", originaltitle),
-        ("title", title),
-        ("outline", outline),
-        ("number", number),
-        ("first_actor", first_actor),
-        ("all_actor", all_actor),
-        ("actor", actor),
-        ("release", release),
-        ("year", str(year)),
-        ("runtime", str(runtime)),
-        ("director", director),
-        ("series", series),
-        ("studio", studio),
-        ("publisher", publisher),
-        ("mosaic", mosaic),
-        ("definition", definition.replace("UHD8", "UHD")),
-        ("cnword", cnword),
-        ("moword", moword),
-        ("first_letter", first_letter),
-        ("letters", letters),
-        ("filename", filename),
-        ("wanted", str(json_data.wanted)),
-        ("score", str(score)),
-    ]
-
-    # 国产使用title作为number会出现重复，此处去除title，避免重复(需要注意titile繁体情况)
-    if not number:
-        number = title
-    # 默认emby视频标题配置为 [number title]，国产重复时需去掉一个，去重需注意空格也应一起去掉，否则国产的nfo标题中会多一个空格
-    # 读取nfo title信息会去掉前面的number和空格以保留title展示出来，同时number和标题一致时，去掉number的逻辑变成去掉整个标题导致读取失败
-    if number == title and "number" in template and "title" in template:
-        template = template.replace("originaltitle", "").replace("title", "").strip()
-
-    rendered_name = template
-    for each_key in repl_list:
-        rendered_name = rendered_name.replace(each_key[0], each_key[1])
-    return rendered_name, template, number, originaltitle, outline, title
+    target = NamingTarget.FILE if should_escape_result else NamingTarget.NFO_TITLE
+    result = render_name(
+        template,
+        file_info,
+        json_data,
+        NameRenderOptions(
+            target=target,
+            show_definition_suffix=show_4k,
+            show_cnword_suffix=show_cnword,
+            show_moword_suffix=show_moword,
+        ),
+    )
+    return (
+        result.text,
+        result.template,
+        result.value("number"),
+        result.value("originaltitle"),
+        result.value("outline"),
+        result.value("title"),
+    )

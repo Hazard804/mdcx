@@ -6,6 +6,11 @@ from mdcx.core import nfo as nfo_module
 from mdcx.models.types import CrawlersResult, FileInfo
 
 
+class _RenderedTitle:
+    def __init__(self, text: str):
+        self.text = text
+
+
 def _build_file_info(tmp_path) -> FileInfo:
     file_info = FileInfo.empty()
     file_info.number = "ABC-123"
@@ -39,8 +44,8 @@ async def test_write_nfo_keeps_cdata_fields_unescaped(monkeypatch: pytest.Monkey
     )
     monkeypatch.setattr(
         nfo_module,
-        "render_name_template",
-        lambda *args, **kwargs: ("模板标题", "", "", "", "", ""),
+        "render_name",
+        lambda *args, **kwargs: _RenderedTitle("模板标题"),
     )
 
     file_info = _build_file_info(tmp_path)
@@ -92,8 +97,8 @@ async def test_write_nfo_escapes_non_cdata_fields_without_double_escape(monkeypa
     )
     monkeypatch.setattr(
         nfo_module,
-        "render_name_template",
-        lambda *args, **kwargs: ("模板&amp;标题", "", "", "", "", ""),
+        "render_name",
+        lambda *args, **kwargs: _RenderedTitle("模板&amp;标题"),
     )
 
     file_info = _build_file_info(tmp_path)

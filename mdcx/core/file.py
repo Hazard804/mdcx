@@ -17,7 +17,7 @@ from ..models.log_buffer import LogBuffer
 from ..models.types import BaseCrawlerResult, CrawlersResult, FileInfo, OtherInfo
 from ..number import get_file_number, get_number_letters, is_uncensored
 from ..signals import signal
-from ..utils import nfd2c, split_path
+from ..utils import split_path
 from ..utils.file import (
     build_file_name_index,
     copy_file_async,
@@ -27,7 +27,7 @@ from ..utils.file import (
 )
 from ..utils.path import showFilePath
 from .mosaic import normalize_mosaic
-from .utils import render_name_template
+from .naming import FIELD_DESCRIPTIONS, NameRenderOptions, NamingTarget, render_name
 
 
 def _has_umr_suffix_marker(file_name: str, movie_number: str) -> bool:
@@ -231,57 +231,23 @@ def _get_folder_path(success_folder: Path, file_info: FileInfo, res: CrawlersRes
     if not folder_name:
         return success_folder, ""
 
-    show_4k = manager.config.folder_hd
-    show_cnword = manager.config.folder_cnword
-    show_moword = manager.config.folder_moword
-    should_escape_result = True
-    folder_new_name, folder_name, number, originaltitle, outline, title = render_name_template(
+    folder_name_max = int(manager.config.folder_name_max)
+    result = render_name(
         folder_name,
         file_info,
         res,
-        show_4k,
-        show_cnword,
-        show_moword,
-        should_escape_result,
+        NameRenderOptions(
+            target=NamingTarget.FOLDER,
+            show_definition_suffix=manager.config.folder_hd,
+            show_cnword_suffix=manager.config.folder_cnword,
+            show_moword_suffix=manager.config.folder_moword,
+            max_length=folder_name_max,
+        ),
     )
-
-    # 去除各种乱七八糟字符后，文件夹名为空时，使用number显示
-    folder_name_temp = re.sub(r'[\\/:*?"<>|\r\n]+', "", folder_new_name)
-    folder_name_temp = folder_name_temp.replace("//", "/").replace("--", "-").strip("-")
-    if not folder_name_temp:
-        folder_new_name = number
-
-    # 判断文件夹名长度，超出长度时，截短标题名
-    folder_name_max = int(manager.config.folder_name_max)
-    if len(folder_new_name) > folder_name_max:
-        cut_index = folder_name_max - len(folder_new_name)
-        if "originaltitle" in folder_name:
-            LogBuffer.log().write(
-                f"\n 💡 当前目录名长度：{len(folder_new_name)}，最大允许长度：{folder_name_max}，目录命名时将去除原标题后{abs(cut_index)}个字符!"
-            )
-            folder_new_name = folder_new_name.replace(originaltitle, originaltitle[0:cut_index])
-        elif "title" in folder_name:
-            LogBuffer.log().write(
-                f"\n 💡 当前目录名长度：{len(folder_new_name)}，最大允许长度：{folder_name_max}，目录命名时将去除标题后{abs(cut_index)}个字符!"
-            )
-            folder_new_name = folder_new_name.replace(title, title[0:cut_index])
-        elif "outline" in folder_name:
-            LogBuffer.log().write(
-                f"\n 💡 当前目录名长度：{len(folder_new_name)}，最大允许长度：{folder_name_max}，目录命名时将去除简介后{abs(cut_index)}个字符!"
-            )
-            folder_new_name = folder_new_name.replace(outline, outline[0:cut_index])
-
-    # 替换一些字符
-    folder_new_name = folder_new_name.replace("--", "-").strip("-").strip("- .")
-
-    # 用在保存文件时的名字，需要过滤window异常字符 特殊字符
-    folder_new_name = re.sub(r'[\\:*?"<>|\r\n]+', "", folder_new_name).strip(" /")
-
-    # 过滤文件夹名字前后的空格
-    folder_new_name = folder_new_name.replace(" /", "/").replace(" \\", "\\").replace("/ ", "/").replace("\\ ", "\\")
-
-    # 日文浊音转换（mac的坑,osx10.12以下使用nfd）
-    folder_new_name = nfd2c(folder_new_name)
+    folder_new_name = result.text
+    if result.truncated_fields:
+        fields = "、".join(FIELD_DESCRIPTIONS.get(field, field) for field in result.truncated_fields)
+        LogBuffer.log().write(f"\n 💡 当前目录名超过最大长度 {folder_name_max}，已智能缩短：{fields}")
 
     return success_folder / folder_new_name, folder_new_name
 
@@ -302,73 +268,35 @@ def _generate_file_name(cd_part, file_info: FileInfo, res: CrawlersResult) -> st
     else:
         file_name_template = manager.config.naming_file
 
-    # 获取文件信息
-    show_4k = manager.config.file_hd
-    show_cnword = manager.config.file_cnword
-    show_moword = manager.config.file_moword
-    should_escape_result = True
-    file_name, file_name_template, number, originaltitle, outline, title = render_name_template(
+    file_name_max = int(manager.config.file_name_max)
+    max_total_basename_length = max(1, file_name_max - len(file_ex))
+    render_max_length = max(1, max_total_basename_length - len(cd_part))
+    result = render_name(
         file_name_template,
         file_info,
         res,
-        show_4k,
-        show_cnword,
-        show_moword,
-        should_escape_result,
+        NameRenderOptions(
+            target=NamingTarget.FILE,
+            show_definition_suffix=manager.config.file_hd,
+            show_cnword_suffix=manager.config.file_cnword,
+            show_moword_suffix=manager.config.file_moword,
+            max_length=render_max_length,
+        ),
     )
+    file_name = result.text
 
     file_name += cd_part
-
-    # 去除各种乱七八糟字符后，文件名为空时，使用number显示
-    file_name_temp = re.sub(r'[\\/:*?"<>|\r\n]+', "", file_name)
-    file_name_temp = file_name_temp.replace("//", "/").replace("--", "-").strip("-")
-    if not file_name_temp:
-        file_name = number
 
     # 插入防屏蔽字符（115）
     prevent_char = manager.config.prevent_char
     if prevent_char:
         file_char_list = list(file_name)
         file_name = prevent_char.join(file_char_list)
-
-    # 判断文件名长度，超出长度时，截短文件名
-    file_name_max = int(manager.config.file_name_max)
-    if len(file_name) > file_name_max:
-        cut_index = file_name_max - len(file_name) - len(file_ex)
-
-        # 如果没有防屏蔽字符，截短标题或者简介，这样不影响其他字段阅读
-        if not prevent_char:
-            if "originaltitle" in file_name_template:
-                LogBuffer.log().write(
-                    f"\n 💡 当前文件名长度：{len(file_name)}，最大允许长度：{file_name_max}，文件命名时将去除原标题后{abs(cut_index)}个字符!"
-                )
-                file_name = file_name.replace(originaltitle, originaltitle[:cut_index])
-            elif "title" in file_name_template:
-                LogBuffer.log().write(
-                    f"\n 💡 当前文件名长度：{len(file_name)}，最大允许长度：{file_name_max}，文件命名时将去除标题后{abs(cut_index)}个字符!"
-                )
-                file_name = file_name.replace(title, title[:cut_index])
-            elif "outline" in file_name_template:
-                LogBuffer.log().write(
-                    f"\n 💡 当前文件名长度：{len(file_name)}，最大允许长度：{file_name_max}，文件命名时将去除简介后{abs(cut_index)}个字符!"
-                )
-                file_name = file_name.replace(outline, outline[:cut_index])
-
-        # 加了防屏蔽字符，直接截短
-        else:
-            file_name = file_name[:cut_index]
-
-    # 替换一些字符
-    file_name = file_name.replace("//", "/").replace("--", "-").strip("-")
-
-    # 用在保存文件时的名字，需要过滤window异常字符 特殊字符
-    file_name = re.sub(r'[\\/:*?"<>|\r\n]+', "", file_name).strip()
-
-    # 过滤文件名字前后的空格
-    file_name = file_name.replace(" /", "/").replace(" \\", "\\").replace("/ ", "/").replace("\\ ", "\\").strip()
-
-    # 日文浊音转换（mac的坑,osx10.12以下使用nfd）
-    file_name = nfd2c(file_name)
+        if len(file_name) > max_total_basename_length:
+            file_name = file_name[:max_total_basename_length].rstrip(" ,，、;；:：._+-")
+    if result.truncated_fields:
+        fields = "、".join(FIELD_DESCRIPTIONS.get(field, field) for field in result.truncated_fields)
+        LogBuffer.log().write(f"\n 💡 当前文件名超过最大长度 {file_name_max}，已智能缩短：{fields}")
 
     return file_name
 

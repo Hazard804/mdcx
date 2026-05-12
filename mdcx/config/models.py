@@ -275,11 +275,14 @@ class Config(BaseModel):
     main_mode: int = Field(default=1, title="主模式")
     read_mode: list[ReadMode] = Field(default_factory=list, title="读取模式")
     update_mode: str = Field(default="c", title="更新模式")
-    update_a_folder: str = Field(default="actor", title="更新A目录")
-    update_b_folder: str = Field(default="number actor", title="更新B目录")
-    update_c_filetemplate: str = Field(default="number", title="更新C文件模板")
-    update_d_folder: str = Field(default="number actor", title="更新D目录")
-    update_titletemplate: str = Field(default="number title", title="更新标题模板")
+    update_a_folder: str = Field(default="{{ actor }}", title="更新A目录")
+    update_b_folder: str = Field(default="{{ number }} {{ actor }}", title="更新B目录")
+    update_c_filetemplate: str = Field(default="{{ number }}", title="更新C文件模板")
+    update_d_folder: str = Field(default="{{ number }} {{ actor }}", title="更新D目录")
+    update_titletemplate: str = Field(
+        default="[{% if number %}{{ number }}{% endif %}]{% if title and title != number %}{{ title }}{% endif %}",
+        title="更新标题模板",
+    )
     soft_link: int = Field(default=0, title="软链接")
     success_file_move: bool = Field(default=True, title="成功后移动文件")
     failed_file_move: bool = Field(default=True, title="失败后移动文件")
@@ -490,9 +493,12 @@ class Config(BaseModel):
     nfo_tag_publisher: str = Field(default="发行: publisher", title="NFO发行商标签")
     nfo_tag_actor: str = Field(default="actor", title="NFO演员标签")
     nfo_tag_actor_contains: list[str] = Field(default_factory=list, title="NFO 演员名白名单")
-    folder_name: str = Field(default="actor/number actor", title="目录名称")
-    naming_file: str = Field(default="number", title="文件命名")
-    naming_media: str = Field(default="number title", title="媒体命名")
+    folder_name: str = Field(default="{{ actor }}/{{ number }} {{ actor }}", title="目录名称")
+    naming_file: str = Field(default="{{ number }}", title="文件命名")
+    naming_media: str = Field(
+        default="[{% if number %}{{ number }}{% endif %}]{% if title and title != number %}{{ title }}{% endif %}",
+        title="媒体命名",
+    )
     prevent_char: str = Field(default="", title="禁止字符")
     fields_rule: list[FieldRule] = Field(
         default_factory=lambda: [FieldRule.DEL_ACTOR, FieldRule.DEL_CHAR, FieldRule.FC2_SELLER, FieldRule.DEL_NUM],
