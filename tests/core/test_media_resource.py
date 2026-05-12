@@ -339,3 +339,39 @@ async def test_media_resource_context_reuses_content_length_probe(monkeypatch: p
         context.close()
 
     assert calls == [("HEAD", "https://example.test/cover.jpg")]
+
+
+@pytest.mark.asyncio
+async def test_media_resource_context_reuses_dmm_image_validation_without_caching_probe_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    calls: list[tuple[str, bool]] = []
+
+    async def fake_request(method: str, url: str, **kwargs):
+        assert method == "GET"
+        calls.append((url, bool(kwargs.get("stream"))))
+        if "w=120" in url:
+            return _FakeResponse(url, _jpeg_bytes((12, 18))), ""
+        return _FakeResponse(url, _jpeg_bytes((80, 120))), ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+
+    context = MediaResourceContext()
+    try:
+        url = "https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg"
+        file_path = tmp_path / "cover.jpg"
+
+        assert await context.check_image_url(url) == url
+        assert await context.check_image_url(url) == url
+        assert await context.save_image(url, file_path, tmp_path) is True
+
+        with Image.open(file_path) as img:
+            assert img.size == (80, 120)
+    finally:
+        context.close()
+
+    assert calls == [
+        ("https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg?w=120&h=90", False),
+        ("https://awsimgsrc.dmm.co.jp/pics_dig/mono/movie/cjod499/cjod499ps.jpg", False),
+    ]

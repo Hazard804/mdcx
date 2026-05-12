@@ -168,7 +168,12 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         if not self._is_dmm_image_url(normalized):
             return normalized
 
-        validated = await check_url(normalized)
+        media_context = getattr(ctx.input, "media_context", None)
+        validated = (
+            await media_context.check_image_url(normalized)
+            if media_context is not None
+            else await check_url(normalized)
+        )
         if not validated:
             ctx.debug(f"{label} 无效，已丢弃: {normalized}")
             return ""
@@ -187,7 +192,12 @@ class DmmCrawler(GenericBaseCrawler[DMMContext]):
         if not self._is_dmm_image_url(preferred):
             return preferred
 
-        validated = await check_url(preferred)
+        media_context = getattr(ctx.input, "media_context", None)
+        validated = (
+            await media_context.check_image_url(preferred)
+            if media_context is not None
+            else await check_url(preferred)
+        )
         if not validated:
             ctx.debug(f"{label} 抽检失败，回退全量校验: {preferred}")
             return ""

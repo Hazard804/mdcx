@@ -522,6 +522,18 @@ class Scraper:
     async def _process_one_file(
         self, file_info: FileInfo, file_mode: FileMode
     ) -> tuple[CrawlersResult | None, OtherInfo | None]:
+        media_context = MediaResourceContext()
+        try:
+            return await self._process_one_file_with_context(file_info, file_mode, media_context)
+        finally:
+            media_context.close()
+
+    async def _process_one_file_with_context(
+        self,
+        file_info: FileInfo,
+        file_mode: FileMode,
+        media_context: MediaResourceContext,
+    ) -> tuple[CrawlersResult | None, OtherInfo | None]:
         # 处理单个文件刮削
         # 初始化所需变量
         start_time = time.time()
@@ -663,8 +675,10 @@ class Scraper:
             # ========================= call crawlers =========================
             # res = await crawl(file_info.crawl_task(), file_mode)
 
+            crawl_task = file_info.crawl_task()
+            crawl_task.media_context = media_context
             scraper = FileScraper(manager.config, self.crawler_provider)
-            res = await scraper.run(file_info.crawl_task(), file_mode)
+            res = await scraper.run(crawl_task, file_mode)
             if res is None:
                 return None, None
             # 处理 FileInfo 和 CrawlersResult 的共同字段, 即 number/mosaic/letters
@@ -803,23 +817,15 @@ class Scraper:
         # 如果 final_pic_path 没处理过，这时才需要下载和加水印
         if pic_final_catched and file_can_download:
             # 下载thumb
-            media_context = MediaResourceContext()
-            try:
-                if not await thumb_download(
-                    res, other, file_info.cd_part, folder_new_path, thumb_final_path, media_context
-                ):
-                    return None, None
+            if not await thumb_download(res, other, file_info.cd_part, folder_new_path, thumb_final_path, media_context):
+                return None, None
 
-                # 下载艺术图
-                await fanart_download(res.number, other, file_info.cd_part, fanart_final_path)
+            # 下载艺术图
+            await fanart_download(res.number, other, file_info.cd_part, fanart_final_path)
 
-                # 下载poster
-                if not await poster_download(
-                    res, other, file_info.cd_part, folder_new_path, poster_final_path, media_context
-                ):
-                    return None, None
-            finally:
-                media_context.close()
+            # 下载poster
+            if not await poster_download(res, other, file_info.cd_part, folder_new_path, poster_final_path, media_context):
+                return None, None
 
             # 清理冗余图片
             await pic_some_deal(res.number, thumb_final_path, fanart_final_path)

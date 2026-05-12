@@ -41,11 +41,13 @@ class MediaResourceContext:
         self._images: dict[str, FetchedImage] = {}
         self._image_sizes: dict[tuple[str, bool], tuple[int, int]] = {}
         self._content_lengths: dict[str, int | None] = {}
+        self._validated_image_urls: dict[str, str | None] = {}
 
     def close(self) -> None:
         self._images.clear()
         self._image_sizes.clear()
         self._content_lengths.clear()
+        self._validated_image_urls.clear()
 
     @staticmethod
     def normalize_url(url: str) -> str:
@@ -100,6 +102,23 @@ class MediaResourceContext:
     async def probe_original_size(self, url: str) -> tuple[int, int]:
         """探测原图尺寸，不使用 DMM 缩略参数。"""
         return await self._probe_size(url, use_dmm_probe=False)
+
+    async def check_image_url(self, url: str) -> str | None:
+        """校验图片 URL，同一文件内复用校验结果。DMM 使用小图探测参数。"""
+        normalized_url = self.normalize_url(url)
+        if not normalized_url:
+            return None
+        if normalized_url in self._validated_image_urls:
+            return self._validated_image_urls[normalized_url]
+        if not is_dmm_image_url(normalized_url):
+            self._validated_image_urls[normalized_url] = normalized_url
+            return normalized_url
+
+        validated = await self._check_dmm_image_url(normalized_url)
+        self._validated_image_urls[normalized_url] = validated
+        if validated and validated != normalized_url:
+            self._validated_image_urls[validated] = validated
+        return validated
 
     async def _probe_size(self, url: str, *, use_dmm_probe: bool) -> tuple[int, int]:
         normalized_url = self.normalize_url(url)
@@ -215,6 +234,32 @@ class MediaResourceContext:
 
             if attempt < len(retry_delays):
                 await asyncio.sleep(delay)
+        return None
+
+    async def _check_dmm_image_url(self, url: str) -> str | None:
+        request_url, added_probe = self._build_request_url(url)
+        retry_delays = [0.6, 1.2, 1.8]
+        async with manager.acquire_computed() as computed:
+            client = computed.async_client
+            for attempt, delay in enumerate(retry_delays, start=1):
+                response, error = await client.request("GET", request_url, retry_count=1)
+                if response is None:
+                    if not _should_retry_link_error(error) or attempt == len(retry_delays):
+                        return None
+                    await asyncio.sleep(delay)
+                    continue
+
+                true_url = normalize_media_url(str(response.url), strip_dmm_probe_params=added_probe)
+                if self._is_invalid_image_url(url, true_url):
+                    return None
+
+                if _parse_content_length(response.headers.get("Content-Length")):
+                    return true_url
+                if response.content and len(response.content) > 0:
+                    return true_url
+
+                if attempt < len(retry_delays):
+                    await asyncio.sleep(delay)
         return None
 
     async def open_rgb_image(self, url: str) -> Image.Image | None:

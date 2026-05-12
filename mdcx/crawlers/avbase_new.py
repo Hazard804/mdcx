@@ -155,10 +155,10 @@ class AvbaseCrawler(BaseCrawler):
             self._log(f"封面图升级为高清源: {upgraded_thumb}")
         res.thumb = upgraded_thumb
         res.thumb, res.poster = self._normalize_thumb_poster(res.thumb, res.poster)
-        res.poster = await self._resolve_poster_url(res.thumb, res.poster)
+        res.poster = await self._resolve_poster_url(ctx, res.thumb, res.poster)
 
         if DownloadableFile.EXTRAFANART in manager.config.download_files and res.extrafanart:
-            res.extrafanart = await self._sanitize_extrafanart_urls(list(res.extrafanart))
+            res.extrafanart = await self._sanitize_extrafanart_urls(ctx, list(res.extrafanart))
 
         title_text = str(res.title or "").upper()
         is_vr_title = "VR" in title_text
@@ -176,6 +176,12 @@ class AvbaseCrawler(BaseCrawler):
 
     async def _get_url_content_length(self, url: str) -> int | None:
         return await get_url_content_length(url)
+
+    async def _check_image_url(self, ctx, url: str) -> str | None:
+        media_context = getattr(getattr(ctx, "input", None), "media_context", None)
+        if media_context is not None:
+            return await media_context.check_image_url(url)
+        return await check_url(url)
 
     def _pick_product(self, products: list[Any]) -> dict[str, Any]:
         valid_products = [product_item for product_item in products if isinstance(product_item, dict)]
@@ -325,16 +331,21 @@ class AvbaseCrawler(BaseCrawler):
             return ""
         if "pics.dmm.co.jp" in normalized:
             aws_url = normalized.replace("pics.dmm.co.jp", "awsimgsrc.dmm.co.jp/pics_dig").replace("/adult/", "/")
-            if validated_aws := await check_url(aws_url):
+            if validated_aws := await self._check_image_url(ctx, aws_url):
                 return str(validated_aws)
         if is_dmm_image_url(normalized):
-            if validated_original := await check_url(normalized):
+            if validated_original := await self._check_image_url(ctx, normalized):
                 return str(validated_original)
             self._log(f"高清图校验失败，丢弃原图: {normalized}")
             return ""
         return normalized
 
-    async def _resolve_poster_url(self, thumb: str, poster: str) -> str:
+    async def _resolve_poster_url(self, ctx_or_thumb, thumb: str | None = None, poster: str | None = None) -> str:
+        ctx = None
+        if poster is None:
+            thumb, poster = ctx_or_thumb, thumb
+        else:
+            ctx = ctx_or_thumb
         candidates = list(
             dict.fromkeys(
                 filter(
@@ -348,13 +359,18 @@ class AvbaseCrawler(BaseCrawler):
         )
         for candidate in candidates:
             if is_dmm_image_url(candidate):
-                if validated := await check_url(candidate):
+                if validated := await self._check_image_url(ctx, candidate):
                     return str(validated)
                 continue
             return candidate
         return ""
 
-    async def _sanitize_extrafanart_urls(self, image_urls: list[str]) -> list[str]:
+    async def _sanitize_extrafanart_urls(self, ctx_or_image_urls, image_urls: list[str] | None = None) -> list[str]:
+        ctx = None
+        if image_urls is None:
+            image_urls = ctx_or_image_urls
+        else:
+            ctx = ctx_or_image_urls
         candidates: list[str] = []
         seen: set[str] = set()
         for image_url in image_urls:
@@ -374,7 +390,7 @@ class AvbaseCrawler(BaseCrawler):
         async def validate_candidate(image_url: str, *, prefer_aws: bool) -> str:
             normalized = self._prefer_dmm_image_url(image_url) if prefer_aws else image_url
             if is_dmm_image_url(normalized):
-                validated = await check_url(normalized)
+                validated = await self._check_image_url(ctx, normalized)
                 if not validated:
                     return ""
                 return str(validated)

@@ -224,7 +224,68 @@ async def _validate_preferred_dmm_image_if_needed(url: str, label: str, *, log_f
     return validated_url
 
 
-async def _filter_dmm_extrafanart(image_urls: list[str], *, log_fn: ImageLogFn = None) -> list[str]:
+async def _validate_dmm_image_with_context_if_needed(
+    url: str,
+    label: str,
+    *,
+    media_context=None,
+    log_fn: ImageLogFn = None,
+) -> str:
+    normalized = normalize_media_url(str(url or "").strip())
+    if not normalized:
+        return ""
+    if media_context is None:
+        return await _validate_dmm_image_if_needed(normalized, label, log_fn=log_fn)
+    if not is_dmm_image_url(normalized):
+        return normalized
+
+    for index, candidate in enumerate(_iter_dmm_image_candidates(normalized)):
+        validated = await media_context.check_image_url(candidate)
+        if not validated:
+            continue
+
+        validated_url = normalize_media_url(str(validated).strip())
+        if index == 0 and candidate != normalized:
+            _log_image(log_fn, f"图片高清图命中: {label} {normalized} -> {validated_url}")
+        elif validated_url != normalized:
+            _log_image(log_fn, f"图片校验重定向: {label} {normalized} -> {validated_url}")
+        return validated_url
+
+    _log_image(log_fn, f"图片校验失败: {label} {normalized}")
+    return ""
+
+
+async def _validate_preferred_dmm_image_with_context_if_needed(
+    url: str,
+    label: str,
+    *,
+    media_context=None,
+    log_fn: ImageLogFn = None,
+) -> str:
+    normalized = normalize_media_url(str(url or "").strip())
+    if not normalized:
+        return ""
+    if media_context is None:
+        return await _validate_preferred_dmm_image_if_needed(normalized, label, log_fn=log_fn)
+
+    preferred = _prefer_dmm_aws_url(normalized)
+    if not is_dmm_image_url(preferred):
+        return preferred
+
+    validated = await media_context.check_image_url(preferred)
+    if not validated:
+        _log_image(log_fn, f"图片抽检失败: {label} {preferred}")
+        return ""
+
+    validated_url = normalize_media_url(str(validated).strip())
+    if preferred != normalized and validated_url == preferred:
+        _log_image(log_fn, f"图片高清图命中: {label} {normalized} -> {validated_url}")
+    elif validated_url != preferred:
+        _log_image(log_fn, f"图片校验重定向: {label} {preferred} -> {validated_url}")
+    return validated_url
+
+
+async def _filter_dmm_extrafanart(image_urls: list[str], *, media_context=None, log_fn: ImageLogFn = None) -> list[str]:
     candidates = _normalize_extrafanart_urls(image_urls)
     if not candidates:
         return []
@@ -236,7 +297,12 @@ async def _filter_dmm_extrafanart(image_urls: list[str], *, log_fn: ImageLogFn =
     sampled_candidates = [(index, candidates[index]) for index in sample_indexes]
     sampled_results = await asyncio.gather(
         *[
-            _validate_preferred_dmm_image_if_needed(image_url, f"extrafanart[{index + 1}]", log_fn=log_fn)
+            _validate_preferred_dmm_image_with_context_if_needed(
+                image_url,
+                f"extrafanart[{index + 1}]",
+                media_context=media_context,
+                log_fn=log_fn,
+            )
             for index, image_url in sampled_candidates
         ]
     )
@@ -262,7 +328,12 @@ async def _filter_dmm_extrafanart(image_urls: list[str], *, log_fn: ImageLogFn =
     if remaining_candidates:
         remaining_results = await asyncio.gather(
             *[
-                _validate_dmm_image_if_needed(image_url, f"extrafanart[{index + 1}]", log_fn=log_fn)
+                _validate_dmm_image_with_context_if_needed(
+                    image_url,
+                    f"extrafanart[{index + 1}]",
+                    media_context=media_context,
+                    log_fn=log_fn,
+                )
                 for index, image_url in remaining_candidates
             ]
         )
@@ -277,10 +348,21 @@ async def _filter_dmm_extrafanart(image_urls: list[str], *, log_fn: ImageLogFn =
     return valid_urls
 
 
-async def _resolve_dmm_poster_url(thumb_url: str, poster_url: str, *, log_fn: ImageLogFn = None) -> str:
+async def _resolve_dmm_poster_url(
+    thumb_url: str,
+    poster_url: str,
+    *,
+    media_context=None,
+    log_fn: ImageLogFn = None,
+) -> str:
     candidates = _normalize_extrafanart_urls([poster_url, _to_poster_url(thumb_url)])
     for candidate in candidates:
-        validated_url = await _validate_dmm_image_if_needed(candidate, "poster", log_fn=log_fn)
+        validated_url = await _validate_dmm_image_with_context_if_needed(
+            candidate,
+            "poster",
+            media_context=media_context,
+            log_fn=log_fn,
+        )
         if validated_url:
             return validated_url
     return ""
@@ -397,10 +479,25 @@ class Jav321Crawler(BaseCrawler):
         extrafanart = getExtraFanart(detail_page)
         cover_url, poster_url = _normalize_thumb_poster(cover_url, poster_url)
         extrafanart = _remove_cover_from_extrafanart(cover_url, extrafanart)
-        cover_url = await _validate_dmm_image_if_needed(cover_url, "thumb", log_fn=ctx.debug)
-        poster_url = await _resolve_dmm_poster_url(cover_url, poster_url, log_fn=ctx.debug)
+        media_context = getattr(ctx.input, "media_context", None)
+        cover_url = await _validate_dmm_image_with_context_if_needed(
+            cover_url,
+            "thumb",
+            media_context=media_context,
+            log_fn=ctx.debug,
+        )
+        poster_url = await _resolve_dmm_poster_url(
+            cover_url,
+            poster_url,
+            media_context=media_context,
+            log_fn=ctx.debug,
+        )
         if DownloadableFile.EXTRAFANART in manager.config.download_files:
-            extrafanart = await _filter_dmm_extrafanart(extrafanart, log_fn=ctx.debug)
+            extrafanart = await _filter_dmm_extrafanart(
+                extrafanart,
+                media_context=media_context,
+                log_fn=ctx.debug,
+            )
         else:
             extrafanart = _normalize_extrafanart_urls(extrafanart)
 

@@ -140,7 +140,11 @@ class FantasticaCrawler(GenericBaseCrawler[FantasticaContext]):
         poster = ctx.search_poster
         image_download = bool(poster)
         if not poster and extrafanart:
-            w, h = await get_imgsize(extrafanart[0])
+            media_context = getattr(ctx.input, "media_context", None)
+            if media_context is not None:
+                w, h = await media_context.probe_original_size(extrafanart[0])
+            else:
+                w, h = await get_imgsize(extrafanart[0])
             if w > h:
                 poster = extrafanart[0]
                 image_download = True
