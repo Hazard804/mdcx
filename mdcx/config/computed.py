@@ -6,7 +6,7 @@ import httpx
 from ..llm import LLMClient
 from ..manual import ManualConfig
 from ..signals import signal
-from ..utils import executor, get_random_headers
+from ..utils import get_random_headers
 from ..web_async import AsyncWebClient
 from .enums import CleanAction
 from .models import Config
@@ -28,7 +28,6 @@ class Computed:
         )
 
         self.async_client = AsyncWebClient(
-            loop=executor._loop,
             proxy=proxy,
             retry=config.retry,
             timeout=config.timeout,

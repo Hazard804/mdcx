@@ -96,7 +96,6 @@ def _crawl(sites: list[Website], input: CrawlerInput, output: str | None, proxy:
         classes.append(c)
 
     client = AsyncWebClient(
-        loop=executor._loop,
         proxy=proxy or (manager.config.proxy if manager.config.use_proxy else None),
         retry=retry,
         timeout=timeout,

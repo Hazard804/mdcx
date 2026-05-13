@@ -27,15 +27,27 @@ class AsyncBackgroundExecutor:
     """可重用的异步任务执行器, 将协程提交到运行于后台线程的事件循环中执行"""
 
     def __init__(self):
-        self._loop: asyncio.AbstractEventLoop
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._thread: threading.Thread | None = None
+        self._loop_started: threading.Event | None = None
+        self._startup_error: BaseException | None = None
         self._pending_futures: set[Future] = set()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._running = False
-        self._start_background_thread()
+
+    @property
+    def loop(self) -> asyncio.AbstractEventLoop:
+        """获取后台事件循环, 首次使用时再启动后台线程。"""
+        return self._ensure_started()
 
     def submit(self, coro: Coroutine[Any, Any, T]) -> Future[T]:
         """提交一个协程到后台线程执行, 返回一个 Future 对象. 此方法线程安全且非阻塞."""
-        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        try:
+            loop = self._ensure_started()
+        except Exception:
+            coro.close()
+            raise
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
         future.add_done_callback(self._remove_future)
         with self._lock:
             self._pending_futures.add(future)
@@ -111,21 +123,29 @@ class AsyncBackgroundExecutor:
     def _run_event_loop(self):
         """运行事件循环的线程函数"""
         try:
-            self._loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self._loop)
-            self._loop_started.set()
-            self._loop.run_forever()
-        except Exception:
+            loop = asyncio.new_event_loop()
+            with self._lock:
+                self._loop = loop
+            asyncio.set_event_loop(loop)
+            self._running = True
+            if self._loop_started is not None:
+                self._loop_started.set()
+            loop.run_forever()
+        except Exception as e:
+            self._startup_error = e
             # 如果启动失败，设置事件以避免主线程永远等待
-            self._loop_started.set()
+            if self._loop_started is not None:
+                self._loop_started.set()
             # 不重新抛出异常，让线程正常结束
         finally:
             # 清理资源
-            if self._loop and not self._loop.is_closed():
+            loop = self._loop
+            if loop and not loop.is_closed():
                 with contextlib.suppress(Exception):
-                    self._loop.close()
+                    loop.close()
             # 重置loop引用
             self._loop = None  # type: ignore
+            self._running = False
 
     def _remove_future(self, future):
         """自动移除已完成的任务"""
@@ -133,20 +153,48 @@ class AsyncBackgroundExecutor:
             self._pending_futures.discard(future)
 
     def _start_background_thread(self):
-        self._loop_started = threading.Event()
-        self._thread = threading.Thread(target=self._run_event_loop, daemon=True, name="AsyncBackgroundThread")
-        self._thread.start()
-        self._running = True
-        # 等待事件循环启动
-        if not self._loop_started.wait(timeout=10.0):
-            raise RuntimeError("Failed to start background event loop within 10 seconds")
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
+                return
+            self._startup_error = None
+            self._loop_started = threading.Event()
+            self._thread = threading.Thread(target=self._run_event_loop, daemon=True, name="AsyncBackgroundThread")
+            self._thread.start()
+
+    def _ensure_started(self) -> asyncio.AbstractEventLoop:
+        with self._lock:
+            if self._loop is not None and self._thread is not None and self._thread.is_alive():
+                return self._loop
+            self._start_background_thread()
+            loop_started = self._loop_started
+
+        if loop_started is None:
+            raise RuntimeError("Failed to start background event loop: startup event is not initialized")
+
+        # 等待事件循环启动。启动动作不放在模块导入期，避免 PyInstaller 冻结包导入阶段线程初始化卡死。
+        if not loop_started.wait(timeout=30.0):
+            thread_alive = self._thread.is_alive() if self._thread is not None else False
+            raise RuntimeError(f"Failed to start background event loop within 30 seconds, thread_alive={thread_alive}")
+        if self._startup_error is not None:
+            raise RuntimeError("Failed to start background event loop") from self._startup_error
+        if self._loop is None:
+            raise RuntimeError("Failed to start background event loop: loop is not available")
+        return self._loop
+
+    def _stop_background_thread(self):
+        loop = self._loop
+        thread = self._thread
+        if loop is None or thread is None:
+            return
+        with contextlib.suppress(Exception):
+            loop.call_soon_threadsafe(loop.stop)
+        thread.join(timeout=5.0)
 
     def __del__(self):
         """析构函数，确保资源被释放"""
         try:
             self.cancel()
-            self._loop.stop()
-            self._thread.join(timeout=5.0)
+            self._stop_background_thread()
         except Exception:
             pass  # 忽略析构时的异常
 

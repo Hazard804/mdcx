@@ -247,6 +247,35 @@ async def test_pool_slot_wait_is_not_counted_by_request_watchdog(monkeypatch: py
 
 
 @pytest.mark.asyncio
+async def test_stream_response_close_releases_slot_without_explicit_loop(monkeypatch: pytest.MonkeyPatch):
+    client = AsyncWebClient(timeout=1, retry=1)
+    client._pool_manager._max_clients = 1
+    monkeypatch.setattr(client.limiters, "get", lambda key: SimpleNamespace(acquire=lambda: asyncio.sleep(0)))
+
+    fake_session = _FakeSession()
+    client._pool_manager._session_factory = lambda _fingerprint=None: fake_session  # type: ignore[assignment]
+
+    first_response, first_error = await client.request("GET", "https://example.test/hold.jpg", stream=True)
+
+    assert first_error == ""
+    assert first_response is not None
+
+    second_task = asyncio.create_task(client.request("GET", "https://example.test/next.jpg"))
+    await asyncio.sleep(0.05)
+
+    assert not second_task.done()
+    first_response.close()
+    await asyncio.sleep(0)
+
+    second_response, second_error = await asyncio.wait_for(second_task, timeout=1)
+
+    assert second_error == ""
+    assert second_response is not None
+    assert len(fake_session.requests) == 2
+    await client.close()
+
+
+@pytest.mark.asyncio
 async def test_request_watchdog_still_applies_after_pool_slot_is_acquired(monkeypatch: pytest.MonkeyPatch):
     client = AsyncWebClient(timeout=1, retry=1)
     client._pool_manager._max_clients = 1

@@ -310,15 +310,12 @@ class AsyncWebClient:
         cf_bypass_proxy: str | None = None,
         log_fn: Callable[[str], None] | None = None,
         limiters: AsyncWebLimiters | None = None,
-        loop=None,
     ):
         self.retry = retry
         self.proxy = proxy
         self.timeout = timeout
-        self.loop = loop
         self.max_clients = 100
         self._session_kwargs = {
-            "loop": loop,
             "max_clients": self.max_clients,
             "verify": False,
             "max_redirects": 20,
@@ -513,6 +510,7 @@ class AsyncWebClient:
         pool_key = HostPoolManager.key_for_request(url, str(proxy) if proxy else None, fingerprint)
         if self._closed or (self._close_requested and self._lease_count() == 0):
             raise RuntimeError("网络客户端已关闭")
+        request_loop = asyncio.get_running_loop()
         pool = await self._pool_manager.get(pool_key, fingerprint=fingerprint)
         session, generation = await pool.begin_request()
         release_now = True
@@ -525,13 +523,22 @@ class AsyncWebClient:
                 response = await asyncio.wait_for(coro, timeout=timeout_seconds)
             if kwargs.get("stream"):
                 release_now = False
-                return self._attach_stream_release(response, pool=pool, generation=generation)
+                return self._attach_stream_release(
+                    response, pool=pool, generation=generation, request_loop=request_loop
+                )
             return response
         finally:
             if release_now:
                 await pool.end_request(generation)
 
-    def _attach_stream_release(self, response: Response, *, pool: HostConnectionPool, generation: int) -> Response:
+    def _attach_stream_release(
+        self,
+        response: Response,
+        *,
+        pool: HostConnectionPool,
+        generation: int,
+        request_loop: asyncio.AbstractEventLoop,
+    ) -> Response:
         if getattr(response, "_mdcx_release_attached", False):
             return response
 
@@ -556,8 +563,8 @@ class AsyncWebClient:
                     loop = asyncio.get_running_loop()
                     loop.create_task(release_once())
                 except RuntimeError:
-                    if self.loop and not self.loop.is_closed():
-                        asyncio.run_coroutine_threadsafe(release_once(), self.loop)
+                    if not request_loop.is_closed():
+                        asyncio.run_coroutine_threadsafe(release_once(), request_loop)
 
         async def aclose_wrapper(*args, **kwargs):
             try:

@@ -1,6 +1,8 @@
+import asyncio
+
 import pytest
 
-from mdcx.utils import add_html_plain_text, clean_list, collapse_inline_script_splits
+from mdcx.utils import AsyncBackgroundExecutor, add_html_plain_text, clean_list, collapse_inline_script_splits
 from mdcx.utils.language import is_english, is_japanese, is_probably_english_for_translation
 
 
@@ -50,6 +52,20 @@ def test_is_english(s, expected):
 )
 def test_clean_list(s, expected):
     assert clean_list(s) == expected
+
+
+def test_background_executor_starts_lazily():
+    executor = AsyncBackgroundExecutor()
+
+    assert executor._thread is None
+    assert executor._loop is None
+
+    future = executor.submit(asyncio.sleep(0, result="ok"))
+
+    assert future.result(timeout=5) == "ok"
+    assert executor._thread is not None
+    assert executor._thread.is_alive()
+    executor._stop_background_thread()
 
 
 def test_collapse_inline_script_splits_recovers_streamed_text():
