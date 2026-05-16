@@ -406,6 +406,9 @@ def save_config(self: "MyMAinWindow"):
     manager.config.download_hd_pics = get_checkboxes(
         (self.Ui.checkBox_amazon_big_pic, HDPicSource.AMAZON),
     )
+    manager.config.amazon_skip_poster_size_precheck = (
+        self.Ui.checkBox_amazon_big_pic.isChecked() and self.Ui.checkBox_amazon_skip_poster_size_precheck.isChecked()
+    )
     manager.config.amazon_strict_pic_verify = (
         self.Ui.checkBox_amazon_big_pic.isChecked() and self.Ui.checkBox_amazon_strict_pic_verify.isChecked()
     )

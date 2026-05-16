@@ -320,6 +320,7 @@ class Config(BaseModel):
         default_factory=lambda: [HDPicSource.AMAZON],
         title="Amazon 高清封面图",
     )
+    amazon_skip_poster_size_precheck: bool = Field(default=False, title="跳过前置 Poster 大小校验")
     amazon_strict_pic_verify: bool = Field(default=False, title="严格校验 Amazon 图片")
     scrape_like: Literal["info", "speed", "single"] = Field(default="info", title="刮削模式")  # speed, info, single
     field_priority_try_all_images: bool = Field(default=False, title="字段优先时尝试所有图片")

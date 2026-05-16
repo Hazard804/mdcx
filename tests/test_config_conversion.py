@@ -219,6 +219,7 @@ def test_old_config_gets_default_amazon_strict_pic_verify():
     Config.update(data)
     config = Config.model_validate(data)
 
+    assert config.amazon_skip_poster_size_precheck is False
     assert config.amazon_strict_pic_verify is False
     assert config.field_priority_try_all_images is False
 
@@ -246,6 +247,7 @@ def test_default_config_template_is_valid_json_and_matches_current_model():
     assert config.media_path == "D:\\Media\\Input"
     assert config.softlink_path == "X:\\Media\\Softlink"
     assert config.failed_output_folder == "D:\\Media\\Input\\failed"
+    assert config.amazon_skip_poster_size_precheck is False
     assert config.amazon_strict_pic_verify is False
     assert config.field_priority_try_all_images is False
     assert config.website_youma == Config().website_youma

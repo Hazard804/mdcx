@@ -664,7 +664,10 @@ async def _get_big_poster(
     if result.scraping_type == FixedScrapingType.SUREN:
         LogBuffer.log().write("\n 🔎 Amazon搜索：检测为素人番号，已跳过")
     elif _should_search_amazon(result):
-        if await _should_skip_amazon_for_existing_poster(
+        skip_poster_size_precheck = manager.config.amazon_skip_poster_size_precheck
+        if skip_poster_size_precheck:
+            LogBuffer.log().write("\n 🖼 Amazon搜索：已跳过前置 Poster 大小校验，继续搜索高清图")
+        elif await _should_skip_amazon_for_existing_poster(
             result,
             other,
             poster_auto_best=poster_auto_best,

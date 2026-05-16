@@ -2062,9 +2062,12 @@ class MyMAinWindow(QMainWindow):
 
     def update_amazon_strict_pic_verify_state(self, *_args):
         amazon_enabled = self.Ui.checkBox_amazon_big_pic.isChecked()
+        self.Ui.checkBox_amazon_skip_poster_size_precheck.setEnabled(amazon_enabled)
+        self.Ui.label_amazon_skip_poster_size_precheck.setEnabled(amazon_enabled)
         self.Ui.checkBox_amazon_strict_pic_verify.setEnabled(amazon_enabled)
         self.Ui.label_amazon_strict_pic_verify.setEnabled(amazon_enabled)
         if not amazon_enabled:
+            self.Ui.checkBox_amazon_skip_poster_size_precheck.setChecked(False)
             self.Ui.checkBox_amazon_strict_pic_verify.setChecked(False)
 
     def update_field_priority_try_all_images_state(self, *_args):

@@ -44,7 +44,8 @@ async def _async_chunk(content: bytes) -> bytes:
 
 
 @pytest.fixture(autouse=True)
-def _reset_amazon_strict_pic_verify(monkeypatch: pytest.MonkeyPatch):
+def _reset_amazon_config_flags(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(manager.config, "amazon_skip_poster_size_precheck", False)
     monkeypatch.setattr(manager.config, "amazon_strict_pic_verify", False)
 
 
@@ -892,6 +893,49 @@ async def test_get_big_poster_auto_best_checks_size_without_youma_crop_compare(
     await _get_big_poster(result, other, poster_auto_best=True)
 
     assert called is False
+    assert result.poster == "https://example.test/direct.jpg"
+    assert result.poster_from == "crawler"
+
+
+@pytest.mark.asyncio
+async def test_get_big_poster_auto_best_can_skip_poster_size_precheck(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    called = False
+
+    async def fake_get_big_pic_by_amazon(result: CrawlersResult, *args, **kwargs):
+        nonlocal called
+        called = True
+        result.amazon_match_is_hard = True
+        return "https://m.media-amazon.com/images/I/81poster.jpg"
+
+    async def fake_get_image_size(url: str, media_context=None):
+        assert url == "https://example.test/direct.jpg"
+        return 700, 1000
+
+    async def fake_get_url_content_length(url: str):
+        raise AssertionError("跳过前置 Poster 大小校验时不应读取当前 Poster 文件大小")
+
+    thumb_path = tmp_path / "thumb.jpg"
+    _save_test_image(thumb_path, (800, 500))
+
+    monkeypatch.setattr(manager.config, "download_hd_pics", [HDPicSource.AMAZON])
+    monkeypatch.setattr(manager.config, "amazon_skip_poster_size_precheck", True)
+    monkeypatch.setattr("mdcx.core.web.get_big_pic_by_amazon", fake_get_big_pic_by_amazon)
+    monkeypatch.setattr("mdcx.core.web._get_image_size", fake_get_image_size)
+    monkeypatch.setattr("mdcx.core.web.get_url_content_length", fake_get_url_content_length)
+
+    result = CrawlersResult.empty()
+    result.mosaic = "有码"
+    result.scraping_type = FixedScrapingType.YOUMA
+    result.originaltitle_amazon = "测试标题"
+    result.poster = "https://example.test/direct.jpg"
+    result.poster_from = "crawler"
+    other = OtherInfo.empty()
+    other.thumb_path = thumb_path
+
+    candidate = await _get_big_poster(result, other, poster_auto_best=True)
+
+    assert called is True
+    assert candidate == PosterCandidate("Amazon", "https://m.media-amazon.com/images/I/81poster.jpg", True)
     assert result.poster == "https://example.test/direct.jpg"
     assert result.poster_from == "crawler"
 

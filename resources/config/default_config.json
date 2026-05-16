@@ -139,6 +139,7 @@
   "download_hd_pics": [
     "amazon"
   ],
+  "amazon_skip_poster_size_precheck": false,
   "amazon_strict_pic_verify": false,
   "scrape_like": "info",
   "field_priority_try_all_images": false,

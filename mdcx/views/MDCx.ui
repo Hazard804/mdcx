@@ -9813,7 +9813,7 @@
                         <x>30</x>
                         <y>670</y>
                         <width>701</width>
-                        <height>151</height>
+                        <height>181</height>
                       </rect>
                     </property>
                     <property name="minimumSize">
@@ -9829,7 +9829,7 @@
                       <property name="geometry">
                         <rect>
                           <x>60</x>
-                          <y>95</y>
+                          <y>125</y>
                           <width>641</width>
                           <height>41</height>
                         </rect>
@@ -9898,7 +9898,7 @@
                       <property name="geometry">
                         <rect>
                           <x>100</x>
-                          <y>60</y>
+                          <y>90</y>
                           <width>581</width>
                           <height>31</height>
                         </rect>
@@ -9935,12 +9935,68 @@
                         </item>
                       </layout>
                     </widget>
+                    <widget class="QWidget" name="horizontalLayoutWidget_70">
+                      <property name="geometry">
+                        <rect>
+                          <x>100</x>
+                          <y>60</y>
+                          <width>581</width>
+                          <height>31</height>
+                        </rect>
+                      </property>
+                      <layout class="QHBoxLayout" name="horizontalLayout_158">
+                        <property name="spacing">
+                          <number>6</number>
+                        </property>
+                        <property name="leftMargin">
+                          <number>0</number>
+                        </property>
+                        <property name="topMargin">
+                          <number>0</number>
+                        </property>
+                        <property name="rightMargin">
+                          <number>0</number>
+                        </property>
+                        <property name="bottomMargin">
+                          <number>0</number>
+                        </property>
+                        <item>
+                          <widget class="QCheckBox" name="checkBox_amazon_skip_poster_size_precheck">
+                            <property name="sizePolicy">
+                              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                              </sizepolicy>
+                            </property>
+                            <property name="text">
+                              <string>跳过前置 Poster 大小校验</string>
+                            </property>
+                          </widget>
+                        </item>
+                        <item>
+                          <widget class="QLabel" name="label_amazon_skip_poster_size_precheck">
+                            <property name="sizePolicy">
+                              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                              </sizepolicy>
+                            </property>
+                            <property name="styleSheet">
+                              <string notr="true">color: rgb(8, 128, 128);</string>
+                            </property>
+                            <property name="text">
+                              <string>不因当前 Poster &gt;=400KB 跳过 Amazon</string>
+                            </property>
+                          </widget>
+                        </item>
+                      </layout>
+                    </widget>
                   </widget>
                   <widget class="QGroupBox" name="groupBox_66">
                     <property name="geometry">
                       <rect>
                         <x>30</x>
-                        <y>840</y>
+                        <y>870</y>
                         <width>701</width>
                         <height>201</height>
                       </rect>
