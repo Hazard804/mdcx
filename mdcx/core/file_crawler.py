@@ -244,6 +244,18 @@ class FileScraper:
         year = match.group()
         return "" if year == "0000" else year
 
+    @staticmethod
+    def _get_cached_site_result(
+        all_res: dict[tuple[Website, Language], CrawlerResult],
+        site: Website,
+        language: Language,
+    ) -> CrawlerResult | None:
+        if site not in MULTI_LANGUAGE_WEBSITES:
+            language = Language.UNDEFINED
+        if data := all_res.get((site, language)):
+            return data
+        return all_res.get((site, Language.UNDEFINED))
+
     async def _call_crawler(
         self, task_input: CrawlerInput, website: Website, timeout: float | None = 30
     ) -> CrawlerResponse:
@@ -411,13 +423,29 @@ class FileScraper:
         if len(all_res) == 0:
             return None
 
+        if use_type_field_config and hasattr(self.config, "get_type_field_config"):
+            poster_priority_config = self.config.get_type_field_config(
+                classification.scraping_type, CrawlerResultFields.POSTER
+            )
+        else:
+            poster_priority_config = self.config.get_field_config(CrawlerResultFields.POSTER)
+
+        poster_priority_sites = poster_priority_config.site_prority
+        poster_language = self.config.get_field_config(CrawlerResultFields.POSTER).language
+
         # 需尽力收集的字段
         for data in all_res.values():
             # 记录所有来源的 thumb url 以便后续下载
             if data.thumb:
                 reduced.thumb_list.append((data.source, data.thumb))
-            if data.poster:
+
+        for site in poster_priority_sites:
+            data = self._get_cached_site_result(all_res, site, poster_language)
+            # 记录海报候选时严格遵循当前类型的海报优先级，避免其它字段请求过的站点混入候选。
+            if data and data.poster:
                 reduced.poster_list.append((data.source, data.poster, data.image_download))
+
+        for data in all_res.values():
             # 记录所有来源的 actor 用于 Amazon 搜图
             if data.actor:
                 reduced.actor_amazon.extend(data.actors)

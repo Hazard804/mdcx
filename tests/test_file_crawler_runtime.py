@@ -135,6 +135,31 @@ class _ImagePriorityConfig(_FakeConfig):
         return FieldPriorityConfig()
 
 
+class _Fc2PosterPriorityConfig(_FakeConfig):
+    scrape_like = "info"
+    field_priority_try_all_images = True
+
+    def get_field_config(self, field: CrawlerResultFields) -> FieldConfig:
+        if field == CrawlerResultFields.TITLE:
+            return FieldConfig(site_prority=[Website.FC2, Website.FC2HUB])
+        if field == CrawlerResultFields.POSTER:
+            return FieldConfig(site_prority=[Website.FC2HUB])
+        if field == CrawlerResultFields.THUMB:
+            return FieldConfig(site_prority=[Website.FC2HUB, Website.FC2])
+        return FieldConfig(site_prority=[])
+
+    def get_type_field_config(
+        self, scraping_type: FixedScrapingType, field: CrawlerResultFields
+    ) -> FieldPriorityConfig:
+        if scraping_type == FixedScrapingType.FC2 and field == CrawlerResultFields.TITLE:
+            return FieldPriorityConfig(site_prority=[Website.FC2, Website.FC2HUB])
+        if scraping_type == FixedScrapingType.FC2 and field == CrawlerResultFields.POSTER:
+            return FieldPriorityConfig(site_prority=[Website.FC2HUB])
+        if scraping_type == FixedScrapingType.FC2 and field == CrawlerResultFields.THUMB:
+            return FieldPriorityConfig(site_prority=[Website.FC2HUB, Website.FC2])
+        return FieldPriorityConfig()
+
+
 class _ClassificationConfig:
     fixed_scraping_type = FixedScrapingType.AUTO
     website_youma = {Website.DMM}
@@ -467,6 +492,44 @@ async def test_call_crawlers_collects_all_image_candidates_when_enabled(monkeypa
     assert result.thumb_list == [
         (Website.AVBASE.value, "https://example.test/avbase-thumb.jpg"),
         (Website.JAVDB.value, "https://example.test/javdb-thumb.jpg"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_call_crawlers_collects_poster_candidates_only_from_type_poster_priority(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(ManualConfig, "REDUCED_FIELDS", (CrawlerResultFields.TITLE, CrawlerResultFields.POSTER))
+
+    provider = _FakeCrawlerProvider(
+        {
+            Website.FC2: _build_image_result(
+                Website.FC2,
+                poster="https://example.test/fc2-poster.jpg",
+                image_download=False,
+            ),
+            Website.FC2HUB: _build_image_result(
+                Website.FC2HUB,
+                poster="https://example.test/fc2hub-poster.jpg",
+                image_download=True,
+            ),
+        }
+    )
+    scraper = FileScraper(_Fc2PosterPriorityConfig(), provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "FC2-1234567"
+
+    result = await scraper._call_crawlers(
+        task_input,
+        classification=classify_scrape_task(task_input, Config(website_fc2=[Website.FC2, Website.FC2HUB])),
+    )
+
+    assert result is not None
+    assert result.title == "fc2 title"
+    assert result.poster == "https://example.test/fc2hub-poster.jpg"
+    assert result.poster_from == Website.FC2HUB.value
+    assert result.poster_list == [
+        (Website.FC2HUB.value, "https://example.test/fc2hub-poster.jpg", True),
     ]
 
 
