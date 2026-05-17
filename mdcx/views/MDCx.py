@@ -10459,7 +10459,7 @@ class Ui_MDCx(object):
         self.checkBox_read_download_file_again.setText(_translate("MDCx", "重新下载图片等文件（nfo 需有链接）"))
         self.label_347.setText(_translate("MDCx", "将按「设置」-「下载」，更新文件"))
         self.checkBox_read_no_nfo_scrape.setText(_translate("MDCx", "本地之前刮削失败的文件和没有nfo的文件，重新刮削（按更新模式规则）"))
-        self.label_36.setText(_translate("MDCx", "流程同正常模式，但命名按照更新模式规则执行（在下方设置），适合二次刮削"))
+        self.label_36.setText(_translate("MDCx", "流程同正常模式，但命名按照更新模式规则执行（在下方设置）,适合二次刮削"))
         self.radioButton_mode_read.setText(_translate("MDCx", "读取模式"))
         self.radioButton_mode_update.setText(_translate("MDCx", "更新模式"))
         self.label_15.setText(_translate("MDCx", "执行：刮削->重命名，仅整理本地视频，不下载图片，适合不要海报墙的情况"))
@@ -10658,7 +10658,7 @@ class Ui_MDCx(object):
         self.checkBox_old_nfo.setText(_translate("MDCx", "nfo"))
         self.checkBox_old_extrafanart_copy.setText(_translate("MDCx", "剧照副本"))
         self.checkBox_old_theme_videos.setText(_translate("MDCx", "主题视频"))
-        self.label_79.setText(_translate("MDCx", "<p style=\'line-height:20px\'>勾选时，将使用本地文件（如有），不再重新下载。<br>\n"
+        self.label_79.setText(_translate("MDCx", "<p style=\'line-height:20px\'>勾选时，将使用本地文件（如有）,不再重新下载。<br>\n"
 "                          ⚠️ 注意：不勾选时，本地旧文件将被删除！并根据上方设置的下载项重新下载！</p>"))
         self.groupBox_51.setTitle(_translate("MDCx", "创建主题视频"))
         self.label_87.setText(_translate("MDCx", "<p style=\'line-height:20px\'>复制预告片到视频下的 backdrops 目录，当在 Emby\n"
@@ -10694,13 +10694,13 @@ class Ui_MDCx(object):
         self.groupBox_8.setTitle(_translate("MDCx", "视频命名规则"))
         self.label_66.setText(_translate("MDCx", "<p\n"
 "                                style=\'line-height:20px\'>当刮削成功时，将为该视频创建一个视频目录，并移动该视频目录到成功输出目录。<br>\n"
-"                                命名模板使用标准 Jinja2 语法，字段写作 {{ 字段名 }}，条件写作 {% if 字段名 %}...{% endif %}。<br>\n"
-"                                示例：{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }} {{ definition }}<br>\n"
-"                                字段为空时不会自动删除模板中的符号；如果不希望保留空 []、空括号或多余分隔符，请用 Jinja2 的 if 判断包住整段。<br>\n"
-"                                常用字段：{{ number }} 番号，{{ title }} 标题，{{ originaltitle }} 原标题，{{ actor }} 演员，{{ studio }} 片商，{{ series }} 系列，{{ release }} 发行日期，{{ definition }} 清晰度，{{ filename }} 原文件名。<br>\n"
-"                                其它字段：all_actor（全部演员），first_actor（首位演员），letters（番号前缀），first_letter（番号首字符），outline（剧情简介），director（导演），publisher（发行商），year（年份），runtime（时长），mosaic（有码/无码），cnword（字幕标识），moword（版本标识），wanted（想看人数），score（评分），four_k（4K/8K/UHD 标识）。<br>\n"
+"                                命名模板使用标准Jinja2语法，字段写作{{字段名}},条件写作{%if 字段名%}...{%endif%}。<br>\n"
+"                                示例：{{number}}{%if studio%} [{{studio}}]{%endif%} {{originaltitle}} {{definition}}<br>\n"
+"                                字段为空时不会自动删除模板中的符号；如果不希望保留空[]、空括号或多余分隔符，请用Jinja2的if判断包住整段。<br>\n"
+"                                常用字段：{{number}}(番号),{{title}}(翻译后标题),{{originaltitle}}(原始标题),{{actor}}(演员姓名),{{studio}}(片商),{{series}}(系列),{{release}}(发行日期),{{definition}}(清晰度),{{filename}}(原文件名)。<br>\n"
+"                                其它字段：all_actor(全部男女演员),first_actor(首位演员姓名),letters(番号前缀),<br>\nfirst_letter(番号首字符),outline(剧情简介),director(导演),publisher(发行商),<br>\nyear(年份),runtime(时长),mosaic(有码/无码),cnword(字幕标识),moword(版本标识),<br>\nwanted(想看人数),score(评分),four_k(4K/8K/UHD)。<br>\n"
 "                                注意：<br>\n"
-"                                1，模板中的 / 表示创建子目录，字段值中的 / 会自动转为 -；Jinja2 只负责生成文本；<br>\n"
+"                                1，模板中的/表示创建子目录，字段值中的/会自动转为-；Jinja2只负责生成文本；<br>\n"
 "                                2，视频目录名留空时，表示不创建视频目录；<br>\n"
 "                                3，名称超长时会优先缩短简介、标题等长字段，保留番号等关键字段。</p>"))
         self.label_63.setText(_translate("MDCx", "视频文件名："))
@@ -10709,10 +10709,10 @@ class Ui_MDCx(object):
         self.label_240.setText(_translate("MDCx", "防屏蔽字符："))
         self.label_68.setText(_translate("MDCx", "指在 nfo 文件中的标题(title)格式，在 Emby 中作为视频标题显示，支持完整 Jinja2 语法"))
         self.label_67.setText(_translate("MDCx", "Emby视频标题："))
-        self.label_61.setText(_translate("MDCx", "指本地视频文件的文件名格式，命名字段同上，推荐 {{ number }}"))
+        self.label_61.setText(_translate("MDCx", "指本地视频文件的文件名格式，命名字段同上，推荐 {{number}}"))
         self.label_239.setText(_translate("MDCx", "视频文件命名时，可插入防屏蔽字符到文件名的每个字符之间"))
         self.label_name_template_preview.setText(_translate("MDCx", "模板预览："))
-        self.plainTextEdit_name_template_preview.setPlaceholderText(_translate("MDCx", "{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }}"))
+        self.plainTextEdit_name_template_preview.setPlaceholderText(_translate("MDCx", "{{number}}{%if studio%} [{{studio}}]{%endif%} {{originaltitle}}"))
         self.label_name_template_preview_result.setText(_translate("MDCx", "输入 Jinja2 命名模板后，将在这里显示示例渲染结果和语法状态。"))
         self.groupBox_38.setTitle(_translate("MDCx", "分集命名规则"))
         self.label_98.setText(_translate("MDCx", "大写，-CD1、-CD2"))
@@ -10806,7 +10806,7 @@ class Ui_MDCx(object):
         self.checkBox_foldername_4k.setText(_translate("MDCx", "视频目录名"))
         self.groupBox_67.setTitle(_translate("MDCx", "其他说明"))
         self.label_353.setText(_translate("MDCx", "1，多版本显示："))
-        self.label_352.setText(_translate("MDCx", "<p>1）Emby 支持多版本显示（类似选集），\n"
+        self.label_352.setText(_translate("MDCx", "<p>1）Emby 支持多版本显示（类似选集）,\n"
 "                          需要：</p><p>视频文件名的开头部分必须包含视频目录名。（比如：SSIS-111/SSIS-111-4K.mp4）\n"
 "                          </p><p>查看规则：<a\n"
 "                          href=\"https://support.emby.media/support/solutions/articles/44001159102-movie-naming\"><span\n"
@@ -10947,7 +10947,7 @@ class Ui_MDCx(object):
         self.pushButton_add_sub_for_all_video.setText(_translate("MDCx", "点击检查所有视频的字幕情况并为无字幕视频添加字幕"))
         self.label_125.setText(_translate("MDCx", "<p\n"
 "                          style=\'line-height:20px\'>当字幕文件目录为空时，将只检查并统计无字幕的视频列表<br>\n"
-"                          当视频已识别为有字幕状态时（已有字幕或包含中文字幕字符等），不会重复添加字幕<br>\n"
+"                          当视频已识别为有字幕状态时（已有字幕或包含中文字幕字符等）,不会重复添加字幕<br>\n"
 "                          当视频添加新的外挂字幕后，如勾选重新刮削，将在添加结束后自动刮削<br>\n"
 "                          当视频之前添加了外挂字幕，但是还没有重新刮削时，这时也会自动刮削<br>\n"
 "                          当勾选添加.chs后缀时，字幕文件会被统一命名为：视频文件名.chs.srt</p>"))
@@ -10956,7 +10956,7 @@ class Ui_MDCx(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MDCx", " 字幕 "))
         self.groupBox_26.setTitle(_translate("MDCx", "自定义水印样式"))
         self.label_118.setText(_translate("MDCx", "<p\n"
-"                          style=\'line-height:20px\'>1、下载水印图片包并解压（也可以使用自己的图片），水印图片的保存路径为：<br>\n"
+"                          style=\'line-height:20px\'>1、下载水印图片包并解压（也可以使用自己的图片）,水印图片的保存路径为：<br>\n"
 "                          · Windows位置：（配置文件目录在「设置」-「高级」中设置）<br>\n"
 "                          字幕水印：\\配置文件目录\\userdata\\watermark\\sub.png<br>\n"
 "                          有码水印：\\配置文件目录\\userdata\\watermark\\youma.png<br>\n"
@@ -11107,7 +11107,7 @@ class Ui_MDCx(object):
         self.label_423.setText(_translate("MDCx", "标签中演员的格式："))
         self.lineEdit_nfo_tag_actor.setText(_translate("MDCx", "actor"))
         self.label_424.setText(_translate("MDCx", "演员名白名单："))
-        self.label_432.setText(_translate("MDCx", "仅在白名单内的演员名才会被添加至标签（多个内容以｜分割），留空表示全部添加"))
+        self.label_432.setText(_translate("MDCx", "仅在白名单内的演员名才会被添加至标签（多个内容以｜分割）,留空表示全部添加"))
         self.label_428.setText(_translate("MDCx", "注意：如果需要繁体，请到「设置」-「翻译」-「标签」，勾选为繁体！"))
         self.label_389.setText(_translate("MDCx", "注：同一字段多个名称可以兼容更多类型版本的媒体库"))
         self.pushButton_field_tips_nfo.setText(_translate("MDCx", "字段说明"))
@@ -11251,7 +11251,7 @@ class Ui_MDCx(object):
         self.checkBox_show_dialog_exit.setText(_translate("MDCx", "退出软件时"))
         self.checkBox_show_dialog_stop_scrape.setText(_translate("MDCx", "停止刮削时"))
         self.checkBox_timed_scrape.setText(_translate("MDCx", "每隔"))
-        self.label_84.setText(_translate("MDCx", "（时:分:秒），自动开始刮削（读取配置时开始计时）"))
+        self.label_84.setText(_translate("MDCx", "（时:分:秒）,自动开始刮削（读取配置时开始计时）"))
         self.label_308.setText(_translate("MDCx", "自动任务："))
         self.label_309.setText(_translate("MDCx", "自动刮削："))
         self.label_277.setText(_translate("MDCx", "弹窗确认："))
@@ -11402,7 +11402,7 @@ class Ui_MDCx(object):
 "                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
 "                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
 "                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\">4.2.软链接模式：使用此模式，要以管理员身份运行。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
-"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 刮削完不移动视频，而是在相应目录创建软链接（类似于快捷方式），方便PT下载完既想刮削又想继续上传的仓鼠党同志。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
+"                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 刮削完不移动视频，而是在相应目录创建软链接（类似于快捷方式）,方便PT下载完既想刮削又想继续上传的仓鼠党同志。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
 "                <p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Consolas,PingFang SC,Microsoft YaHei UI\';\"> 但是，只能在媒体库展示，不能在媒体库播放。</span><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"> </span> </p>\n"
 "                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
 "                <p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Microsoft YaHei UI\'; font-size:9pt;\"><br /> </span> </p>\n"
