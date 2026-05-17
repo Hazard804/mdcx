@@ -4321,11 +4321,11 @@ class Ui_MDCx(object):
         self.scrollAreaWidgetContents_mingming.setSizePolicy(sizePolicy)
         self.scrollAreaWidgetContents_mingming.setObjectName("scrollAreaWidgetContents_mingming")
         self.groupBox_8 = QtWidgets.QGroupBox(parent=self.scrollAreaWidgetContents_mingming)
-        self.groupBox_8.setGeometry(QtCore.QRect(30, 20, 701, 851))
+        self.groupBox_8.setGeometry(QtCore.QRect(30, 20, 701, 1051))
         self.groupBox_8.setStyleSheet("font:\"Courier\";")
         self.groupBox_8.setObjectName("groupBox_8")
         self.gridLayoutWidget_8 = QtWidgets.QWidget(parent=self.groupBox_8)
-        self.gridLayoutWidget_8.setGeometry(QtCore.QRect(20, 30, 661, 801))
+        self.gridLayoutWidget_8.setGeometry(QtCore.QRect(20, 30, 661, 1001))
         self.gridLayoutWidget_8.setObjectName("gridLayoutWidget_8")
         self.gridLayout_8 = QtWidgets.QGridLayout(self.gridLayoutWidget_8)
         self.gridLayout_8.setContentsMargins(0, 0, 0, 0)
@@ -4347,7 +4347,7 @@ class Ui_MDCx(object):
         self.lineEdit_media_name.setObjectName("lineEdit_media_name")
         self.gridLayout_8.addWidget(self.lineEdit_media_name, 4, 1, 1, 1)
         self.label_66 = QtWidgets.QLabel(parent=self.gridLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_66.sizePolicy().hasHeightForWidth())
@@ -10698,7 +10698,7 @@ class Ui_MDCx(object):
 "                                示例：{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }} {{ definition }}<br>\n"
 "                                字段为空时不会自动删除模板中的符号；如果不希望保留空 []、空括号或多余分隔符，请用 Jinja2 的 if 判断包住整段。<br>\n"
 "                                常用字段：{{ number }} 番号，{{ title }} 标题，{{ originaltitle }} 原标题，{{ actor }} 演员，{{ studio }} 片商，{{ series }} 系列，{{ release }} 发行日期，{{ definition }} 清晰度，{{ filename }} 原文件名。<br>\n"
-"                                其它字段：all_actor, first_actor, letters, first_letter, outline, director, publisher, year, runtime, mosaic, cnword, moword, wanted, score, four_k<br>\n"
+"                                其它字段：all_actor（全部演员），first_actor（首位演员），letters（番号前缀），first_letter（番号首字符），outline（剧情简介），director（导演），publisher（发行商），year（年份），runtime（时长），mosaic（有码/无码），cnword（字幕标识），moword（版本标识），wanted（想看人数），score（评分），four_k（4K/8K/UHD 标识）。<br>\n"
 "                                注意：<br>\n"
 "                                1，模板中的 / 表示创建子目录，字段值中的 / 会自动转为 -；Jinja2 只负责生成文本；<br>\n"
 "                                2，视频目录名留空时，表示不创建视频目录；<br>\n"

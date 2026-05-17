@@ -10140,7 +10140,7 @@
                         <x>30</x>
                         <y>20</y>
                         <width>701</width>
-                        <height>851</height>
+                        <height>1051</height>
                       </rect>
                     </property>
                     <property name="styleSheet">
@@ -10155,7 +10155,7 @@
                           <x>20</x>
                           <y>30</y>
                           <width>661</width>
-                          <height>801</height>
+                          <height>1001</height>
                         </rect>
                       </property>
                       <layout class="QGridLayout" name="gridLayout_8">
@@ -10194,7 +10194,7 @@
                         <item row="1" column="1">
                           <widget class="QLabel" name="label_66">
                             <property name="sizePolicy">
-                              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
                                 <horstretch>0</horstretch>
                                 <verstretch>0</verstretch>
                               </sizepolicy>
@@ -10209,7 +10209,7 @@
                                 示例：{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }} {{ definition }}&lt;br&gt;
                                 字段为空时不会自动删除模板中的符号；如果不希望保留空 []、空括号或多余分隔符，请用 Jinja2 的 if 判断包住整段。&lt;br&gt;
                                 常用字段：{{ number }} 番号，{{ title }} 标题，{{ originaltitle }} 原标题，{{ actor }} 演员，{{ studio }} 片商，{{ series }} 系列，{{ release }} 发行日期，{{ definition }} 清晰度，{{ filename }} 原文件名。&lt;br&gt;
-                                其它字段：all_actor, first_actor, letters, first_letter, outline, director, publisher, year, runtime, mosaic, cnword, moword, wanted, score, four_k&lt;br&gt;
+                                其它字段：all_actor（全部演员），first_actor（首位演员），letters（番号前缀），first_letter（番号首字符），outline（剧情简介），director（导演），publisher（发行商），year（年份），runtime（时长），mosaic（有码/无码），cnword（字幕标识），moword（版本标识），wanted（想看人数），score（评分），four_k（4K/8K/UHD 标识）。&lt;br&gt;
                                 注意：&lt;br&gt;
                                 1，模板中的 / 表示创建子目录，字段值中的 / 会自动转为 -；Jinja2 只负责生成文本；&lt;br&gt;
                                 2，视频目录名留空时，表示不创建视频目录；&lt;br&gt;
