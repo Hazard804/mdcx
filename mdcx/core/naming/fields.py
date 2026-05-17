@@ -31,7 +31,7 @@ FIELD_DESCRIPTIONS: dict[str, str] = {
     "filename": "原文件名",
     "wanted": "想看人数",
     "score": "评分",
-    "four_k": "4K 标识",
+    "4K": "4K 标识",
 }
 
 FIELD_NAMES = tuple(FIELD_DESCRIPTIONS)
