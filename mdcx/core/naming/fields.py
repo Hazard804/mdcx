@@ -31,7 +31,7 @@ FIELD_DESCRIPTIONS: dict[str, str] = {
     "filename": "原文件名",
     "wanted": "想看人数",
     "score": "评分",
-    "four_k": "4K 标识",
+    "4K": "4K 标识",
 }
 
 FIELD_NAMES = tuple(FIELD_DESCRIPTIONS)
@@ -115,7 +115,7 @@ def build_naming_context(
     year = str(data.year or "0000")
     release = get_new_release(data.release, manager.config.release_rule)
     first_letter = get_number_first_letter(number)
-    four_k = definition if definition in {"8K", "UHD", "4K"} else ""
+    4K = definition if definition in {"8K", "UHD", "4K"} else ""
 
     raw_values = {
         "number": number,
@@ -141,7 +141,7 @@ def build_naming_context(
         "filename": filename,
         "wanted": str(data.wanted or ""),
         "score": score,
-        "four_k": four_k,
+        "4K": 4K,
     }
     values = {field: _clean_field_value(value, escape_path_separator) for field, value in raw_values.items()}
     return NamingContext(values=values, raw_values=raw_values)
