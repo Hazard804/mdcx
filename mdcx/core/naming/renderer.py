@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -5,6 +6,8 @@ from ...models.types import CrawlersResult, FileInfo
 from .fields import TRUNCATE_PRIORITY, NamingContext, build_naming_context
 from .sanitize import cleanup_rendered_text, sanitize_name
 from .template import render_template
+
+LIST_TRUNCATE_FIELDS = {"actor", "all_actor", "director"}
 
 
 class NamingTarget(Enum):
@@ -33,14 +36,39 @@ class NameRenderResult:
         return self.context.get(field)
 
 
-def _clip(value: str, max_length: int) -> str:
+def _clip_text(value: str, max_length: int) -> str:
     if max_length <= 0:
         return ""
     if len(value) <= max_length:
         return value
-    if max_length <= 3:
-        return value[:max_length]
-    return value[: max_length - 3].rstrip() + "..."
+    return value[:max_length].rstrip(" ,，、;；:：._+-")
+
+
+def _clip_list(value: str, max_length: int) -> str:
+    if max_length <= 0:
+        return ""
+    if len(value) <= max_length:
+        return value
+
+    delimiter_match = re.search(r"[,，、]", value)
+    if not delimiter_match:
+        return ""
+
+    delimiter = delimiter_match.group(0)
+    parts = [part.strip() for part in re.split(r"[,，、]", value) if part.strip()]
+    kept: list[str] = []
+    for part in parts:
+        candidate = delimiter.join([*kept, part])
+        if len(candidate) > max_length:
+            break
+        kept.append(part)
+    return delimiter.join(kept)
+
+
+def _clip_field(field_name: str, value: str, max_length: int) -> str:
+    if field_name in LIST_TRUNCATE_FIELDS:
+        return _clip_list(value, max_length)
+    return _clip_text(value, max_length)
 
 
 def _finalize_text(text: str, target: NamingTarget) -> str:
@@ -73,7 +101,7 @@ def _smart_truncate(
             continue
         overflow = len(text) - max_length
         next_length = max(len(current) - overflow, 0)
-        next_value = _clip(current, next_length)
+        next_value = _clip_field(field_name, current, next_length)
         if next_value == current:
             continue
         mutable_values[field_name] = next_value
@@ -82,6 +110,7 @@ def _smart_truncate(
 
     if len(text) > max_length:
         text = text[:max_length].rstrip(" ,，、;；:：._+-")
+        text = _finalize_text(text, target)
     return text, truncated_fields
 
 

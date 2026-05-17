@@ -128,6 +128,20 @@ def test_folder_template_keeps_template_separator_and_escapes_field_separator(mo
     assert folder_name == "ABC/A-B"
 
 
+def test_folder_segment_keeps_user_written_hyphen_edges():
+    file_info = _build_file_info()
+    result = _build_result()
+
+    rendered = render_name(
+        "{{ letters }}/-{{ number }}-",
+        file_info,
+        result,
+        NameRenderOptions(target=NamingTarget.FOLDER),
+    )
+
+    assert rendered.text == "ABC/-ABC-123"
+
+
 def test_long_originaltitle_is_truncated_but_number_is_kept(monkeypatch):
     file_info = _build_file_info()
     result = _build_result()
@@ -146,6 +160,105 @@ def test_long_originaltitle_is_truncated_but_number_is_kept(monkeypatch):
 
     assert folder_name.startswith("ABC-123 ")
     assert len(folder_name) <= 32
+    assert "..." not in folder_name
+
+
+def test_truncated_folder_segment_does_not_end_with_dot_or_ellipsis(monkeypatch):
+    file_info = _build_file_info()
+    result = _build_result()
+    result.title = "浜崎真緒, 望月彩花, 黒川紗里奈, 今井ほのか"
+
+    monkeypatch.setattr(manager.config, "folder_name", "{{ title }}/{{ number }}")
+    monkeypatch.setattr(manager.config, "folder_name_max", 28)
+    monkeypatch.setattr(manager.config, "folder_moword", False)
+    monkeypatch.setattr(manager.config, "folder_hd", False)
+    monkeypatch.setattr(manager.config, "folder_cnword", False)
+    monkeypatch.setattr(manager.config, "success_file_move", True)
+    monkeypatch.setattr(manager.config, "main_mode", 1)
+    monkeypatch.setattr(manager.config, "soft_link", 0)
+
+    _, folder_name = _get_folder_path(Path("D:/Media/Output"), file_info, result)
+
+    assert folder_name.endswith("/ABC-123")
+    assert "..." not in folder_name
+    assert all(part and not part.endswith((".", " ")) for part in folder_name.split("/"))
+
+
+def test_actor_truncation_keeps_complete_actor_names(monkeypatch):
+    file_info = _build_file_info()
+    result = _build_result()
+    result.actor = "浜崎真緒,望月彩花,黒川紗里奈,今井ほのか"
+
+    monkeypatch.setattr(manager.config, "folder_name", "{{ actor }}/{{ number }}")
+    monkeypatch.setattr(manager.config, "folder_name_max", 16)
+    monkeypatch.setattr(manager.config, "actor_name_max", 10)
+    monkeypatch.setattr(manager.config, "folder_moword", False)
+    monkeypatch.setattr(manager.config, "folder_hd", False)
+    monkeypatch.setattr(manager.config, "folder_cnword", False)
+    monkeypatch.setattr(manager.config, "success_file_move", True)
+    monkeypatch.setattr(manager.config, "main_mode", 1)
+    monkeypatch.setattr(manager.config, "soft_link", 0)
+
+    _, folder_name = _get_folder_path(Path("D:/Media/Output"), file_info, result)
+
+    assert folder_name == "浜崎真緒/ABC-123"
+
+
+def test_actor_truncation_drops_field_when_first_actor_does_not_fit(monkeypatch):
+    file_info = _build_file_info()
+    result = _build_result()
+    result.actor = "VeryLongActorName,SecondActor"
+
+    monkeypatch.setattr(manager.config, "folder_name", "{{ actor }}/{{ number }}")
+    monkeypatch.setattr(manager.config, "folder_name_max", 10)
+    monkeypatch.setattr(manager.config, "actor_name_max", 10)
+    monkeypatch.setattr(manager.config, "folder_moword", False)
+    monkeypatch.setattr(manager.config, "folder_hd", False)
+    monkeypatch.setattr(manager.config, "folder_cnword", False)
+    monkeypatch.setattr(manager.config, "success_file_move", True)
+    monkeypatch.setattr(manager.config, "main_mode", 1)
+    monkeypatch.setattr(manager.config, "soft_link", 0)
+
+    _, folder_name = _get_folder_path(Path("D:/Media/Output"), file_info, result)
+
+    assert folder_name == "ABC-123"
+
+
+def test_folder_segments_avoid_windows_reserved_names(monkeypatch):
+    file_info = _build_file_info()
+    result = _build_result()
+    result.actor = "CON"
+    result.title = "COM1.txt"
+
+    monkeypatch.setattr(manager.config, "folder_name", "{{ actor }}/{{ title }}")
+    monkeypatch.setattr(manager.config, "folder_name_max", 60)
+    monkeypatch.setattr(manager.config, "folder_moword", False)
+    monkeypatch.setattr(manager.config, "folder_hd", False)
+    monkeypatch.setattr(manager.config, "folder_cnword", False)
+    monkeypatch.setattr(manager.config, "success_file_move", True)
+    monkeypatch.setattr(manager.config, "main_mode", 1)
+    monkeypatch.setattr(manager.config, "soft_link", 0)
+
+    _, folder_name = _get_folder_path(Path("D:/Media/Output"), file_info, result)
+
+    assert folder_name == "CON_/COM1_.txt"
+
+
+def test_final_hard_truncate_is_sanitized_for_folder_segments():
+    file_info = _build_file_info()
+    result = _build_result()
+    result.actor = "Actor"
+    result.title = "Title"
+
+    rendered = render_name(
+        "abcdef./Title",
+        file_info,
+        result,
+        NameRenderOptions(target=NamingTarget.FOLDER, max_length=7),
+    )
+
+    assert rendered.text == "abcdef"
+    assert all(part and not part.endswith((".", " ")) for part in rendered.text.split("/"))
 
 
 def test_generate_file_name_uses_new_template(monkeypatch):
