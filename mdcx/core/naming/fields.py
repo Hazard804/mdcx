@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from ...base.number import deal_actor_more
 from ...config.manager import manager
 from ...models.types import CrawlersResult, FileInfo
-from ...number import get_number_first_letter
+from ...number import get_number_first_letters
 from ...utils import get_new_release, split_path
 
 FIELD_DESCRIPTIONS: dict[str, str] = {
@@ -15,7 +15,7 @@ FIELD_DESCRIPTIONS: dict[str, str] = {
     "first_actor": "首位演员",
     "all_actor": "全部演员",
     "letters": "番号前缀",
-    "first_letter": "番号首字符",
+    "first_letters": "番号首字符",
     "outline": "简介",
     "director": "导演",
     "series": "系列",
@@ -114,7 +114,7 @@ def build_naming_context(
     score = str(data.score or "0.0")
     year = str(data.year or "0000")
     release = get_new_release(data.release, manager.config.release_rule)
-    first_letter = get_number_first_letter(number)
+    first_letters = get_number_first_letters(number)
     four_k = definition if definition in {"8K", "UHD", "4K"} else ""
 
     raw_values = {
@@ -125,7 +125,7 @@ def build_naming_context(
         "first_actor": first_actor,
         "all_actor": all_actor,
         "letters": data.letters,
-        "first_letter": first_letter,
+        "first_letters": first_letters,
         "outline": data.outline,
         "director": data.director,
         "series": data.series or "未知系列",
