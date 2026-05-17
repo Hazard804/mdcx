@@ -137,7 +137,7 @@ def get_number_letters(number: str) -> str:
     return result[1] if result else "未知车牌"
 
 
-def get_number_first_letter(number: str) -> str:
+def get_number_first_letters(number: str) -> str:
     result = number.upper()[0]
     return result if result.encode("utf-8").isalnum() else "#"
 
