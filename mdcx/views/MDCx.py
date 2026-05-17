@@ -10668,25 +10668,28 @@ class Ui_MDCx(object):
         self.groupBox_8.setTitle(_translate("MDCx", "视频命名规则"))
         self.label_66.setText(_translate("MDCx", "<p\n"
 "                                style=\'line-height:20px\'>当刮削成功时，将为该视频创建一个视频目录，并移动该视频目录到成功输出目录。<br>\n"
-"                                命名模板使用标准 Jinja2 语法，字段写作 {{ 字段名 }}，条件写作 {% if 字段名 %}...{% endif %}。<br>\n"
-"                                示例：{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }} {{ definition }}<br>\n"
-"                                字段为空时不会自动删除模板中的符号；如果不希望保留空 []、空括号或多余分隔符，请用 Jinja2 的 if 判断包住整段。<br>\n"
-"                                常用字段：{{ number }} 番号，{{ title }} 标题，{{ originaltitle }} 原标题，{{ actor }} 演员，{{ studio }} 片商，{{ series }} 系列，{{ release }} 发行日期，{{ definition }} 清晰度，{{ filename }} 原文件名。<br>\n"
-"                                其它字段：all_actor, first_actor, letters, first_letter, outline, director, publisher, year, runtime, mosaic, cnword, moword, wanted, score, four_k<br>\n"
+"                                命名模板使用标准 Jinja2 语法，字段写作{{ 字段名 }}，条件写作 {% if 字段名 %}...{% endif %}。<br>\n"
+"                                示例：{{ number }}{% if studio %} [{{ studio }}]{% endif %}{{ originaltitle }}{{ definition }}<br>\n"
+"                                目录名字支持自定义，命名字段有：{{ title }}（标题）,{{ originaltitle }}（原标题）,{{ actor }}（女演员）,{{ all_actor }}\n"
+"                                （男女演员）,{{ first_actor }}（首位演员）,{{ number }}（番号）,{{ letters }}（番号前缀）,{{ first_letter }}\n"
+"                                （番号首字符）,{{ outline }}（剧情简介）,{{ director }}（导演）,{{ series }}（系列）, {{ studio }}（片商）,\n"
+"                               {{ publisher }} （发行商）,{{ release }} （发行日期）,{{ year }}（年代）,{{ runtime }}（时长）,{{ mosaic }}\n"
+"                                （有码/无码）,{{ definition }}（720P/1080P/4K）,{{ cnword }}（自定义的字幕标识）,{{ moword }}\n"
+"                                （自定义的无码标识）,{{ filename }}（原文件名）,{{ wanted }}（想看人数）,{{ score }}（评分）,{{ 4K }}（4K）<br>\n"
 "                                注意：<br>\n"
-"                                1，模板中的 / 表示创建子目录，字段值中的 / 会自动转为 -；Jinja2 只负责生成文本；<br>\n"
-"                                2，视频目录名留空时，表示不创建视频目录；<br>\n"
-"                                3，名称超长时会优先缩短简介、标题等长字段，保留番号等关键字段。</p>"))
+"                                1，模板中的/表示创建子目录，字段值中的/会自动转为-；Jinja2只负责生成文本；<br>\n"
+"                                2，可以添加命名字段以外的字符命名时会原样保留，视频目录名留空时不创建视频目录；<br>\n"
+"                                3，名称超长时会优先缩短简介、标题等长字段，保留番号等关键字段，当勾选「成功后不移动文件」时，将不会创建视频目录；<br>\n</p>"))
         self.label_63.setText(_translate("MDCx", "视频文件名："))
         self.lineEdit_dir_name.setAccessibleDescription(_translate("MDCx", "测试"))
         self.label_43.setText(_translate("MDCx", "视频目录名："))
         self.label_240.setText(_translate("MDCx", "防屏蔽字符："))
         self.label_68.setText(_translate("MDCx", "指在 nfo 文件中的标题(title)格式，在 Emby 中作为视频标题显示，支持完整 Jinja2 语法"))
         self.label_67.setText(_translate("MDCx", "Emby视频标题："))
-        self.label_61.setText(_translate("MDCx", "指本地视频文件的文件名格式，命名字段同上，推荐 {{ number }}"))
+        self.label_61.setText(_translate("MDCx", "指本地视频文件的文件名格式，命名字段同上，推荐{{ number }}"))
         self.label_239.setText(_translate("MDCx", "视频文件命名时，可插入防屏蔽字符到文件名的每个字符之间"))
         self.label_name_template_preview.setText(_translate("MDCx", "模板预览："))
-        self.plainTextEdit_name_template_preview.setPlaceholderText(_translate("MDCx", "{{ number }}{% if studio %} [{{ studio }}]{% endif %} {{ originaltitle }}"))
+        self.plainTextEdit_name_template_preview.setPlaceholderText(_translate("MDCx", "{{ number }}{% if studio %} [{{ studio }}]{% endif %}{{ originaltitle }}"))
         self.label_name_template_preview_result.setText(_translate("MDCx", "输入 Jinja2 命名模板后，将在这里显示示例渲染结果和语法状态。"))
         self.groupBox_38.setTitle(_translate("MDCx", "分集命名规则"))
         self.label_98.setText(_translate("MDCx", "大写，-CD1、-CD2"))
