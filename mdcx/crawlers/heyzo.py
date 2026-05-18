@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from typing import Any, override
@@ -5,10 +6,14 @@ from urllib.parse import quote, urljoin, urlparse
 
 from parsel import Selector
 
+from mdcx.base.web import check_url
+
 from ..config.models import Website
 from .base import BaseCrawler, Context, CralwerException, CrawlerData, DetailPageParser, extract_all_texts, extract_text
 
 PLACEHOLDER_VALUES = {"", "-", "--", "---", "-----", "N/A", "n/a"}
+GALLERY_PROBE_BATCH_SIZE = 3
+GALLERY_PROBE_MAX_INDEX = 300
 
 
 class Parser(DetailPageParser):
@@ -140,7 +145,7 @@ class Parser(DetailPageParser):
     async def extrafanart(self, ctx: Context, html: Selector) -> list[str]:
         images: list[str] = []
         for script in html.xpath("//script/text()").getall():
-            for image in re.findall(r'["\']([^"\']*/contents/3000/\d+/images/capture\d+\.jpg)["\']', script):
+            for image in re.findall(r'["\']([^"\']*/contents/3000/\d+/gallery/\d+\.jpg)["\']', script):
                 if "/member/" not in image:
                     images.append(self._full_url(image))
         return self._clean_items(images)
@@ -203,6 +208,46 @@ class HeyzoCrawler(BaseCrawler):
     def _build_detail_url(self, number: str) -> str:
         return f"{self.base_url}/moviepages/{quote(number)}/index.html"
 
+    async def _check_image_url(self, ctx: Context, url: str) -> str:
+        _ = ctx
+        return str(await check_url(url) or "")
+
+    @staticmethod
+    def _gallery_index(url: str) -> int:
+        if matched := re.search(r"/gallery/(\d+)\.jpg(?:[?#].*)?$", url):
+            return int(matched.group(1))
+        return 0
+
+    def _build_gallery_url(self, movie_id: str, index: int) -> str:
+        return f"{self.base_url}/contents/3000/{movie_id}/gallery/{index:03d}.jpg"
+
+    async def _probe_gallery_extrafanart(self, ctx: Context, movie_id: str, existing_urls: list[str]) -> list[str]:
+        images = list(dict.fromkeys(existing_urls))
+        seen = set(images)
+        start_index = max([self._gallery_index(url) for url in images] or [0]) + 1
+        if start_index < 1:
+            start_index = 1
+
+        for batch_start in range(start_index, GALLERY_PROBE_MAX_INDEX + 1, GALLERY_PROBE_BATCH_SIZE):
+            indexes = range(batch_start, min(batch_start + GALLERY_PROBE_BATCH_SIZE, GALLERY_PROBE_MAX_INDEX + 1))
+            candidates = [(index, self._build_gallery_url(movie_id, index)) for index in indexes]
+            checked_urls = await asyncio.gather(*[self._check_image_url(ctx, url) for _, url in candidates])
+
+            should_stop = False
+            for (index, _), valid_url in zip(candidates, checked_urls, strict=True):
+                if not valid_url:
+                    ctx.debug(f"HEYZO gallery 探测停止: index={index}")
+                    should_stop = True
+                    break
+                ctx.debug(f"HEYZO gallery 探测通过: index={index}, url={valid_url}")
+                if valid_url not in seen:
+                    seen.add(valid_url)
+                    images.append(valid_url)
+            if should_stop:
+                break
+
+        return images
+
     @override
     async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
         number = self._normalize_number(ctx.input.number)
@@ -240,3 +285,10 @@ class HeyzoCrawler(BaseCrawler):
             raise CralwerException(f"详情页番号与输入不一致: input={ctx.input.number}, detail={detail_url}")
         data.number = f"HEYZO-{url_number}"
         return data
+
+    @override
+    async def post_process(self, ctx: Context, res):
+        movie_id = self._normalize_number(res.number or ctx.input.number)
+        if movie_id:
+            res.extrafanart = await self._probe_gallery_extrafanart(ctx, movie_id, list(res.extrafanart or []))
+        return res

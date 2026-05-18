@@ -125,6 +125,44 @@ async def test_check_url_uses_config_retry_for_dmm_images(monkeypatch: pytest.Mo
 
 
 @pytest.mark.asyncio
+async def test_check_url_rejects_html_content_type(monkeypatch: pytest.MonkeyPatch):
+    async def fake_request(method: str, url: str, **kwargs):
+        _ = method, kwargs
+        return (
+            _FakeResponse(url, headers={"Content-Type": "text/html; charset=UTF-8", "Content-Length": "10000"}),
+            "",
+        )
+
+    async def fake_get_content(url: str, **kwargs):
+        raise AssertionError("HTML 响应头应直接判无效，不应继续预下载")
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+    monkeypatch.setattr(manager.computed.async_client, "get_content", fake_get_content)
+
+    result = await base_web.check_url("https://example.test/not-image.jpg")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_check_url_rejects_html_fallback_content(monkeypatch: pytest.MonkeyPatch):
+    async def fake_request(method: str, url: str, **kwargs):
+        _ = method, kwargs
+        return (_FakeResponse(url, headers={}), "")
+
+    async def fake_get_content(url: str, **kwargs):
+        _ = url, kwargs
+        return b"<!doctype html><html><body>not image</body></html>", ""
+
+    monkeypatch.setattr(manager.computed.async_client, "request", fake_request)
+    monkeypatch.setattr(manager.computed.async_client, "get_content", fake_get_content)
+
+    result = await base_web.check_url("https://example.test/not-image.jpg")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
 async def test_get_url_content_length_uses_get_for_dmm_images(monkeypatch: pytest.MonkeyPatch):
     calls: list[tuple[str, str]] = []
 

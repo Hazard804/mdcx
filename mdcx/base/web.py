@@ -245,6 +245,18 @@ def _parse_content_length(value: Any) -> int | None:
     return length if length > 0 else None
 
 
+def _is_html_content_type(value: Any) -> bool:
+    content_type = str(value or "").split(";", 1)[0].strip().lower()
+    return content_type in {"text/html", "application/xhtml+xml"} or content_type.endswith("+html")
+
+
+def _looks_like_html_content(content: bytes | None) -> bool:
+    if not content:
+        return False
+    head = content[:512].lstrip().lower()
+    return head.startswith(b"<!doctype html") or head.startswith(b"<html")
+
+
 async def _validate_dmm_image_url(url: str, length: bool = False, real_url: bool = False):
     normalized = normalize_media_url(url)
     request_url, added_probe = _build_dmm_probe_url(normalized)
@@ -273,6 +285,10 @@ async def _validate_dmm_image_url(url: str, length: bool = False, real_url: bool
                     signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
                     return
 
+                if _is_html_content_type(response.headers.get("Content-Type")):
+                    signal.add_log(f"🔴 检测链接失败: 返回HTML页面 {true_url}")
+                    return
+
                 if _is_invalid_image_redirect_url(true_url):
                     signal.add_log(f"🔴 检测链接失败: 图片已被网站删除 {true_url}")
                     return
@@ -282,6 +298,9 @@ async def _validate_dmm_image_url(url: str, length: bool = False, real_url: bool
                     return content_length if length else true_url
 
                 if response.content and len(response.content) > 0:
+                    if _looks_like_html_content(response.content):
+                        signal.add_log(f"🔴 检测链接失败: 返回HTML页面 {true_url}")
+                        return
                     signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
                     return len(response.content) if length else true_url
 
@@ -424,6 +443,10 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
                     signal.add_log(f"🔴 检测链接失败: 需登录 {true_url}")
                     return
 
+                if _is_html_content_type(response.headers.get("Content-Type")):
+                    signal.add_log(f"🔴 检测链接失败: 返回HTML页面 {true_url}")
+                    return
+
                 # 检查是否带有图片不存在的关键词
                 bad_url_keys = ["now_printing", "nowprinting", "noimage", "nopic", "media_violation"]
                 for each_key in bad_url_keys:
@@ -438,6 +461,9 @@ async def check_url(url: str, length: bool = False, real_url: bool = False):
                     content, error = await client.get_content(true_url)
 
                     if content is not None and len(content) > 0:
+                        if _looks_like_html_content(content):
+                            signal.add_log(f"🔴 检测链接失败: 返回HTML页面 {true_url}")
+                            return
                         signal.add_log(f"✅ 检测链接通过: 预下载成功 {true_url}")
                         return 10240 if length else true_url
                     else:

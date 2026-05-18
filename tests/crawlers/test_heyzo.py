@@ -37,6 +37,11 @@ DETAIL_HTML = """
         $('.capture').append('<a><img src="/contents/3000/3836/images/capture1.jpg" /></a>');
         $('.capture').append('<a><img src="/contents/3000/3836/images/capture2.jpg" /></a>');
         $('.capture').append('<a><img src="/member/contents/3000/3836/images/capture3.jpg" /></a>');
+        $('.gallery').append('<a href="/contents/3000/3836/gallery/001.jpg"></a>');
+        $('.gallery').append('<a href="/contents/3000/3836/gallery/002.jpg"></a>');
+        $('.gallery').append('<a href="/contents/3000/3836/gallery/003.jpg"></a>');
+        $('.gallery').append('<a href="/contents/3000/3836/gallery/thumbnail_003.jpg"></a>');
+        $('.gallery').append('<a href="/member/contents/3000/3836/gallery/003.jpg"></a>');
       </script>
       <table class="movieInfo">
         <tr class="table-release-day"><td>公開日</td><td>2026-05-02</td></tr>
@@ -65,21 +70,33 @@ class FakeHeyzoClient:
         return None, f"unexpected url: {url}"
 
 
-@pytest.mark.asyncio
-async def test_heyzo_crawler_parses_direct_detail_page():
-    crawler = HeyzoCrawler(client=FakeHeyzoClient())
-    res = await crawler.run(
-        CrawlerInput(
-            appoint_number="",
-            appoint_url="",
-            file_path=None,
-            mosaic="",
-            number="heyzo-3836",
-            short_number="heyzo-3836",
-            language=Language.JP,
-            org_language=Language.JP,
-        )
+def crawler_input(number: str = "HEYZO-3836") -> CrawlerInput:
+    return CrawlerInput(
+        appoint_number="",
+        appoint_url="",
+        file_path=None,
+        mosaic="",
+        number=number,
+        short_number=number,
+        language=Language.JP,
+        org_language=Language.JP,
     )
+
+
+@pytest.mark.asyncio
+async def test_heyzo_crawler_parses_direct_detail_page(monkeypatch: pytest.MonkeyPatch):
+    checked_indexes: list[int] = []
+
+    async def fake_check_image_url(self, ctx, url):
+        _ = self, ctx
+        index = int(url.rsplit("/", 1)[1].split(".", 1)[0])
+        checked_indexes.append(index)
+        return url if index <= 5 else ""
+
+    monkeypatch.setattr(HeyzoCrawler, "_check_image_url", fake_check_image_url)
+
+    crawler = HeyzoCrawler(client=FakeHeyzoClient())
+    res = await crawler.run(crawler_input("heyzo-3836"))
 
     assert res.debug_info.error is None
     assert res.data is not None
@@ -101,9 +118,13 @@ async def test_heyzo_crawler_parses_direct_detail_page():
     assert res.data.thumb == "https://www.heyzo.com/contents/3000/3836/images/player_thumbnail.jpg"
     assert res.data.poster == ""
     assert res.data.extrafanart == [
-        "https://www.heyzo.com/contents/3000/3836/images/capture1.jpg",
-        "https://www.heyzo.com/contents/3000/3836/images/capture2.jpg",
+        "https://www.heyzo.com/contents/3000/3836/gallery/001.jpg",
+        "https://www.heyzo.com/contents/3000/3836/gallery/002.jpg",
+        "https://www.heyzo.com/contents/3000/3836/gallery/003.jpg",
+        "https://www.heyzo.com/contents/3000/3836/gallery/004.jpg",
+        "https://www.heyzo.com/contents/3000/3836/gallery/005.jpg",
     ]
+    assert checked_indexes == [4, 5, 6]
     assert res.data.trailer == "https://sample.heyzo.com/contents/3000/3836/sample.mp4"
     assert res.data.studio == "HEYZO"
     assert res.data.publisher == "HEYZO"
@@ -121,18 +142,7 @@ def test_heyzo_crawler_accepts_compact_number():
 @pytest.mark.asyncio
 async def test_heyzo_crawler_rejects_non_heyzo_number():
     crawler = HeyzoCrawler(client=FakeHeyzoClient())
-    res = await crawler.run(
-        CrawlerInput(
-            appoint_number="",
-            appoint_url="",
-            file_path=None,
-            mosaic="",
-            number="051726-001",
-            short_number="051726-001",
-            language=Language.JP,
-            org_language=Language.JP,
-        )
-    )
+    res = await crawler.run(crawler_input("051726-001"))
 
     assert res.data is None
     assert res.debug_info.error is not None
@@ -147,18 +157,7 @@ async def test_heyzo_crawler_rejects_detail_page_with_mismatched_movie_id():
             return DETAIL_HTML.replace("var movieId = '3836';", "var movieId = '3837';"), ""
 
     crawler = HeyzoCrawler(client=FakeMismatchClient())
-    res = await crawler.run(
-        CrawlerInput(
-            appoint_number="",
-            appoint_url="",
-            file_path=None,
-            mosaic="",
-            number="HEYZO-3836",
-            short_number="HEYZO-3836",
-            language=Language.JP,
-            org_language=Language.JP,
-        )
-    )
+    res = await crawler.run(crawler_input("HEYZO-3836"))
 
     assert res.data is None
     assert res.debug_info.error is not None
