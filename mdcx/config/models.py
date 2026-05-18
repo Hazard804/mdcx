@@ -135,6 +135,8 @@ DEFAULT_FIELD_SITE_PRIORITY = [
     Website.AVBASE,
     Website.JAV321,
     Website.MMTV,
+    Website.CARIBBEANCOM,
+    Website.CARIBBEANCOMPR,
     Website.JAVDB,
     Website.JAVBUS,
     Website.IQQTV,
@@ -359,6 +361,8 @@ class Config(BaseModel):
     website_wuma: list[Website] = Field(
         default_factory=lambda: [
             Website.MISSAV,
+            Website.CARIBBEANCOM,
+            Website.CARIBBEANCOMPR,
             Website.MMTV,
             Website.AVSOX,
         ],

@@ -3,6 +3,7 @@ from . import (
     avbase_new,
     avsox,
     cableav,
+    caribbeancom,
     cnmdb,
     dahlia,
     faleno,
@@ -26,6 +27,7 @@ from .avbase_new import AvbaseCrawler
 from .avsox import AvsoxCrawler
 from .base import get_crawler, get_registered_crawler_sites, register_crawler
 from .cableav import CableavCrawler
+from .caribbeancom import CaribbeancomCrawler, CaribbeancomprCrawler
 from .cnmdb import CnmdbCrawler
 from .dahlia import DahliaCrawler
 from .dmm_new import DmmCrawler
@@ -64,6 +66,8 @@ register_crawler(JavdbCrawler)
 register_crawler(javdbapi.JavdbApiCrawler)
 register_crawler(AvbaseCrawler)
 register_crawler(missav.MissavCrawler)
+register_crawler(CaribbeancomCrawler)
+register_crawler(CaribbeancomprCrawler)
 register_crawler(FalenoCrawler)
 register_crawler(Jav321Crawler)
 register_crawler(CableavCrawler)

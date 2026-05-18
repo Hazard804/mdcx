@@ -490,6 +490,8 @@ class Website(Enum):
     AVSEX = "avsex"
     AVSOX = "avsox"
     CABLEAV = "cableav"
+    CARIBBEANCOM = "caribbeancom"
+    CARIBBEANCOMPR = "caribbeancompr"
     CNMDB = "cnmdb"
     DMM = "dmm"
     FALENO = "faleno"
