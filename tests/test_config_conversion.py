@@ -158,6 +158,7 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.MISSAV,
         Website.CARIBBEANCOM,
         Website.CARIBBEANCOMPR,
+        Website.HEYZO,
         Website.MMTV,
         Website.AVSOX,
     ]

@@ -493,6 +493,7 @@ class ManualConfig:
         "caribbeancom": Website.CARIBBEANCOM,
         "caribbeancompr": Website.CARIBBEANCOMPR,
         "carib": Website.CARIBBEANCOM,
+        "heyzo": Website.HEYZO,
         "javlibrary": Website.JAVLIBRARY,
         "mdtv": Website.MDTV,
         "mdpjzip": Website.MDTV,

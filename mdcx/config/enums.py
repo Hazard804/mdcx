@@ -504,6 +504,7 @@ class Website(Enum):
     GETCHU = "getchu"
     GIGA = "giga"
     HDOUBAN = "hdouban"
+    HEYZO = "heyzo"
     HSCANGKU = "hscangku"
     IQQTV = "iqqtv"
     JAV321 = "jav321"

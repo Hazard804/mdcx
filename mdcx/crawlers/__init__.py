@@ -9,6 +9,7 @@ from . import (
     faleno,
     fantastica,
     giga,
+    heyzo,
     hscangku,
     jav321,
     javday,
@@ -42,6 +43,7 @@ from .getchu import GetchuCrawler
 from .getchu_dmm import GetchuDmmCrawler
 from .giga import GigaCrawler
 from .hdouban import HdoubanCrawler
+from .heyzo import HeyzoCrawler
 from .hscangku import HscangkuCrawler
 from .iqqtv import IqqtvCrawler
 from .jav321 import Jav321Crawler
@@ -68,6 +70,7 @@ register_crawler(AvbaseCrawler)
 register_crawler(missav.MissavCrawler)
 register_crawler(CaribbeancomCrawler)
 register_crawler(CaribbeancomprCrawler)
+register_crawler(HeyzoCrawler)
 register_crawler(FalenoCrawler)
 register_crawler(Jav321Crawler)
 register_crawler(CableavCrawler)
