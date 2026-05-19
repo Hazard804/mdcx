@@ -231,3 +231,71 @@ async def test_caribbeancompr_crawler_parses_direct_detail_page():
 
 def test_caribbeancompr_crawler_is_registered():
     assert get_crawler(Website.CARIBBEANCOMPR) is CaribbeancomprCrawler
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("crawler_cls", "base_url", "movie_id", "site_name", "title", "sample_host"),
+    [
+        (
+            CaribbeancomCrawler,
+            "https://www.caribbeancom.com",
+            "051926_100",
+            "pacopacomama.com",
+            "巨乳上司の誘惑",
+            "smovie.pacopacomama.com",
+        ),
+        (
+            CaribbeancomprCrawler,
+            "https://www.caribbeancompr.com",
+            "122321_913",
+            "caribbeancompr.com",
+            "人妻マンコ図鑑 47",
+            "smovie.caribbeancompr.com",
+        ),
+    ],
+)
+async def test_caribbean_crawler_uses_movie_image_data_before_emimg_fragment(
+    crawler_cls, base_url, movie_id, site_name, title, sample_host
+):
+    html = f"""
+    <html>
+      <body>
+        <script>
+          var Movie = {{
+            "movie_id":"{movie_id}",
+            "site_name":"{site_name}",
+            "image_name":"l_hd.jpg",
+            "sample_flash_url":"https:\\/\\/{sample_host}\\/sample\\/movies\\/{movie_id}\\/480p.mp4"
+          }};
+          var emimg = 'https://www.'+Movie.site_name+'/assets/sample/{movie_id}/'+'l_hd.jpg';
+        </script>
+        <h1 itemprop="name">{title}</h1>
+      </body>
+    </html>
+    """
+
+    class FakeExpressionImageClient:
+        async def get_text(self, url, **kwargs):
+            _ = kwargs
+            if url == f"{base_url}/moviepages/{movie_id}/index.html":
+                return html, ""
+            return None, f"unexpected url: {url}"
+
+    crawler = crawler_cls(client=FakeExpressionImageClient())
+    res = await crawler.run(
+        CrawlerInput(
+            appoint_number="",
+            appoint_url="",
+            file_path=None,
+            mosaic="",
+            number=movie_id,
+            short_number=movie_id,
+            language=Language.JP,
+            org_language=Language.JP,
+        )
+    )
+
+    assert res.debug_info.error is None
+    assert res.data is not None
+    assert res.data.thumb == f"https://www.{site_name}/assets/sample/{movie_id}/l_hd.jpg"

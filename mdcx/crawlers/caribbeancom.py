@@ -116,8 +116,15 @@ class BaseCaribbeanParser(DetailPageParser):
         return f"{stars}.0" if stars else ""
 
     async def thumb(self, ctx: Context, html: Selector) -> str:
-        image = html.xpath("//script/text()").re_first(r"emimg\s*=\s*'([^']+)'")
-        if image:
+        movie = self._movie_data(html)
+        site_name = str(movie.get("site_name") or "").strip()
+        image_name = str(movie.get("image_name") or "").strip()
+        movie_id = str(movie.get("movie_id") or "").strip()
+        if site_name and image_name and movie_id:
+            return f"https://www.{site_name}/assets/sample/{movie_id}/{image_name}"
+
+        image = html.xpath("//script/text()").re_first(r"emimg\s*=\s*['\"]([^'\"]+)['\"]")
+        if image and not image.endswith("."):
             return urljoin(self.crawler_cls.base_url_(), image)
         number = await self.number(ctx, html)
         return urljoin(self.crawler_cls.base_url_(), f"/moviepages/{number}/images/l_l.jpg") if number else ""
