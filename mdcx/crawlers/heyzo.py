@@ -137,7 +137,10 @@ class Parser(DetailPageParser):
 
     async def thumb(self, ctx: Context, html: Selector) -> str:
         image = str(self._json_ld(html).get("image") or "").strip()
-        return self._full_url(image) if image else extract_text(html, "//meta[@property='og:image']/@content")
+        if image:
+            return self._full_url(image)
+        og_image = extract_text(html, "//meta[@property='og:image']/@content")
+        return self._full_url(og_image) if og_image else ""
 
     async def poster(self, ctx: Context, html: Selector) -> str:
         return ""

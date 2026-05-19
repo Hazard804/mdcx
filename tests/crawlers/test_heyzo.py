@@ -61,6 +61,20 @@ DETAIL_HTML = """
 </html>
 """
 
+DETAIL_HTML_WITH_OG_IMAGE_ONLY = """
+<html>
+  <head>
+    <meta property="og:image" content="//www.heyzo.com/contents/3000/3850/images/player_thumbnail.jpg" />
+  </head>
+  <body>
+    <script>
+      var movieId = '3850';
+    </script>
+    <h1>HEYZO real page style</h1>
+  </body>
+</html>
+"""
+
 
 class FakeHeyzoClient:
     async def get_text(self, url, **kwargs):
@@ -162,6 +176,29 @@ async def test_heyzo_crawler_rejects_detail_page_with_mismatched_movie_id():
     assert res.data is None
     assert res.debug_info.error is not None
     assert "影片标识不一致" in str(res.debug_info.error)
+
+
+@pytest.mark.asyncio
+async def test_heyzo_crawler_normalizes_og_image_thumb(monkeypatch: pytest.MonkeyPatch):
+    async def fake_probe_gallery(self, ctx, movie_id, existing_urls):
+        _ = self, ctx, movie_id
+        return existing_urls
+
+    class FakeOgImageClient:
+        async def get_text(self, url, **kwargs):
+            _ = kwargs
+            if url == "https://www.heyzo.com/moviepages/3850/index.html":
+                return DETAIL_HTML_WITH_OG_IMAGE_ONLY, ""
+            return None, f"unexpected url: {url}"
+
+    monkeypatch.setattr(HeyzoCrawler, "_probe_gallery_extrafanart", fake_probe_gallery)
+
+    crawler = HeyzoCrawler(client=FakeOgImageClient())
+    res = await crawler.run(crawler_input("HEYZO-3850"))
+
+    assert res.debug_info.error is None
+    assert res.data is not None
+    assert res.data.thumb == "https://www.heyzo.com/contents/3000/3850/images/player_thumbnail.jpg"
 
 
 def test_heyzo_crawler_is_registered():
