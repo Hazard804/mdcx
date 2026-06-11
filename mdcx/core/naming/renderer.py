@@ -1,13 +1,15 @@
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
 from ...models.types import CrawlersResult, FileInfo
 from .fields import TRUNCATE_PRIORITY, NamingContext, build_naming_context
-from .sanitize import cleanup_rendered_text, sanitize_name
+from .sanitize import cleanup_rendered_text, sanitize_folder_segment, sanitize_name
 from .template import render_template
 
 LIST_TRUNCATE_FIELDS = {"actor", "all_actor", "director"}
+BLOCK_START_TAGS = {"autoescape", "block", "call", "filter", "for", "if", "macro", "raw", "with"}
 
 
 class NamingTarget(Enum):
@@ -81,13 +83,87 @@ def _render_with_values(template: str, values: dict[str, str], target: NamingTar
     return _finalize_text(render_template(template, values), target)
 
 
+def _render_folder_segment_with_values(template: str, values: dict[str, str]) -> str:
+    return sanitize_folder_segment(render_template(template, values))
+
+
+def _dedupe_fields(fields: list[str]) -> list[str]:
+    result: list[str] = []
+    for field_name in fields:
+        if field_name not in result:
+            result.append(field_name)
+    return result
+
+
+def _get_block_tag_name(tag: str) -> str:
+    return tag.strip().split(None, 1)[0] if tag.strip() else ""
+
+
+def _split_folder_template_segments(template: str) -> list[str] | None:
+    segments: list[str] = []
+    current: list[str] = []
+    block_depth = 0
+    index = 0
+    text = str(template or "").replace("\\", "/")
+
+    while index < len(text):
+        if text.startswith("{{", index):
+            end = text.find("}}", index + 2)
+            if end == -1:
+                return None
+            current.append(text[index : end + 2])
+            index = end + 2
+            continue
+        if text.startswith("{#", index):
+            end = text.find("#}", index + 2)
+            if end == -1:
+                return None
+            current.append(text[index : end + 2])
+            index = end + 2
+            continue
+        if text.startswith("{%", index):
+            end = text.find("%}", index + 2)
+            if end == -1:
+                return None
+            tag = text[index + 2 : end]
+            tag_name = _get_block_tag_name(tag)
+            if tag_name.startswith("end"):
+                block_depth = max(block_depth - 1, 0)
+            elif tag_name in BLOCK_START_TAGS:
+                block_depth += 1
+            current.append(text[index : end + 2])
+            index = end + 2
+            continue
+
+        char = text[index]
+        if char == "/":
+            if block_depth > 0:
+                return None
+            segments.append("".join(current))
+            current = []
+        else:
+            current.append(char)
+        index += 1
+
+    segments.append("".join(current))
+    return segments
+
+
 def _smart_truncate(
     template: str,
     values: dict[str, str],
     target: NamingTarget,
     max_length: int,
+    render_func: Callable[[str, dict[str, str]], str] | None = None,
+    finalize_func: Callable[[str], str] | None = None,
 ) -> tuple[str, list[str]]:
-    text = _render_with_values(template, values, target)
+    def render(current_template: str, current_values: dict[str, str]) -> str:
+        if render_func:
+            return render_func(current_template, current_values)
+        return _render_with_values(current_template, current_values, target)
+
+    finalize = finalize_func or (lambda current_text: _finalize_text(current_text, target))
+    text = render(template, values)
     if max_length <= 0 or len(text) <= max_length:
         return text, []
 
@@ -106,12 +182,42 @@ def _smart_truncate(
             continue
         mutable_values[field_name] = next_value
         truncated_fields.append(field_name)
-        text = _render_with_values(template, mutable_values, target)
+        text = render(template, mutable_values)
 
     if len(text) > max_length:
         text = text[:max_length].rstrip(" ,，、;；:：._+-")
-        text = _finalize_text(text, target)
+        text = finalize(text)
     return text, truncated_fields
+
+
+def _smart_truncate_folder_path(
+    template: str,
+    values: dict[str, str],
+    max_length: int,
+) -> tuple[str, list[str]]:
+    """按目录层级缩短，避免同名字段在不同目录段互相影响。"""
+
+    parts: list[str] = []
+    truncated_fields: list[str] = []
+    segments = _split_folder_template_segments(template)
+    if segments is None:
+        return _smart_truncate(template, values, NamingTarget.FOLDER, max_length)
+
+    for segment_template in segments:
+        text, fields = _smart_truncate(
+            segment_template,
+            values,
+            NamingTarget.FOLDER,
+            max_length,
+            render_func=_render_folder_segment_with_values,
+            finalize_func=sanitize_folder_segment,
+        )
+        if text:
+            parts.append(text)
+        truncated_fields.extend(fields)
+
+    text = sanitize_name("/".join(parts), allow_path_separator=True)
+    return text, _dedupe_fields(truncated_fields)
 
 
 def render_name(
@@ -128,12 +234,16 @@ def render_name(
     values = context.values.copy()
     values["fields"] = context.values
 
-    text, truncated_fields = _smart_truncate(
-        template,
-        values,
-        options.target,
-        int(options.max_length or 0),
-    )
+    max_length = int(options.max_length or 0)
+    if options.target == NamingTarget.FOLDER:
+        text, truncated_fields = _smart_truncate_folder_path(template, values, max_length)
+    else:
+        text, truncated_fields = _smart_truncate(
+            template,
+            values,
+            options.target,
+            max_length,
+        )
     fallback = context.get("number") or context.get("title") or context.get("filename") or "MDCx"
     if not text:
         text = sanitize_name(fallback, allow_path_separator=False)

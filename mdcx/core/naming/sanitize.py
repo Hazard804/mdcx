@@ -50,3 +50,10 @@ def sanitize_name(text: str, *, allow_path_separator: bool) -> str:
         text = re.sub(r'[\\/:*?"<>|\r\n]+', "", text).strip()
         text = _sanitize_segment(text, strip_hyphen=True)
     return nfd2c(text)
+
+
+def sanitize_folder_segment(text: str) -> str:
+    text = cleanup_rendered_text(text)
+    text = re.sub(r'[\\/:*?"<>|\r\n]+', "", text).strip()
+    text = _sanitize_segment(text, strip_hyphen=False)
+    return nfd2c(text)

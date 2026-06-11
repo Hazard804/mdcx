@@ -201,7 +201,7 @@ def test_actor_truncation_keeps_complete_actor_names(monkeypatch):
 
     _, folder_name = _get_folder_path(Path("D:/Media/Output"), file_info, result)
 
-    assert folder_name == "浜崎真緒/ABC-123"
+    assert folder_name == "浜崎真緒,望月彩花,黒川紗里奈/ABC-123"
 
 
 def test_actor_truncation_drops_field_when_first_actor_does_not_fit(monkeypatch):
@@ -244,7 +244,7 @@ def test_folder_segments_avoid_windows_reserved_names(monkeypatch):
     assert folder_name == "CON_/COM1_.txt"
 
 
-def test_final_hard_truncate_is_sanitized_for_folder_segments():
+def test_folder_max_length_is_applied_to_each_folder_segment():
     file_info = _build_file_info()
     result = _build_result()
     result.actor = "Actor"
@@ -257,8 +257,68 @@ def test_final_hard_truncate_is_sanitized_for_folder_segments():
         NameRenderOptions(target=NamingTarget.FOLDER, max_length=7),
     )
 
-    assert rendered.text == "abcdef"
+    assert rendered.text == "abcdef/Title"
+    assert all(len(part) <= 7 for part in rendered.text.split("/"))
     assert all(part and not part.endswith((".", " ")) for part in rendered.text.split("/"))
+
+
+def test_repeated_actor_field_in_nested_folder_is_truncated_per_segment(monkeypatch):
+    file_info = _build_file_info()
+    result = _build_result()
+    result.number = "DV-1234"
+    result.title = "人格崩壊寸前までメスイキさせる追撃男潮噴射アクメ連発の超長いタイトル説明文テスト" * 2
+    result.actor = "春野ゆこ,大槻ひびき,宮沢ちはる"
+
+    monkeypatch.setattr(
+        manager.config,
+        "folder_name",
+        "{{ actor }}/{{ number }}-{{ title }}-{{ actor }}-{{ release }}",
+    )
+    monkeypatch.setattr(manager.config, "folder_name_max", 20)
+    monkeypatch.setattr(manager.config, "actor_name_max", 10)
+    monkeypatch.setattr(manager.config, "folder_moword", False)
+    monkeypatch.setattr(manager.config, "folder_hd", False)
+    monkeypatch.setattr(manager.config, "folder_cnword", False)
+    monkeypatch.setattr(manager.config, "success_file_move", True)
+    monkeypatch.setattr(manager.config, "main_mode", 1)
+    monkeypatch.setattr(manager.config, "soft_link", 0)
+
+    _, folder_name = _get_folder_path(Path("D:/Media/Output"), file_info, result)
+
+    actor_folder, movie_folder = folder_name.split("/")
+    assert actor_folder == "春野ゆこ,大槻ひびき,宮沢ちはる"
+    assert movie_folder == "DV-1234-2024-01-02"
+    assert all(len(part) <= 20 for part in folder_name.split("/"))
+
+
+def test_folder_template_keeps_cross_segment_jinja_block_compatible():
+    file_info = _build_file_info()
+    result = _build_result()
+    result.actor = "演员A"
+
+    rendered = render_name(
+        "{% if actor %}{{ actor }}/{% endif %}{{ number }}",
+        file_info,
+        result,
+        NameRenderOptions(target=NamingTarget.FOLDER, max_length=60),
+    )
+
+    assert rendered.text == "演员A/ABC-123"
+
+
+def test_folder_template_splits_after_closed_jinja_block():
+    file_info = _build_file_info()
+    result = _build_result()
+    result.actor = "演员A"
+
+    rendered = render_name(
+        "{% if actor %}{{ actor }}{% endif %}/{{ number }}",
+        file_info,
+        result,
+        NameRenderOptions(target=NamingTarget.FOLDER, max_length=60),
+    )
+
+    assert rendered.text == "演员A/ABC-123"
 
 
 def test_generate_file_name_uses_new_template(monkeypatch):
