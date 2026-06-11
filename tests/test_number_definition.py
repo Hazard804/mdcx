@@ -58,6 +58,42 @@ def test_get_file_number_keeps_non_suren_prefixes(raw_number: str, expected_numb
     assert get_file_number(raw_number, []) == expected_number
 
 
+@pytest.mark.parametrize(
+    ("raw_number", "expected_number"),
+    [
+        (r"D:/test/H4610-ori696.mp4", "H4610-ORI696"),
+        (r"D:/test/H4610-ori641.mp4", "H4610-ORI641"),
+        (r"D:/test/C0930-ori696.mp4", "C0930-ORI696"),
+        (r"D:/test/H0930-gol065.mp4", "H0930-GOL065"),
+        (r"D:/test/H0930-ori1665.mp4", "H0930-ORI1665"),
+    ],
+)
+def test_get_file_number_keeps_h4610_c0930_h0930_prefix(raw_number: str, expected_number: str):
+    assert get_file_number(raw_number, []) == expected_number
+    assert is_uncensored(expected_number) is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("file_path", "expected_number"),
+    [
+        (Path("D:/test/H4610-ori696.mp4"), "H4610-ORI696"),
+        (Path("D:/test/C0930-ori696.mp4"), "C0930-ORI696"),
+        (Path("D:/test/H0930-gol065.mp4"), "H0930-GOL065"),
+    ],
+)
+async def test_get_file_info_marks_h4610_c0930_h0930_as_uncensored(file_path: Path, expected_number: str):
+    old_file_mode = Flags.file_mode
+    Flags.file_mode = FileMode.Default
+    try:
+        file_info = await get_file_info_v2(file_path, copy_sub=False)
+    finally:
+        Flags.file_mode = old_file_mode
+
+    assert file_info.number == expected_number
+    assert file_info.mosaic == "无码"
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("file_path", "file_number", "custom_strings", "expected_definition"),

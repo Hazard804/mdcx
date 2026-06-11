@@ -44,9 +44,10 @@ def is_uncensored(number: str) -> bool:
     ):
         return True
 
-    # 无码车牌BT,CT,EMP,CCDV,CWP,CWPBD,DSAM,DRC,DRG,GACHI,heydouga,JAV,LAF,LAFBD,HEYZO,KTG,KP,KG,LLDV,MCDV,MKD,MKBD,MMDV,NIP,PB,PT,QE,RED,RHJ,S2M,SKY,SKYHD,SMD,SSDV,SSKP,TRG,TS,xxx-av,YKB
+    # 无码车牌BT,CT,EMP,CCDV,CWP,CWPBD,DSAM,DRC,DRG,GACHI,heydouga,JAV,LAF,LAFBD,HEYZO,KTG,KP,KG,LLDV,MCDV,MKD,MKBD,MMDV,NIP,PB,PT,QE,RED,RHJ,S2M,SKY,SKYHD,SMD,SSDV,SSKP,TRG,TS,xxx-av,YKB,H4610,C0930,H0930
     key_start_word = [
         "BT-",
+        "C0930-",
         "CT-",
         "EMP-",
         "CCDV-",
@@ -56,6 +57,8 @@ def is_uncensored(number: str) -> bool:
         "DRC-",
         "DRG-",
         "GACHI-",
+        "H4610-",
+        "H0930-",
         "heydouga",
         "JAV-",
         "LAF-",
@@ -131,8 +134,8 @@ def get_number_letters(number: str) -> str:
         return "CW3D2D"
     if re.search(r"MCB3D[BD]*-\d{2,}", number_upper):
         return "MCB3D"
-    if re.findall(r"(H4610|C0930|H0930)-[A-Z]+\d{4,}", number_upper):
-        return re.findall(r"(H4610|C0930|H0930)-[A-Z]+\d{4,}", number_upper)[0]
+    if re.findall(r"(H4610|C0930|H0930)-[A-Z]+\d{3,}", number_upper):
+        return re.findall(r"(H4610|C0930|H0930)-[A-Z]+\d{3,}", number_upper)[0]
     result = re.search(r"(\d*[A-Za-z]+)\d*", number)
     return result[1] if result else "未知车牌"
 
@@ -231,7 +234,7 @@ def get_file_number(filepath: str, escape_string_list: list[str]) -> str:
             file_number = filename
 
     elif r := re.search(
-        r"(H4610|C0930|H0930)-[A-Z]+\d{4,}", filename
+        r"(H4610|C0930|H0930)-[A-Z]+\d{3,}", filename
     ):  # 提取H4610-ki111111 c0930-ki221218 h0930-ori1665
         file_number = r.group()
 
