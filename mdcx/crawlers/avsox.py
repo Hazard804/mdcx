@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any, override
 
@@ -24,15 +24,29 @@ PAGE_SIZE = 60
 # 详情页路由格式: /{lang}/movies/{movieId}
 MOVIE_ID_PATTERN = re.compile(r"/(?:movies|movie)/([^/?#]+)", re.IGNORECASE)
 
+# 纯数字番号, 形如 021517-374 / 021517_374 / 021517_242_02
+DIGIT_NUMBER_PATTERN = re.compile(r"\d+(?:[-_]\d+)*")
+
 
 def normalize_number(value: str) -> str:
     """
-    番号归一化, 用于比对输入番号与站点番号.
+    番号归一化, 用于严格比对输入番号与站点番号.
 
-    规则与旧版页面解析保持一致: 仅忽略大小写与 -PPV 后缀, 番号必须严格一致.
-    下划线(100326_001)与短横线(100326-001)属于不同写法, 不视为同一番号.
+    规则与旧版页面解析保持一致: 仅忽略大小写与 -PPV 后缀.
+    下划线(021517_374)与短横线(021517-374)属于不同写法, 本规则不视为同一番号.
     """
     return value.upper().replace("-PPV", "").strip()
+
+
+def normalize_digit_number(value: str) -> str:
+    """
+    纯数字番号专用归一化: 在严格规则基础上再忽略 - 与 _ 的写法差异.
+
+    仅用于 DIGIT_NUMBER_PATTERN 能完全匹配的番号. 站点上同一番号的分隔符写法并不统一
+    (如 caribbeancom 记为 021517-374, 1pondo 记为 100326_001), 因此当严格比对失败时,
+    纯数字番号允许按去掉分隔符后的结果再次比对.
+    """
+    return re.sub(r"[-_]", "", normalize_number(value))
 
 
 def extract_movie_id(url: str) -> str:
@@ -212,9 +226,14 @@ class AvsoxCrawler(GenericBaseCrawler[AvsoxContext]):
             await self._call_api(ctx, "search", [{"search": number, "lang": INDEX_LANG}, PAGE_SIZE, 1])
         )
 
-        # 站点搜索为模糊匹配, 因此必须按番号严格筛选, 无法精确匹配时一律视为未找到
-        target = normalize_number(number)
-        movie = next((each for each in movies if normalize_number(each.movie_fan_hao or "") == target), None)
+        # 站点搜索为模糊匹配, 因此必须再按番号筛选: 优先严格一致
+        movie = self._find_movie(movies, number, normalize_number)
+        if movie is None and DIGIT_NUMBER_PATTERN.fullmatch(normalize_number(number)):
+            # 纯数字番号再放宽一次, 忽略 - 与 _ 的写法差异(如输入 021517_374, 站点侧为 021517-374)
+            movie = self._find_movie(movies, number, normalize_digit_number)
+            if movie is not None:
+                ctx.debug(f"番号分隔符写法不一致, 采用站点侧番号: {movie.movie_fan_hao}")
+
         if movie is None:
             ctx.debug(f"搜索结果: 未匹配到番号, 候选: {[each.movie_fan_hao for each in movies]}")
             raise CralwerException("搜索结果: 未匹配到番号")
@@ -240,6 +259,12 @@ class AvsoxCrawler(GenericBaseCrawler[AvsoxContext]):
         if not isinstance(data, list):
             raise CralwerException("搜索结果格式异常")
         return [AvsoxMovie.model_validate(each) for each in data if isinstance(each, dict)]
+
+    @staticmethod
+    def _find_movie(movies: list[AvsoxMovie], number: str, normalize: Callable[[str], str]) -> AvsoxMovie | None:
+        """按指定归一化规则查找候选影片."""
+        target = normalize(number)
+        return next((each for each in movies if normalize(each.movie_fan_hao or "") == target), None)
 
     @staticmethod
     def _unique(values: Iterable[str]) -> list[str]:

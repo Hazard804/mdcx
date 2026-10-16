@@ -8,6 +8,7 @@ from mdcx.crawlers.avsox import (
     AvsoxCrawler,
     AvsoxMovie,
     extract_movie_id,
+    normalize_digit_number,
     normalize_number,
 )
 from mdcx.models.types import CrawlerInput
@@ -74,11 +75,14 @@ def fake_domain(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_normalize_number_and_extract_movie_id():
-    # 与旧版页面解析一致: 仅忽略大小写与 -PPV 后缀
+    # 严格规则与旧版页面解析一致: 仅忽略大小写与 -PPV 后缀
     assert normalize_number("ssis-001-ppv") == "SSIS-001"
     assert normalize_number("SSIS-001") == normalize_number("ssis-001")
-    # 下划线与短横线是不同写法, 不视为同一番号
+    # 严格规则下下划线与短横线是不同写法
     assert normalize_number("100326_001") != normalize_number("100326-001")
+    # 纯数字番号的兜底规则会忽略分隔符差异
+    assert normalize_digit_number("100326_001") == normalize_digit_number("100326-001")
+    assert normalize_digit_number("021517_374") == "021517374"
     assert extract_movie_id(f"{DOMAIN}/cn/movies/kravlwn") == "kravlwn"
     assert extract_movie_id(f"{DOMAIN}/cn/movie/kravlwn") == "kravlwn"
     assert extract_movie_id("kravlwn") == "kravlwn"
@@ -153,11 +157,53 @@ async def test_run_matches_number_with_ppv_suffix():
 
 
 @pytest.mark.asyncio
-async def test_run_does_not_treat_underscore_as_dash():
-    client = FakeAvsoxClient(search_data=[{**MOVIE_DATA, "movieFanHao": "100326_001", "movieId": "npargdy"}])
+async def test_run_matches_digit_number_ignoring_separator():
+    """纯数字番号: 严格比对失败时, 允许忽略 - 与 _ 的写法差异."""
+    client = FakeAvsoxClient(search_data=[{**MOVIE_DATA, "movieFanHao": "021517-374", "movieId": "nvjyzbn"}])
     crawler = AvsoxCrawler(client=client)
 
-    response = await crawler.run(make_input("100326-001"))
+    response = await crawler.run(make_input("021517_374"))
+
+    assert response.debug_info.error is None
+    assert response.data is not None
+    assert response.debug_info.detail_urls == [f"{DOMAIN}/cn/movies/nvjyzbn"]
+
+
+@pytest.mark.asyncio
+async def test_run_prefers_exact_match_over_separator_variant():
+    """多个结果时, 完全等同的候选优先于仅分隔符不同的候选."""
+    client = FakeAvsoxClient(
+        search_data=[
+            {**MOVIE_DATA, "movieFanHao": "021517_374", "movieId": "looseid"},
+            {**MOVIE_DATA, "movieFanHao": "021517-374", "movieId": "exactid"},
+        ]
+    )
+    crawler = AvsoxCrawler(client=client)
+
+    response = await crawler.run(make_input("021517-374"))
+
+    assert response.debug_info.error is None
+    assert response.debug_info.detail_urls == [f"{DOMAIN}/cn/movies/exactid"]
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_ignore_separator_for_non_digit_number():
+    """非纯数字番号不适用分隔符兜底, 避免 ABC_123 与 ABC-123 被当成同一番号."""
+    client = FakeAvsoxClient(search_data=[{**MOVIE_DATA, "movieFanHao": "ABC-123", "movieId": "abcid"}])
+    crawler = AvsoxCrawler(client=client)
+
+    response = await crawler.run(make_input("ABC_123"))
+
+    assert response.data is None
+    assert "未匹配到番号" in str(response.debug_info.error)
+
+
+@pytest.mark.asyncio
+async def test_run_raises_when_digit_number_has_no_separator_variant_match():
+    client = FakeAvsoxClient(search_data=[{**MOVIE_DATA, "movieFanHao": "021517-375", "movieId": "otherid"}])
+    crawler = AvsoxCrawler(client=client)
+
+    response = await crawler.run(make_input("021517_374"))
 
     assert response.data is None
     assert "未匹配到番号" in str(response.debug_info.error)
