@@ -6,7 +6,9 @@ from mdcx.config.enums import DownloadableFile, MarkType
 from mdcx.config.manager import manager
 from mdcx.core import image as image_core
 from mdcx.core.mosaic import (
+    LTX_DESTROYED,
     has_leak_mark,
+    has_ltx_mark,
     has_uncensored_mark,
     normalize_mosaic,
 )
@@ -77,3 +79,63 @@ async def test_add_mark_falls_back_to_uncensored_for_uncensored_leak(
     await image_core.add_mark(other, FileInfo.empty(), "无码流出")
 
     assert records == [["无码"]]
+
+
+@pytest.mark.asyncio
+async def test_add_mark_uses_ltx_watermark_for_ltx_destroyed(monkeypatch: pytest.MonkeyPatch):
+    records: list[list[str]] = []
+
+    async def fake_add_mark_thread(_path: Path, mark_list: list[str]):
+        records.append(mark_list)
+
+    monkeypatch.setattr(image_core, "add_mark_thread", fake_add_mark_thread)
+    monkeypatch.setattr(manager.config, "mark_type", [MarkType.UMR])
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.POSTER])
+    monkeypatch.setattr(manager.config, "poster_mark", 1)
+    monkeypatch.setattr(manager.config, "thumb_mark", 0)
+    monkeypatch.setattr(manager.config, "fanart_mark", 0)
+
+    other = OtherInfo.empty()
+    other.poster_marked = False
+    other.poster_path = Path("poster.jpg")
+
+    file_info = FileInfo.empty()
+    file_info.destroyed = LTX_DESTROYED
+
+    await image_core.add_mark(other, file_info, "无码破解")
+
+    assert records == [["LTX"]]
+
+
+@pytest.mark.asyncio
+async def test_add_mark_keeps_umr_watermark_for_plain_destroyed(monkeypatch: pytest.MonkeyPatch):
+    records: list[list[str]] = []
+
+    async def fake_add_mark_thread(_path: Path, mark_list: list[str]):
+        records.append(mark_list)
+
+    monkeypatch.setattr(image_core, "add_mark_thread", fake_add_mark_thread)
+    monkeypatch.setattr(manager.config, "mark_type", [MarkType.UMR])
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.POSTER])
+    monkeypatch.setattr(manager.config, "poster_mark", 1)
+    monkeypatch.setattr(manager.config, "thumb_mark", 0)
+    monkeypatch.setattr(manager.config, "fanart_mark", 0)
+
+    other = OtherInfo.empty()
+    other.poster_marked = False
+    other.poster_path = Path("poster.jpg")
+
+    file_info = FileInfo.empty()
+    file_info.destroyed = manager.config.umr_style
+
+    await image_core.add_mark(other, file_info, "无码破解")
+
+    assert records == [["破解"]]
+
+
+def test_has_ltx_mark_matches_only_ltx_style():
+    assert has_ltx_mark(LTX_DESTROYED) is True
+    assert has_ltx_mark("-ltx") is True
+    assert has_ltx_mark("-破解") is False
+    assert has_ltx_mark("") is False
+    assert has_ltx_mark(None) is False

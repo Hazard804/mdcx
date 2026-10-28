@@ -116,6 +116,9 @@ async def test_get_file_info_marks_h4610_c0930_h0930_as_uncensored(file_path: Pa
         (Path("D:/test/JUR-615-U4K.mp4"), "JUR-615", [], "4K"),
         (Path("D:/test/JUR-615-UC4K.mp4"), "JUR-615", [], "4K"),
         (Path("D:/test/JUR-615-UC-4K.mp4"), "JUR-615", [], "4K"),
+        (Path("D:/test/JUR-615-LTX4K.mp4"), "JUR-615", [], "4K"),
+        (Path("D:/test/JUR-615-LTX-4K.mp4"), "JUR-615", [], "4K"),
+        (Path("D:/test/JUR-615-LTX4K60FPS.mp4"), "JUR-615", [], "4K"),
         (Path("D:/test/IPZZ-841_4K60FPS.mp4"), "IPZZ-841", [], "4K"),
         (Path("D:/test/IPZZ-841_4KS.mp4"), "IPZZ-841", [], "4K"),
         (Path("D:/test/IPZZ-841_4k60fps.mp4"), "IPZZ-841", [], "4K"),
@@ -223,6 +226,57 @@ async def test_get_file_info_does_not_treat_uhd_definition_as_umr_marker():
     assert file_info.number == "JUR-615"
     assert file_info.destroyed == ""
     assert file_info.mosaic == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        Path("D:/test/MIDV-999-LTX.mp4"),
+        Path("D:/test/MIDV-999-LTX-4K.mp4"),
+        Path("D:/test/MIDV-999_LTX.mp4"),
+        Path("D:/test/072422_001-LTX.mp4"),
+    ],
+)
+async def test_get_file_info_marks_ltx_suffix_as_umr_with_ltx_style(file_path: Path):
+    old_file_mode = Flags.file_mode
+    Flags.file_mode = FileMode.Default
+    try:
+        file_info = await get_file_info_v2(file_path, copy_sub=False)
+    finally:
+        Flags.file_mode = old_file_mode
+
+    assert file_info.number in {"MIDV-999", "072422_001"}
+    assert file_info.destroyed == "-LTX"
+    assert file_info.mosaic == "无码破解"
+
+
+@pytest.mark.asyncio
+async def test_get_file_info_does_not_treat_ltx_number_prefix_as_umr_marker():
+    old_file_mode = Flags.file_mode
+    Flags.file_mode = FileMode.Default
+    try:
+        file_info = await get_file_info_v2(Path("D:/test/LTX-123.mp4"), copy_sub=False)
+    finally:
+        Flags.file_mode = old_file_mode
+
+    assert file_info.number == "LTX-123"
+    assert file_info.destroyed == ""
+    assert file_info.mosaic == ""
+
+
+@pytest.mark.asyncio
+async def test_get_file_info_keeps_umr_style_for_plain_u_suffix():
+    old_file_mode = Flags.file_mode
+    Flags.file_mode = FileMode.Default
+    try:
+        file_info = await get_file_info_v2(Path("D:/test/MIDV-999-U.mp4"), copy_sub=False)
+    finally:
+        Flags.file_mode = old_file_mode
+
+    assert file_info.number == "MIDV-999"
+    assert file_info.destroyed == manager.config.umr_style
+    assert file_info.mosaic == "无码破解"
 
 
 @pytest.mark.asyncio

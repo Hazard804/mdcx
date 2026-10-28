@@ -26,11 +26,16 @@ from ..utils.file import (
     move_file_async,
 )
 from ..utils.path import showFilePath
-from .mosaic import normalize_mosaic
+from .mosaic import LTX_DESTROYED, normalize_mosaic
 from .naming import FIELD_DESCRIPTIONS, NameRenderOptions, NamingTarget, render_name
 
 
-def _has_umr_suffix_marker(file_name: str, movie_number: str) -> bool:
+def _matched_umr_suffix(file_name: str, movie_number: str) -> str:
+    """返回文件名尾部命中的破解标记（LTX / UC / U），未命中返回空串。
+
+    LTX 是继 U、UC 之后出现的新型破解方式，同样以「番号-LTX」的形式贴在番号之后，
+    因此复用同一套判定：先剥离番号，再要求标记独立成段，避免把 LTX-123 这类真实番号误判。
+    """
     normalized_name = remove_escape_string(file_name, "-").upper()
     normalized_number = movie_number.upper()
     if normalized_number:
@@ -43,7 +48,13 @@ def _has_umr_suffix_marker(file_name: str, movie_number: str) -> bool:
         "4K",
     )
     compact_definition = "|".join(compact_definition_suffixes)
-    return bool(re.search(rf"(?<![A-Z0-9])U(?:C)?(?=(?:{compact_definition}|[-_.\s\]\)]|$))", normalized_name))
+    if match := re.search(rf"(?<![A-Z0-9])(LTX|U(?:C)?)(?=(?:{compact_definition}|[-_.\s\]\)]|$))", normalized_name):
+        return match.group(1)
+    return ""
+
+
+def _has_umr_suffix_marker(file_name: str, movie_number: str) -> bool:
+    return bool(_matched_umr_suffix(file_name, movie_number))
 
 
 async def creat_folder(
@@ -486,6 +497,8 @@ async def get_file_info_v2(file_path: Path, copy_sub: bool = True) -> FileInfo:
         file_path_lower = file_path_str.lower()
         umr_style = str(manager.config.umr_style)
         umr_style_lower = umr_style.lower()
+        # LTX 后缀单独保留来源标识，其余破解方式仍沿用配置的 umr_style
+        umr_suffix = _matched_umr_suffix(file_name, movie_number)
         if (
             "-uncensored." in file_path_lower
             or "umr." in file_path_lower
@@ -493,9 +506,9 @@ async def get_file_info_v2(file_path: Path, copy_sub: bool = True) -> FileInfo:
             or "破解" in file_path_str
             or "克破" in file_path_str
             or (umr_style_lower and umr_style_lower in file_path_lower)
-            or _has_umr_suffix_marker(file_name, movie_number)
+            or umr_suffix
         ):
-            destroyed = umr_style
+            destroyed = LTX_DESTROYED if umr_suffix == "LTX" else umr_style
             mosaic = "无码破解"
 
         # 判断是否国产

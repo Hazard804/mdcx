@@ -19,7 +19,7 @@ from ..signals import signal
 from ..utils import executor, get_used_time
 from ..utils.file import check_pic_async, copy_file_sync, delete_file_sync
 from .face_crop import get_face_crop_left
-from .mosaic import has_leak_mark, has_umr_mark, has_uncensored_mark, is_censored_mosaic
+from .mosaic import has_leak_mark, has_ltx_mark, has_umr_mark, has_uncensored_mark, is_censored_mosaic
 
 YOUMA_RIGHT_CROP_TYPES = {FixedScrapingType.YOUMA}
 FACE_FALLBACK_CROP_TYPES = {
@@ -54,7 +54,8 @@ async def add_mark(json_data: OtherInfo, file_info: FileInfo, mosaic: str):
             mark_list.append("有码")
     elif has_umr_mark(mosaic):
         if MarkType.UMR in mark_type:
-            mark_list.append("破解")
+            # LTX 使用专属水印，其余破解方式沿用「破解」
+            mark_list.append("LTX" if has_ltx_mark(file_info.destroyed) else "破解")
         elif MarkType.UNCENSORED in mark_type:
             mark_list.append("无码")
     elif has_leak_mark(mosaic):

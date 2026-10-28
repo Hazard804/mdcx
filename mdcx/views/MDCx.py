@@ -10757,7 +10757,7 @@ class Ui_MDCx(object):
 "                          <p\n"
 "                          style=\'line-height:20px\'>指无码版本，当视频文件路径中含有「无码」、「無碼」、「無修正」、「uncensored」字样时，该文件识别为无码版本。<br>在重命名文件名及目录名时，在番号后显示该字符表示为无码版本</p>"))
         self.label_116.setText(_translate("MDCx", "<p\n"
-"                          style=\'line-height:20px\'>指马赛克有损去除版本，当视频文件路径中含有「-uncensored.」、「.restored」、「破解」、「克破」、「UMR.」等字样时，该文件识别为无码破解版本。<br>\n"
+"                          style=\'line-height:20px\'>指马赛克有损去除版本，当视频文件路径中含有「-uncensored.」、「.restored」、「破解」、「克破」、「UMR.」等字样，或番号后带有「-U」、「-UC」、「-LTX」后缀时，该文件识别为无码破解版本。<br>\n"
 "                          在重命名文件名及目录名时，在番号后显示该字符表示为无码破解版本</p>"))
         self.label_174.setText(_translate("MDCx", "无码破解："))
         self.label_145.setText(_translate("MDCx", "<p>指有码版本，当视频文件路径中含有「有码」、「有碼」字样时，该文件识别为\n"

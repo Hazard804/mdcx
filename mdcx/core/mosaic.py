@@ -14,6 +14,8 @@ UMR_MOSAIC = "无码破解"
 LEAK_MOSAIC = "流出"
 UNCENSORED_LEAK_MOSAIC = "无码流出"
 GUOCHAN_MOSAIC = "国产"
+# LTX 属于无码破解的另一种实现方式，mosaic 仍归入 UMR_MOSAIC，仅在命名与封面上保留来源标识。
+LTX_DESTROYED = "-LTX"
 
 _CENSORED_VALUES = {"有码", "有碼"}
 _UNCENSORED_VALUES = {"无码", "無碼", "無修正"}
@@ -69,3 +71,8 @@ def has_umr_mark(value: object) -> bool:
 
 def has_leak_mark(value: object) -> bool:
     return normalize_mosaic(value) in {LEAK_MOSAIC, UNCENSORED_LEAK_MOSAIC}
+
+
+def has_ltx_mark(destroyed: object) -> bool:
+    """Whether the naming suffix marks an LTX-style crack rather than a plain UMR one."""
+    return str(destroyed or "").strip().upper() == LTX_DESTROYED
