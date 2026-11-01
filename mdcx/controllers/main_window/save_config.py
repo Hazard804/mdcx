@@ -208,6 +208,7 @@ def save_config(self: "MyMAinWindow"):
         (self.Ui.checkBox_tag_publisher, TagInclude.PUBLISHER),
         (self.Ui.checkBox_tag_cnword, TagInclude.CNWORD),
         (self.Ui.checkBox_tag_mosaic, TagInclude.MOSAIC),
+        (self.Ui.checkBox_tag_ltx, TagInclude.LTX_CRACK),
         (self.Ui.checkBox_tag_definition, TagInclude.DEFINITION),
     )
 

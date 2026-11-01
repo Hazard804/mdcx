@@ -65,6 +65,8 @@ class TagInclude(Enum):
     PUBLISHER = "publisher"
     CNWORD = "cnword"
     MOSAIC = "mosaic"
+    # LTX 是无码破解的一种实现方式, 该选项用于在马赛克标签之外额外标注破解来源
+    LTX_CRACK = "ltx_crack"
     DEFINITION = "definition"
 
     @classmethod
@@ -77,6 +79,7 @@ class TagInclude(Enum):
             "Publisher",
             "Cnword",
             "Mosaic",
+            "LtxCrack",
             "Definition",
         ]
 

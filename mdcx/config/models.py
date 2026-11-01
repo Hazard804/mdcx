@@ -491,6 +491,7 @@ class Config(BaseModel):
             TagInclude.PUBLISHER,
             TagInclude.CNWORD,
             TagInclude.MOSAIC,
+            TagInclude.LTX_CRACK,
             TagInclude.DEFINITION,
         ],
         title="包含标签",

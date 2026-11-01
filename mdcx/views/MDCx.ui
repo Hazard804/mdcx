@@ -17771,6 +17771,13 @@
                               </widget>
                             </item>
                             <item>
+                              <widget class="QCheckBox" name="checkBox_tag_ltx">
+                                <property name="text">
+                                  <string>LTX破解</string>
+                                </property>
+                              </widget>
+                            </item>
+                            <item>
                               <widget class="QCheckBox" name="checkBox_tag_series">
                                 <property name="text">
                                   <string>系列</string>

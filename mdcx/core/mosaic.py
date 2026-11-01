@@ -16,6 +16,8 @@ UNCENSORED_LEAK_MOSAIC = "无码流出"
 GUOCHAN_MOSAIC = "国产"
 # LTX 属于无码破解的另一种实现方式，mosaic 仍归入 UMR_MOSAIC，仅在命名与封面上保留来源标识。
 LTX_DESTROYED = "-LTX"
+# 勾选「LTX破解」标签时写入 NFO 的标签文本
+LTX_CRACK_TAG = "LTX破解"
 
 _CENSORED_VALUES = {"有码", "有碼"}
 _UNCENSORED_VALUES = {"无码", "無碼", "無修正"}

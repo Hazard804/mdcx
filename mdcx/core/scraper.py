@@ -703,7 +703,7 @@ class Scraper:
             await translate_title_outline(res, file_info.cd_part, movie_number)  # 翻译json_data（标题/介绍）
             deal_some_field(res)  # 再处理一遍字段，翻译后可能出现要去除的内容
             await translate_actor(res)  # 映射输出演员名/信息
-            translate_info(res, file_info.has_sub)  # 映射输出标签等信息
+            translate_info(res, file_info.has_sub, file_info.destroyed)  # 映射输出标签等信息
             replace_word(res)
 
         # 更新视频分辨率

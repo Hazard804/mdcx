@@ -18,7 +18,7 @@ from ..models.types import CrawlersResult
 from ..number import get_number_letters
 from ..utils import clean_list, get_used_time
 from ..utils.language import is_japanese, is_probably_english_for_translation
-from .mosaic import normalize_mosaic
+from .mosaic import LTX_CRACK_TAG, has_ltx_mark, normalize_mosaic
 
 AVWIKI_SCRAPING_TYPES = {
     FixedScrapingType.YOUMA,
@@ -41,7 +41,7 @@ def _should_query_avwiki_actor(res: CrawlersResult) -> bool:
     return res.scraping_type in AVWIKI_SCRAPING_TYPES
 
 
-def translate_info(json_data: CrawlersResult, has_sub: bool):
+def translate_info(json_data: CrawlersResult, has_sub: bool, destroyed: str):
     xml_info = resources.info_mapping_data
     if xml_info is not None and len(xml_info) == 0:
         return json_data
@@ -126,6 +126,9 @@ def translate_info(json_data: CrawlersResult, has_sub: bool):
         tag += ",中文字幕"
     if mosaic and TagInclude.MOSAIC in tag_include:
         tag += "," + mosaic
+    # LTX 的 mosaic 同样归入「无码破解」, 勾选此项时在同一链路里额外标注破解来源
+    if destroyed and has_ltx_mark(destroyed) and TagInclude.LTX_CRACK in tag_include:
+        tag += "," + LTX_CRACK_TAG
 
     # 添加系列、制作、发行信息到tag中
     series = json_data.series
