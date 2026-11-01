@@ -10,6 +10,7 @@ from urllib.parse import quote
 from ..config.enums import Language
 from ..config.manager import manager
 from ..config.models import Translator
+from ..llm import LLMError
 from ..signals import signal
 from ..utils.language import is_probably_english_for_translation
 
@@ -156,8 +157,8 @@ def _normalize_translated_linebreaks(text: str) -> str:
     return re.sub(r"(?i)<\s*br\s*/?\s*>", "\n", text)
 
 
-async def _llm_translate(text: str, prompt_template: str, target_language: str = "简体中文") -> str | None:
-    """调用 LLM 翻译文本"""
+async def _llm_translate(text: str, prompt_template: str, target_language: str = "简体中文") -> str:
+    """调用 LLM 翻译文本; 失败时抛出 LLMError, 由调用方转换为可读的错误说明"""
     if not text:
         return ""
     async with manager.acquire_computed() as computed:
@@ -169,19 +170,29 @@ async def _llm_translate(text: str, prompt_template: str, target_language: str =
             max_try=manager.config.translate_config.llm_max_try,
             log_fn=signal.add_log,
         )
-    if translated is None:
-        return None
     return _normalize_translated_linebreaks(translated)
+
+
+async def _llm_translate_result(
+    text: str, prompt_template: str, target_language: str = "简体中文"
+) -> tuple[str, str | None]:
+    """调用 LLM 翻译文本, 并把失败原因转成 (空结果, 错误说明), 便于上层区分超时/鉴权/限流等"""
+    try:
+        return await _llm_translate(text, prompt_template, target_language), None
+    except LLMError as err:
+        return "", err.message()
+    except Exception as err:  # 兜底, 避免未预期异常中断整个翻译流程
+        return "", f"LLM 翻译异常: {err}"
 
 
 async def llm_translate(title: str, outline: str, target_language: str = "简体中文"):
     translate_config = manager.config.translate_config
-    r1, r2 = await asyncio.gather(
-        _llm_translate(title, translate_config.llm_prompt_title, target_language),
-        _llm_translate(outline, translate_config.llm_prompt_outline, target_language),
+    (r1, e1), (r2, e2) = await asyncio.gather(
+        _llm_translate_result(title, translate_config.llm_prompt_title, target_language),
+        _llm_translate_result(outline, translate_config.llm_prompt_outline, target_language),
     )
-    if r1 is None or r2 is None:
-        return "", "", "LLM 翻译失败! 查看网络日志以获取更多信息"
+    if error := (e1 or e2):
+        return "", "", error
     return r1, r2, None
 
 
@@ -194,18 +205,19 @@ async def translate_with_engine(
     outline_language: Language | str,
 ) -> TranslateResult:
     if engine == Translator.LLM:
-        title_result, outline_result = await asyncio.gather(
-            _llm_translate(
+        (title_result, title_error), (outline_result, outline_error) = await asyncio.gather(
+            _llm_translate_result(
                 title, manager.config.translate_config.llm_prompt_title, get_llm_target_language(title_language)
             ),
-            _llm_translate(
+            _llm_translate_result(
                 outline,
                 manager.config.translate_config.llm_prompt_outline,
                 get_llm_target_language(outline_language),
             ),
         )
-        error = "LLM 翻译失败! 查看网络日志以获取更多信息" if title_result is None or outline_result is None else None
-        return _build_translate_result(engine, title, outline, title_result or "", outline_result or "", error)
+        return _build_translate_result(
+            engine, title, outline, title_result, outline_result, title_error or outline_error
+        )
 
     if engine == Translator.BAIDU:
         title_result, outline_result, error = await baidu_translate(

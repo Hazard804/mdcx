@@ -1,9 +1,34 @@
+import httpx
 import pytest
+from openai import APITimeoutError, AuthenticationError
 
 from mdcx.base.translate import TranslateResult
 from mdcx.config.enums import Language, Translator
 from mdcx.config.models import Config
+from mdcx.llm import LLMError, LLMErrorKind, classify_llm_exception
 from mdcx.models.types import CrawlersResult
+
+_FAKE_REQUEST = httpx.Request("POST", "https://llm.example.com/v1/chat/completions")
+
+
+def test_classify_llm_exception_separates_timeout_from_auth():
+    timeout_error = classify_llm_exception(APITimeoutError(request=_FAKE_REQUEST), elapsed=61.0)
+    auth_error = classify_llm_exception(
+        AuthenticationError("bad key", response=httpx.Response(401, request=_FAKE_REQUEST), body=None)
+    )
+
+    assert timeout_error.kind is LLMErrorKind.TIMEOUT
+    assert timeout_error.retryable is True
+    assert "61s" in timeout_error.message()
+    assert auth_error.kind is LLMErrorKind.AUTH
+    assert auth_error.retryable is False
+
+
+def test_llm_error_message_marks_partial_output():
+    err = LLMError(LLMErrorKind.TIMEOUT, elapsed=90.0, partial_chars=128)
+
+    assert "已接收 128 字" in err.message()
+    assert "可调大 LLM 读取超时" in err.message()
 
 
 def test_config_update_migrate_legacy_llm_prompt_in_translate_config():
@@ -321,3 +346,26 @@ async def test_translate_title_outline_skip_does_not_fake_translate_via_zhconv(m
 
     assert data.title == "乳首快楽"
     assert data.outline == "女優の物語"
+
+
+@pytest.mark.asyncio
+async def test_translate_with_engine_reports_llm_timeout_reason(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.base import translate as base_translate
+
+    async def fake_ask(**kwargs):
+        raise LLMError(LLMErrorKind.TIMEOUT, elapsed=60.0)
+
+    monkeypatch.setattr(base_translate.manager.computed.llm_client, "ask", fake_ask)
+
+    result = await base_translate.translate_with_engine(
+        Translator.LLM,
+        "title",
+        "outline",
+        title_language=Language.ZH_CN,
+        outline_language=Language.ZH_CN,
+    )
+
+    assert result.success is False
+    assert result.error is not None
+    assert "超时" in result.error
+    assert result.outline == "outline"
