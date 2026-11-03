@@ -263,7 +263,7 @@
                     </rect>
                 </property>
                 <layout class="QGridLayout" name="gridLayout">
-                    <item row="2" column="1">
+                    <item row="2" column="2">
                         <widget class="QRadioButton" name="radioButton_add_no">
                             <property name="text">
                                 <string>无</string>
@@ -295,6 +295,13 @@
                         <widget class="QRadioButton" name="radioButton_add_umr">
                             <property name="text">
                                 <string>破解</string>
+                            </property>
+                        </widget>
+                    </item>
+                    <item row="2" column="1">
+                        <widget class="QRadioButton" name="radioButton_add_ltx">
+                            <property name="text">
+                                <string>LTX</string>
                             </property>
                         </widget>
                     </item>

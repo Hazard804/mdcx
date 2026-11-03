@@ -13,7 +13,7 @@ from ..config.enums import DownloadableFile
 from ..config.manager import manager
 from ..config.models import MarkType
 from ..core.file import get_file_info_v2
-from ..core.mosaic import has_leak_mark, has_umr_mark, has_uncensored_mark, is_censored_mosaic
+from ..core.mosaic import has_leak_mark, has_ltx_mark, has_umr_mark, has_uncensored_mark, is_censored_mosaic
 from ..utils import executor
 from ..utils.file import delete_file_sync
 from ..views.posterCutTool import Ui_Dialog_cut_poster
@@ -362,7 +362,11 @@ class CutWindow(QDialog):
                         self.Ui.radioButton_add_censored.setChecked(True)
                 elif has_umr_mark(mosaic):
                     if MarkType.UMR in mark_type:
-                        self.Ui.radioButton_add_umr.setChecked(True)
+                        # LTX 破解使用专属水印选项，普通破解仍回显为「破解」
+                        if has_ltx_mark(json_data.destroyed):
+                            self.Ui.radioButton_add_ltx.setChecked(True)
+                        else:
+                            self.Ui.radioButton_add_umr.setChecked(True)
                     elif MarkType.UNCENSORED in mark_type:
                         self.Ui.radioButton_add_uncensored.setChecked(True)
                 elif has_leak_mark(mosaic):
@@ -454,6 +458,8 @@ class CutWindow(QDialog):
             mark_list.append("字幕")
         if self.Ui.radioButton_add_censored.isChecked():
             mark_list.append("有码")
+        elif self.Ui.radioButton_add_ltx.isChecked():
+            mark_list.append("LTX")
         elif self.Ui.radioButton_add_umr.isChecked():
             mark_list.append("破解")
         elif self.Ui.radioButton_add_leak.isChecked():
