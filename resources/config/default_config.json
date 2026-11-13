@@ -152,7 +152,8 @@
     "javdbapi",
     "jav321",
     "dmm",
-    "avbase"
+    "avbase",
+    "javrate"
   ],
   "website_wuma": [
     "missav",
@@ -160,7 +161,8 @@
     "caribbeancompr",
     "heyzo",
     "7mmtv",
-    "avsox"
+    "avsox",
+    "javrate"
   ],
   "website_suren": [
     "mgstage",
@@ -210,7 +212,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -236,7 +239,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -262,7 +266,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -288,7 +293,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -314,7 +320,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -340,7 +347,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -366,7 +374,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -392,7 +401,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -418,7 +428,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -444,7 +455,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -470,7 +482,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "zh_cn",
       "translate": true
@@ -496,7 +509,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -522,7 +536,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -548,7 +563,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -574,7 +590,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -600,7 +617,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -626,7 +644,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -652,7 +671,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -678,7 +698,8 @@
         "avsox",
         "fc2hub",
         "fc2",
-        "fc2ppvdb"
+        "fc2ppvdb",
+        "javrate"
       ],
       "language": "undefined",
       "translate": true
@@ -701,6 +722,9 @@
       "custom_url": null
     },
     "avbase": {
+      "custom_url": null
+    },
+    "javrate": {
       "custom_url": null
     }
   },

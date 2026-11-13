@@ -51,6 +51,7 @@ from .javbus import JavbusCrawler
 from .javday import JavdayCrawler
 from .javdb_new import JavdbCrawler
 from .javlibrary import JavlibraryCrawler
+from .javrate import JavrateCrawler
 from .kin8 import Kin8Crawler
 from .lulubar import LulubarCrawler
 from .madouqu import MadouquCrawler
@@ -104,6 +105,7 @@ register_crawler(MywifeCrawler)
 register_crawler(JavlibraryCrawler)
 register_crawler(OfficialCrawler)
 register_crawler(TheporndbCrawler)
+register_crawler(JavrateCrawler)
 
 
 def get_registered_crawler_site_values(*, include_hidden: bool = False) -> list[str]:

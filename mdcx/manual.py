@@ -495,6 +495,7 @@ class ManualConfig:
         "carib": Website.CARIBBEANCOM,
         "heyzo": Website.HEYZO,
         "javlibrary": Website.JAVLIBRARY,
+        "javrate": Website.JAVRATE,
         "mdtv": Website.MDTV,
         "mdpjzip": Website.MDTV,
         "madouqu": Website.MADOUQU,

@@ -153,6 +153,7 @@ uv run pytest tests/crawlers
 - `javlibrary`
 - `official`
 - `theporndb`
+- `javrate`
 
 ## 已下线站点
 

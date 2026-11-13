@@ -153,6 +153,7 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.JAV321,
         Website.DMM,
         Website.AVBASE,
+        Website.JAVRATE,
     ]
     assert config.website_wuma == [
         Website.MISSAV,
@@ -161,6 +162,7 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.HEYZO,
         Website.MMTV,
         Website.AVSOX,
+        Website.JAVRATE,
     ]
     assert config.website_suren == [
         Website.MGSTAGE,
@@ -188,6 +190,7 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.JAV321,
         Website.JAVBUS,
         Website.MISSAV,
+        Website.JAVRATE,
     ]
     assert config.get_type_field_config(FixedScrapingType.FC2, CrawlerResultFields.TITLE).site_prority == [
         Website.MMTV,
