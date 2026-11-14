@@ -220,7 +220,8 @@ async def test_caribbeancompr_crawler_parses_direct_detail_page():
     assert res.data.year == ""
     assert res.data.runtime == "16"
     assert res.data.tags == ["素人", "美乳", "オナニー", "熟女/人妻"]
-    assert res.data.score == "0.0"
+    # 页面无评分时保持空字符串, 避免用 0.0 冒充有效评分
+    assert res.data.score == ""
     assert res.data.thumb == "https://www.caribbeancompr.com/moviepages/122321_913/images/l_l.jpg"
     assert res.data.extrafanart == []
     assert res.data.trailer == "https://smovie.caribbeancompr.com/sample/movies/122321_913/480p.mp4"

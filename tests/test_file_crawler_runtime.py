@@ -639,3 +639,35 @@ async def test_call_specific_crawler_writes_debug_error_to_log_buffer():
     assert result is None
     assert "请添加 API Token 后刮削！" in LogBuffer.error().get()
     LogBuffer.error().clear()
+
+
+class _ScorePriorityConfig(_FakeConfig):
+    def get_field_config(self, field: CrawlerResultFields) -> FieldConfig:
+        if field == CrawlerResultFields.SCORE:
+            return FieldConfig(site_prority=[Website.JAVRATE])
+        return FieldConfig(site_prority=[])
+
+
+@pytest.mark.asyncio
+async def test_call_crawlers_writes_score_from_site(monkeypatch: pytest.MonkeyPatch):
+    """回归: 评分空值曾是 "0.0" 而非 "", 导致合并时被判为非空, 任何站点的评分都写不进来."""
+    monkeypatch.setattr(ManualConfig, "REDUCED_FIELDS", (CrawlerResultFields.SCORE,))
+
+    site_result = _build_result(Website.JAVRATE)
+    site_result.score = "3.85"
+    provider = _FakeCrawlerProvider({Website.JAVRATE: site_result})
+    scraper = FileScraper(_ScorePriorityConfig(), provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "SONE-535"
+
+    result = await scraper._call_crawlers(task_input, {Website.JAVRATE})
+
+    assert result is not None
+    assert result.score == "3.85"
+    assert result.field_sources[CrawlerResultFields.SCORE] == Website.JAVRATE.value
+
+
+def test_empty_result_score_defaults_to_blank():
+    """空结果的评分必须是空字符串, 否则无法作为"未取到"的判断依据."""
+    assert CrawlerResult.empty().score == ""
+    assert CrawlersResult.empty().score == ""

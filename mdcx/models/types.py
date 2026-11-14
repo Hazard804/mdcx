@@ -278,7 +278,8 @@ class BaseCrawlerResult:
             publisher="",
             release="",
             runtime="",
-            score="0.0",
+            # 空值必须是空字符串: 字段合并以「当前值为空」作为首次写入条件, 用 "0.0" 会导致评分永远写不进去
+            score="",
             series="",
             studio="",
             tags=[],
