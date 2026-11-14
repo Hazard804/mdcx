@@ -153,7 +153,8 @@
     "jav321",
     "dmm",
     "avbase",
-    "javrate"
+    "javrate",
+    "avfan"
   ],
   "website_wuma": [
     "missav",
@@ -213,7 +214,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -240,7 +242,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -267,7 +270,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -294,7 +298,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -321,7 +326,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -348,7 +354,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -375,7 +382,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -402,7 +410,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -429,7 +438,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -456,7 +466,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -483,7 +494,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "zh_cn",
       "translate": true
@@ -510,7 +522,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -537,7 +550,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -564,7 +578,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -591,7 +606,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -618,7 +634,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -645,7 +662,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -672,7 +690,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -699,7 +718,8 @@
         "fc2hub",
         "fc2",
         "fc2ppvdb",
-        "javrate"
+        "javrate",
+        "avfan"
       ],
       "language": "undefined",
       "translate": true
@@ -725,6 +745,9 @@
       "custom_url": null
     },
     "javrate": {
+      "custom_url": null
+    },
+    "avfan": {
       "custom_url": null
     }
   },

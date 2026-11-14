@@ -496,6 +496,7 @@ class ManualConfig:
         "heyzo": Website.HEYZO,
         "javlibrary": Website.JAVLIBRARY,
         "javrate": Website.JAVRATE,
+        "avfan": Website.AVFAN,
         "mdtv": Website.MDTV,
         "mdpjzip": Website.MDTV,
         "madouqu": Website.MADOUQU,

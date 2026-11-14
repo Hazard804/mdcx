@@ -148,6 +148,7 @@ DEFAULT_FIELD_SITE_PRIORITY = [
     Website.FC2,
     Website.FC2PPVDB,
     Website.JAVRATE,
+    Website.AVFAN,
 ]
 
 
@@ -358,6 +359,7 @@ class Config(BaseModel):
             Website.DMM,
             Website.AVBASE,
             Website.JAVRATE,
+            Website.AVFAN,
         ],
         title="有码网站源",
     )

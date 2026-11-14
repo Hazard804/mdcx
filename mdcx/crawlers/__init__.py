@@ -1,6 +1,7 @@
 from ..config.models import Website
 from . import (
     avbase_new,
+    avfan,
     avsox,
     cableav,
     caribbeancom,
@@ -25,6 +26,7 @@ from . import (
 )
 from .airav_cc import AiravCcCrawler
 from .avbase_new import AvbaseCrawler
+from .avfan import AvfanCrawler
 from .avsox import AvsoxCrawler
 from .base import get_crawler, get_registered_crawler_sites, register_crawler
 from .cableav import CableavCrawler
@@ -68,6 +70,7 @@ register_crawler(DmmCrawler)
 register_crawler(JavdbCrawler)
 register_crawler(javdbapi.JavdbApiCrawler)
 register_crawler(AvbaseCrawler)
+register_crawler(AvfanCrawler)
 register_crawler(missav.MissavCrawler)
 register_crawler(CaribbeancomCrawler)
 register_crawler(CaribbeancomprCrawler)

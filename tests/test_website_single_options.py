@@ -21,6 +21,12 @@ def test_javrate_is_available_in_single_website_options():
     assert Website.JAVRATE.value in registered_sites
 
 
+def test_avfan_is_available_in_single_website_options():
+    registered_sites = get_registered_crawler_site_values()
+
+    assert Website.AVFAN.value in registered_sites
+
+
 def test_config_website_schema_uses_registered_crawler_sites():
     website_schema = Config.json_schema()["$defs"]["Website"]
     registered_sites = get_registered_crawler_site_values()

@@ -488,6 +488,7 @@ class SuffixSort(Enum):
 
 class Website(Enum):
     AVBASE = "avbase"
+    AVFAN = "avfan"
     AIRAV = "airav"
     AIRAV_CC = "airav_cc"
     AVSEX = "avsex"

@@ -1865,7 +1865,7 @@ class MyMAinWindow(QMainWindow):
                 f"文件名: {main_file_name}\n支持网站:airav_cc、avsex、avsox、dmm、getchu、fc2"
                 f"、fc2club、fc2hub、iqqtv、jav321、javbus、javdb、freejavbt、javlibrary、mdtv"
                 f"、madouqu、mgstage、7mmtv、xcity、mywife、giga、faleno、dahlia、fantastica、avbase"
-                f"、prestige、hdouban、lulubar、love6、cnmdb、theporndb、kin8、javrate\n请输入番号对应的网址（不是网站首页地址！！！是番号页面地址！！！）:",
+                f"、prestige、hdouban、lulubar、love6、cnmdb、theporndb、kin8、javrate、avfan\n请输入番号对应的网址（不是网站首页地址！！！是番号页面地址！！！）:",
             )
             if ok and text:
                 website, url = deal_url(text)
@@ -2642,6 +2642,7 @@ class MyMAinWindow(QMainWindow):
   <p><span style=" font-weight:700;">所有可用网站:</span></p>
   <li>airav_cc</li>
   <li>avbase</li>
+  <li>avfan</li>
   <li>avsex</li>
   <li>avsox</li>
   <li>cableav</li>
