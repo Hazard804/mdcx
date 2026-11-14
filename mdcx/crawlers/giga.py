@@ -6,6 +6,7 @@ from lxml import etree
 from parsel import Selector
 
 from ..config.models import Website
+from ..models.types import CrawlerResult
 from .base import BaseCrawler, Context, CralwerException, CrawlerData
 
 
@@ -202,3 +203,20 @@ class GigaCrawler(BaseCrawler):
             mosaic="有码",
             external_id=detail_url,
         )
+
+    @override
+    async def post_process(self, ctx: Context, res: CrawlerResult) -> CrawlerResult:
+        """
+        封面大图兜底.
+
+        站点部分作品只提供 pac_s 小图, 由小图推导出的 pac_l 大图会返回 404;
+        直接使用会导致缩略图下载失败(整条任务被标记失败), 因此探活后回退到小图.
+        """
+        cover = str(res.thumb or "").strip()
+        if cover and cover != res.poster:
+            response, error = await self.async_client.request("HEAD", cover)
+            content_type = str(response.headers.get("Content-Type", "")).lower() if response is not None else ""
+            if response is None or response.status_code != 200 or not content_type.startswith("image/"):
+                ctx.debug(f"封面大图不可用, 回退小图: {cover} ({error or response.status_code})")
+                res.thumb = res.poster or ""
+        return res

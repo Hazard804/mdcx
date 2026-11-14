@@ -5,10 +5,17 @@ from mdcx.crawlers.giga import GigaCrawler
 from mdcx.models.types import CrawlerInput
 
 
+class _FakeResponse:
+    def __init__(self, status_code: int = 200, content_type: str = "image/jpeg"):
+        self.status_code = status_code
+        self.headers = {"Content-Type": content_type}
+
+
 class FakeGigaClient:
-    def __init__(self):
+    def __init__(self, large_cover_exists: bool = True):
         self.search_count = 0
         self.cookie_requested = False
+        self.large_cover_exists = large_cover_exists
 
     async def get_text(self, url, **kwargs):
         if url == "https://www.giga-web.jp/search/?keyword=SPSE-88":
@@ -51,6 +58,10 @@ class FakeGigaClient:
         if method == "GET" and url == "https://www.giga-web.jp/cookie_set.php":
             self.cookie_requested = True
             return None, "GET https://www.giga-web.jp/cookie_set.php 失败: HTTP 302"
+        if method == "HEAD" and url.endswith("pac_l.jpg"):
+            if self.large_cover_exists:
+                return _FakeResponse(), ""
+            return None, f"HEAD {url} 失败: HTTP 404"
         return None, f"unexpected request: {method} {url}"
 
 
@@ -118,3 +129,41 @@ async def test_giga_appoint_url_handles_cookie_gate_on_detail_page():
     assert client.detail_count == 2
     assert client.search_count == 0  # 指定网址不应再走搜索
     assert res.data.title == "戦え！スペースウーマン"
+
+
+def _make_input(number: str = "SPSE-88") -> CrawlerInput:
+    return CrawlerInput(
+        appoint_number="",
+        appoint_url="",
+        file_path=None,
+        mosaic="",
+        number=number,
+        short_number=number,
+        language=Language.UNDEFINED,
+        org_language=Language.UNDEFINED,
+    )
+
+
+@pytest.mark.asyncio
+async def test_giga_keeps_large_cover_when_available():
+    client = FakeGigaClient(large_cover_exists=True)
+    crawler = GigaCrawler(client=client)
+
+    res = await crawler.run(_make_input())
+
+    assert res.debug_info.error is None
+    assert res.data is not None
+    assert res.data.thumb == "https://www.giga-web.jp/db_titles/spse/spse88/pac_l.jpg"
+
+
+@pytest.mark.asyncio
+async def test_giga_falls_back_to_small_cover_when_large_cover_missing():
+    """部分作品没有 pac_l 大图(404), 必须回退到小图, 否则缩略图下载会整条失败."""
+    client = FakeGigaClient(large_cover_exists=False)
+    crawler = GigaCrawler(client=client)
+
+    res = await crawler.run(_make_input())
+
+    assert res.debug_info.error is None
+    assert res.data is not None
+    assert res.data.thumb == "https://www.giga-web.jp/db_titles/spse/spse88/pac_s.jpg"
