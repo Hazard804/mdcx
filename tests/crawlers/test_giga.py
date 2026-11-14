@@ -78,3 +78,43 @@ async def test_giga_retries_search_after_cookie_gate():
     assert res.debug_info.detail_urls == ["https://www.giga-web.jp/product/index.php?product_id=7666"]
     assert res.data.number == "SPSE-88"
     assert res.data.trailer == "https://example.test/spse88.mp4"
+
+
+class FakeGigaAppointClient(FakeGigaClient):
+    """详情页首次返回 cookie 门禁页, 用于覆盖「指定网址」跳过搜索的直刮场景."""
+
+    def __init__(self):
+        super().__init__()
+        self.detail_count = 0
+
+    async def get_text(self, url, **kwargs):
+        if url == "https://www.giga-web.jp/product/index.php?product_id=7666":
+            self.detail_count += 1
+            if self.detail_count == 1:
+                return '<a href="/cookie_set.php" />', ""
+        return await super().get_text(url, **kwargs)
+
+
+@pytest.mark.asyncio
+async def test_giga_appoint_url_handles_cookie_gate_on_detail_page():
+    client = FakeGigaAppointClient()
+    crawler = GigaCrawler(client=client)
+    res = await crawler.run(
+        CrawlerInput(
+            appoint_number="",
+            appoint_url="https://www.giga-web.jp/product/index.php?product_id=7666",
+            file_path=None,
+            mosaic="",
+            number="SPSE-88",
+            short_number="SPSE-88",
+            language=Language.UNDEFINED,
+            org_language=Language.UNDEFINED,
+        )
+    )
+
+    assert res.debug_info.error is None
+    assert res.data is not None
+    assert client.cookie_requested is True
+    assert client.detail_count == 2
+    assert client.search_count == 0  # 指定网址不应再走搜索
+    assert res.data.title == "戦え！スペースウーマン"

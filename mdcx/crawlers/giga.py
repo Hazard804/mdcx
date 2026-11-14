@@ -127,15 +127,31 @@ class GigaCrawler(BaseCrawler):
     async def _generate_search_url(self, ctx: Context) -> list[str] | str | None:
         return f"{self.base_url}/search/?keyword={ctx.input.number}"
 
+    async def _get_with_cookie(self, url: str) -> tuple[str | None, str]:
+        """
+        请求页面并处理站点的 cookie 门禁.
+
+        站点首次访问会返回年龄确认页(内含 /cookie_set.php), 需要先访问该地址写入 cookie 再重试;
+        搜索页与详情页都可能遇到, 因此统一在此处理, 避免「指定网址」直刮详情页时拿不到数据.
+        """
+        html, error = await self.async_client.get_text(url)
+        if html is None:
+            return None, error
+        if "/cookie_set.php" in html:
+            # 该地址返回 302 并下发 cookie, 不需要跟随跳转
+            await self.async_client.request("GET", f"{self.base_url}/cookie_set.php", allow_redirects=False)
+            html, error = await self.async_client.get_text(url)
+        return html, error
+
+    @override
+    async def _fetch(self, ctx: Context, url: str, use_browser: bool | None) -> tuple[str | None, str]:
+        if use_browser is True:
+            return None, "当前版本已移除浏览器请求模式"
+        return await self._get_with_cookie(url)
+
     @override
     async def _fetch_search(self, ctx: Context, url: str, use_browser: bool | None = False) -> tuple[str | None, str]:
-        html_search, error = await self.async_client.get_text(url)
-        if html_search is None:
-            return None, error
-        if "/cookie_set.php" in html_search:
-            await self.async_client.request("GET", f"{self.base_url}/cookie_set.php", allow_redirects=False)
-            html_search, error = await self.async_client.get_text(url)
-        return html_search, error
+        return await self._fetch(ctx, url, use_browser)
 
     @override
     async def _parse_search_page(self, ctx: Context, html: Selector, search_url: str) -> list[str] | str | None:
