@@ -154,7 +154,8 @@
     "dmm",
     "avbase",
     "javrate",
-    "avfan"
+    "avfan",
+    "javarchive"
   ],
   "website_wuma": [
     "missav",
@@ -163,7 +164,8 @@
     "heyzo",
     "7mmtv",
     "avsox",
-    "javrate"
+    "javrate",
+    "javarchive"
   ],
   "website_suren": [
     "mgstage",
@@ -177,7 +179,8 @@
     "fc2",
     "7mmtv",
     "fc2hub",
-    "fc2club"
+    "fc2club",
+    "javarchive"
   ],
   "website_oumei": [
     "theporndb"
@@ -215,7 +218,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -243,7 +247,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -271,7 +276,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -299,7 +305,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -327,7 +334,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -355,7 +363,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -383,7 +392,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -411,7 +421,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -439,7 +450,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -467,7 +479,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -495,7 +508,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "zh_cn",
       "translate": true
@@ -523,7 +537,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -551,7 +566,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -579,7 +595,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -607,7 +624,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -635,7 +653,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -663,7 +682,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -691,7 +711,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -719,7 +740,8 @@
         "fc2",
         "fc2ppvdb",
         "javrate",
-        "avfan"
+        "avfan",
+        "javarchive"
       ],
       "language": "undefined",
       "translate": true
@@ -748,6 +770,9 @@
       "custom_url": null
     },
     "avfan": {
+      "custom_url": null
+    },
+    "javarchive": {
       "custom_url": null
     }
   },

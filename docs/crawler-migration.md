@@ -155,6 +155,7 @@ uv run pytest tests/crawlers
 - `theporndb`
 - `javrate`
 - `avfan`
+- `javarchive`
 
 ## 已下线站点
 

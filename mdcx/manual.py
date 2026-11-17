@@ -497,6 +497,7 @@ class ManualConfig:
         "javlibrary": Website.JAVLIBRARY,
         "javrate": Website.JAVRATE,
         "avfan": Website.AVFAN,
+        "javarchive": Website.JAVARCHIVE,
         "mdtv": Website.MDTV,
         "mdpjzip": Website.MDTV,
         "madouqu": Website.MADOUQU,

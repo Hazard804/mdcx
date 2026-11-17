@@ -512,6 +512,7 @@ class Website(Enum):
     HSCANGKU = "hscangku"
     IQQTV = "iqqtv"
     JAV321 = "jav321"
+    JAVARCHIVE = "javarchive"
     JAVBUS = "javbus"
     JAVDAY = "javday"
     JAVDB = "javdb"

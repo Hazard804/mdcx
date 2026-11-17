@@ -149,6 +149,7 @@ DEFAULT_FIELD_SITE_PRIORITY = [
     Website.FC2PPVDB,
     Website.JAVRATE,
     Website.AVFAN,
+    Website.JAVARCHIVE,
 ]
 
 
@@ -360,6 +361,7 @@ class Config(BaseModel):
             Website.AVBASE,
             Website.JAVRATE,
             Website.AVFAN,
+            Website.JAVARCHIVE,
         ],
         title="有码网站源",
     )
@@ -372,6 +374,7 @@ class Config(BaseModel):
             Website.MMTV,
             Website.AVSOX,
             Website.JAVRATE,
+            Website.JAVARCHIVE,
         ],
         title="无码网站源",
     )
@@ -392,6 +395,7 @@ class Config(BaseModel):
             Website.MMTV,
             Website.FC2HUB,
             Website.FC2CLUB,
+            Website.JAVARCHIVE,
         ],
         title="FC2网站源",
     )

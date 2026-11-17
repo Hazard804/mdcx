@@ -155,6 +155,7 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.AVBASE,
         Website.JAVRATE,
         Website.AVFAN,
+        Website.JAVARCHIVE,
     ]
     assert config.website_wuma == [
         Website.MISSAV,
@@ -164,6 +165,7 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.MMTV,
         Website.AVSOX,
         Website.JAVRATE,
+        Website.JAVARCHIVE,
     ]
     assert config.website_suren == [
         Website.MGSTAGE,
@@ -173,7 +175,7 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.AVBASE,
         Website.MMTV,
     ]
-    assert config.website_fc2 == [Website.FC2, Website.MMTV, Website.FC2HUB, Website.FC2CLUB]
+    assert config.website_fc2 == [Website.FC2, Website.MMTV, Website.FC2HUB, Website.FC2CLUB, Website.JAVARCHIVE]
     assert config.website_oumei == [Website.THEPORNDB]
     assert config.website_guochan == [
         Website.CNMDB,
@@ -193,11 +195,13 @@ def test_config_default_site_priorities_follow_current_frontend_defaults():
         Website.MISSAV,
         Website.JAVRATE,
         Website.AVFAN,
+        Website.JAVARCHIVE,
     ]
     assert config.get_type_field_config(FixedScrapingType.FC2, CrawlerResultFields.TITLE).site_prority == [
         Website.MMTV,
         Website.FC2HUB,
         Website.FC2,
+        Website.JAVARCHIVE,
     ]
 
 

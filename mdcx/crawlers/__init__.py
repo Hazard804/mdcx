@@ -13,6 +13,7 @@ from . import (
     heyzo,
     hscangku,
     jav321,
+    javarchive,
     javday,
     javdbapi,
     kin8,
@@ -49,6 +50,7 @@ from .heyzo import HeyzoCrawler
 from .hscangku import HscangkuCrawler
 from .iqqtv import IqqtvCrawler
 from .jav321 import Jav321Crawler
+from .javarchive import JavarchiveCrawler
 from .javbus import JavbusCrawler
 from .javday import JavdayCrawler
 from .javdb_new import JavdbCrawler
@@ -77,6 +79,7 @@ register_crawler(CaribbeancomprCrawler)
 register_crawler(HeyzoCrawler)
 register_crawler(FalenoCrawler)
 register_crawler(Jav321Crawler)
+register_crawler(JavarchiveCrawler)
 register_crawler(CableavCrawler)
 register_crawler(MadouquCrawler)
 register_crawler(MmtvCrawler)
