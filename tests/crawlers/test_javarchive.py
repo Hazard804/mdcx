@@ -156,6 +156,19 @@ DETAIL_HTML_LEGACY = """
 </body></html>
 """
 
+# 英文字幕版模板: 字段名是英文, 且 Studio/Label 与日文模板语义不一致
+DETAIL_HTML_EN = """
+<html><body>
+<div class="news">
+  <div class="first_des">[ENGSUB]SNOS-416 I kept fucking like crazy <br class="a5555" /></div>
+  <div class="Recipepod"><span itemprop="name" class="name">[ENGSUB]SNOS-416 I kept fucking like crazy</span>
+    <img itemprop="image" src="https://pics.dmm.co.jp/mono/movie/adult/snos416/snos416ps.jpg" />
+  </div>
+  Release Date: 2026-10-27 <br class='a5555' />Director: ZAMPA <br class='a5555' />Studio: S1 NO.1 STYLE <br class='a5555' />Label: SNOS <br class='a5555' />Tags: Beautiful Girl, Blowjob, Creampie <br class='a5555' />Actor: Tomifumi <br class='a5555' />Actress: Nagisa Airi <br class='a5555' />
+</div>
+</body></html>
+"""
+
 # 只有 配信開始日, 没有 発売日: 不能拿配信日冒充发行日
 DETAIL_HTML_NO_RELEASE = DETAIL_HTML.replace(
     "発売日	2025-01-14 <br class='a5555' />", "配信開始日	2025-01-05 <br class='a5555' />"
@@ -372,13 +385,55 @@ async def test_parse_search_page_matches_exactly_and_orders_by_version():
         make_context("SNOS-416"), Selector(text=SEARCH_HTML), f"{BASE_URL}/search?q=SNOS-416"
     )
 
-    # 裸标题优先, 其次 [FHD/SD]、[4K], 再降码与字幕; 近似番号与站外链接必须排除
+    # 裸标题优先, 其次 [FHD/SD]、[4K], 再降码; 英文字幕版不抓, 近似番号与站外链接必须排除
     assert urls == [
         f"{BASE_URL}/1172611-[FHD/SD]-SNOS-416-title-pn.html",
         f"{BASE_URL}/1174076-[4K]-SNOS-416-title-pn.html",
         f"{BASE_URL}/1176830-Reducing-Mosaic-SNOS-416-title-pn.html",
-        f"{BASE_URL}/1176843-[ENGSUB]SNOS-416-english-title-pn.html",
     ]
+
+
+@pytest.mark.asyncio
+async def test_parse_search_page_skips_english_subtitle_version():
+    # 标题里没有 ENGSUB, 只在 URL slug 里(且可能被百分号编码)时同样要跳过
+    search_html = SEARCH_HTML.replace(
+        "[ENGSUB]SNOS-416 I kept fucking like crazy", "SNOS-416 I kept fucking like crazy"
+    )
+    search_html = search_html.replace(
+        "/1176843-[ENGSUB]SNOS-416-english-title-pn.html",
+        "/1176843-%5BENGSUB%5DSNOS-416-english-title-pn.html",
+    )
+    crawler = JavarchiveCrawler(client=FakeJavarchiveClient())
+
+    urls = await crawler._parse_search_page(
+        make_context("SNOS-416"), Selector(text=search_html), f"{BASE_URL}/search?q=SNOS-416"
+    )
+
+    assert all("1176843" not in url for url in urls)
+    assert urls[0].endswith("1172611-[FHD/SD]-SNOS-416-title-pn.html")
+
+
+@pytest.mark.asyncio
+async def test_run_reports_no_match_when_only_subtitle_version_exists():
+    # 整部片子只有字幕版时, 宁可报未匹配, 也不把英文标题/英文标签写进库
+    only_subtitle = """
+    <html><body>
+      <div class="news_1n">
+        <h2><a href="#">Search Results</a></h2>
+        <ul>
+          <li><a href="/1176843-[ENGSUB]SNOS-416-english-title-pn.html" title="[ENGSUB]SNOS-416 I kept">x</a></li>
+        </ul>
+      </div>
+    </body></html>
+    """
+    client = FakeJavarchiveClient(search_html=only_subtitle)
+    crawler = JavarchiveCrawler(client=client)
+
+    response = await crawler.run(make_input("SNOS-416"))
+
+    assert response.data is None
+    assert "未匹配到番号" in str(response.debug_info.error)
+    assert all("/search?" in url for url in client.requests)
 
 
 @pytest.mark.asyncio
@@ -434,12 +489,47 @@ async def test_run_parses_detail_fields():
         "https://pics.dmm.co.jp/digital/video/snos00416/snos00416jp-2.jpg",
     ]
     # 站点不提供这些字段, 且 ratingValue 是点赞数, 不能当评分
-    for field in ("score", "wanted", "outline", "originalplot", "trailer", "mosaic", "actors"):
+    for field in ("score", "wanted", "outline", "originalplot", "trailer", "mosaic"):
         value = getattr(data, field)
         assert value in ("", []), field
     assert response.debug_info.detail_urls[0].endswith("1172611-[FHD/SD]-SNOS-416-title-pn.html")
-    # 关键字段齐全后不应再抓其它版本
+    # 关键字段齐全即停, 不再为演员/标签多抓一页
     assert len([url for url in client.requests if "-pn.html" in url]) == 1
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_fetch_english_subtitle_version():
+    # 站点上唯一能取到演员/标签的就是字幕版, 但字幕版会被跳过, 因此这两项应为空
+    client = FakeJavarchiveClient(detail_pages={"1176843": DETAIL_HTML_EN})
+    crawler = JavarchiveCrawler(client=client)
+
+    response = await crawler.run(make_input("SNOS-416"))
+
+    data = response.data
+    assert data is not None
+    assert data.actors == []
+    assert data.tags == []
+    # 原版模板没有演员/标签, 也不允许为了它们去抓字幕版
+    detail_requests = [url for url in client.requests if "-pn.html" in url]
+    assert len(detail_requests) == 1
+    assert "1172611-" in detail_requests[0]
+    assert "1176843" not in "".join(client.requests)
+    assert data.title == "大人っぽくて可愛い家庭教師 渚あいり"
+
+
+@pytest.mark.asyncio
+async def test_parser_ignores_english_studio_and_label():
+    # 自动搜索不抓字幕版, 但 appoint_url 直指英文页时仍要能解析
+    parser = JavarchiveParser()
+    html = Selector(text=DETAIL_HTML_EN)
+
+    # Release Date / Director / Actress 语义与日文模板一致, 可以采用
+    assert await parser.release(make_context("SNOS-416"), html) == "2026-10-27"
+    assert await parser.directors(make_context("SNOS-416"), html) == ["ZAMPA"]
+    assert await parser.actors(make_context("SNOS-416"), html) == ["Nagisa Airi"]
+    # Studio/Label 在 S1 等片商处语义不稳定, 不能映射成制作商/发行商
+    assert await parser.studio(make_context("SNOS-416"), html) == ""
+    assert await parser.publisher(make_context("SNOS-416"), html) == ""
 
 
 @pytest.mark.asyncio
@@ -588,6 +678,18 @@ async def test_run_does_not_fetch_next_page_when_first_page_has_hit():
     assert response.data is not None
     # 首页已命中时不应再翻页, 避免每个文件多打两次搜索请求
     assert not any("&page=" in url for url in client.requests)
+
+
+@pytest.mark.asyncio
+async def test_run_caps_detail_fetches_when_versions_lack_fields():
+    # 三个候选都缺发行日: 常规额度抓满 3 个即停, 不能无限翻版本
+    search_html = SEARCH_HTML.replace("SNOS-416", "SONE-999")
+    client = FakeJavarchiveClient(search_html=search_html, detail_html=DETAIL_HTML_NO_RELEASE)
+    crawler = JavarchiveCrawler(client=client)
+
+    await crawler.run(make_input("SONE-999"))
+
+    assert len([url for url in client.requests if "-pn.html" in url]) == 3
 
 
 @pytest.mark.asyncio

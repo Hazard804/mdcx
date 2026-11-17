@@ -14,6 +14,8 @@
   字段名->值 的字典后再按白名单取值
 - 同一番号常有多篇(不同清晰度、字幕、降码、泄漏版本), 按版本偏好选主版本, 其余版本只用于补齐
   主版本的空字段, 标题与封面不跨版本混用
+- 英文字幕版([ENGSUB]/English Sub)整篇使用英文模板, 标题与标签都会是英文, 自动搜索时直接跳过;
+  只有用户用 appoint_url 明确指定时才解析
 - 站点不提供简介/想看/预告片, 详情页的 ratingValue 实际是点赞数, 这些字段一律不采信
 """
 
@@ -39,8 +41,13 @@ BASE_URL = "https://javarchive.com"
 SEARCH_PATH = "/search"
 # 搜索按相关度排序, 精确命中基本都在第 1 页; 命中不足时最多再翻 2 页
 MAX_SEARCH_PAGES = 3
-# 主版本 + 最多补抓 2 个同番号版本用于补齐字段
-MAX_DETAIL_CANDIDATES = 3
+# 搜索页保留的候选上限(只为拿到同番号的不同版本, 不一定会抓)
+MAX_SEARCH_CANDIDATES = 4
+# 常规补抓上限(含主版本)
+MAX_DETAIL_FETCHES = 3
+
+# 英文字幕版: 整篇英文模板, 标题/标签都会是英文, 自动搜索时跳过
+SUBTITLE_VERSION_RE = re.compile(r"eng[\s_-]*sub|english[\s_-]*(?:sub|subtitles?)", re.IGNORECASE)
 
 # 详情页路由: /{post_id}-{slug}-pn.html, slug 中可能带 "/"
 DETAIL_PATH_RE = re.compile(r"^/(?P<post_id>\d+)-.*-pn\.html$", re.IGNORECASE)
@@ -91,6 +98,18 @@ INFO_LABELS = (
     "卖家",
     "日期",
     "时长",
+    # 英文模板: 自动搜索不抓字幕版, 这里保留解析是为了 appoint_url 直指英文页时仍能取到数据
+    "Release Date",
+    "Director",
+    "Actress",
+    "Actor",
+    "Tags",
+    "Runtime",
+    "Series",
+    "Maker",
+    "Publisher",
+    "Studio",
+    "Label",
 )  # fmt: skip
 INFO_LABEL_RE = re.compile(
     "^(?P<label>"
@@ -209,10 +228,19 @@ def split_multi(value: str) -> list[str]:
 
 def parse_actors(info: dict[str, str]) -> list[str]:
     """演员只取显式字段, 不在标题里猜测, 避免把片名里的词误判成人名."""
-    value = field_value(info, "出演者", "出演", "女優名", "女优名", "【出演女优】")
+    value = field_value(info, "出演者", "出演", "女優名", "女优名", "【出演女优】", "Actress")
     if not value or value in {"无名", "無名", "不明"}:
         return []
     return split_multi(value)
+
+
+def parse_all_actors(info: dict[str, str]) -> list[str]:
+    """全部演员 = 女优 + 男优(英文模板的 Actor 是男优)."""
+    names = parse_actors(info)
+    for name in split_multi(field_value(info, "Actor")):
+        if name not in names:
+            names.append(name)
+    return names
 
 
 def split_tags(value: str) -> list[str]:
@@ -224,9 +252,9 @@ def split_tags(value: str) -> list[str]:
 
 
 def parse_tags(info: dict[str, str]) -> list[str]:
-    """标签取 类型/标签/タグキーワード 字段, 过滤价格标记与清晰度标记."""
+    """标签取 类型/标签/タグキーワード/Tags(英文版), 过滤价格标记与清晰度标记."""
     tags: list[str] = []
-    for item in split_tags(field_value(info, "类型", "标签", "標籤", "タグキーワード")):
+    for item in split_tags(field_value(info, "类型", "标签", "標籤", "タグキーワード", "Tags")):
         if PRICE_TAG_RE.fullmatch(item) or item.upper() in TAG_FORMAT_SKIP:
             continue
         tags.append(item)
@@ -282,6 +310,11 @@ def version_rank(title: str, match: re.Match[str] | None) -> int:
     if any(word in prefix for word in ("fhd", "4k", "sd", "kbps", "]")):
         return 1
     return 0
+
+
+def is_subtitle_version(title: str, url: str = "") -> bool:
+    """是否为英文字幕版. 标题与 URL slug 任一命中都算, URL 里的方括号可能已被编码."""
+    return bool(SUBTITLE_VERSION_RE.search(clean_text(title)) or SUBTITLE_VERSION_RE.search(unquote(url or "")))
 
 
 def clean_title(title: str, number: str) -> str:
@@ -362,11 +395,11 @@ class JavarchiveParser(DetailPageParser):
 
     @override
     async def all_actors(self, ctx, html) -> FieldRes[list[str]]:
-        return parse_actors(parse_info_map(html))
+        return parse_all_actors(parse_info_map(html))
 
     @override
     async def directors(self, ctx, html) -> FieldRes[list[str]]:
-        return split_multi(field_value(parse_info_map(html), "監督", "监督"))
+        return split_multi(field_value(parse_info_map(html), "監督", "监督", "Director"))
 
     @override
     async def tags(self, ctx, html) -> FieldRes[list[str]]:
@@ -376,7 +409,7 @@ class JavarchiveParser(DetailPageParser):
     async def release(self, ctx, html) -> FieldRes:
         # 只用发行类字段, 不拿列表页/文章发布日兜底, 也不使用早于发售日的 配信開始日
         info = parse_info_map(html)
-        for label in ("発売日", "商品発売日", "公開日", "日期"):
+        for label in ("発売日", "商品発売日", "公開日", "Release Date", "日期"):
             release = parse_date(field_value(info, label))
             if release:
                 return release
@@ -389,22 +422,24 @@ class JavarchiveParser(DetailPageParser):
 
     @override
     async def runtime(self, ctx, html) -> FieldRes:
-        return parse_runtime(field_value(parse_info_map(html), "収録時間", "时长"))
+        return parse_runtime(field_value(parse_info_map(html), "収録時間", "时长", "Runtime"))
 
     @override
     async def studio(self, ctx, html) -> FieldRes:
-        # 卖家 是 FC2 模板里对应的制作方
-        return field_value(parse_info_map(html), "メーカー", "制作", "卖家")
+        # 卖家 是 FC2 模板里对应的制作方; 英文模板只用 Maker, 不用 Studio(见下方说明)
+        return field_value(parse_info_map(html), "メーカー", "制作", "卖家", "Maker")
 
     @override
     async def publisher(self, ctx, html) -> FieldRes:
-        # レーベル 缺失时留空, 不用 メーカー 顶替, 否则发行商会被写成制作商
-        return field_value(parse_info_map(html), "レーベル", "发行商")
+        # レーベル 缺失时留空, 不用 メーカー 顶替, 否则发行商会被写成制作商.
+        # 英文模板的 Studio 在多数片商处等于 メーカー(如 MOODYZ/IDEA POCKET), 但 S1 的
+        # Studio 给的是 レーベル(S1 NO.1 STYLE), 语义不稳定, 因此 Studio/Label 一律不映射.
+        return field_value(parse_info_map(html), "レーベル", "发行商", "Publisher")
 
     @override
     async def series(self, ctx, html) -> FieldRes:
         # 只有 シリーズ 才是系列, レーベル 不是
-        return field_value(parse_info_map(html), "シリーズ")
+        return field_value(parse_info_map(html), "シリーズ", "Series")
 
     @override
     async def thumb(self, ctx, html) -> FieldRes:
@@ -492,7 +527,7 @@ class JavarchiveCrawler(BaseCrawler):
                     ctx.debug(f"搜索页命中 {len(page_urls)} 条: {page_url=}")
                     break
             if candidates:
-                return candidates[:MAX_DETAIL_CANDIDATES]
+                return candidates[:MAX_SEARCH_CANDIDATES]
         if last_error:
             raise CralwerException(f"搜索页请求失败: {last_error}")
         raise CralwerException("搜索结果: 未匹配到番号！")
@@ -519,14 +554,18 @@ class JavarchiveCrawler(BaseCrawler):
             match = match_number(card_title, target)
             if not match:
                 continue
+            if is_subtitle_version(card_title, detail_url):
+                # 字幕版通篇英文, 抓进来会把英文标题/英文标签写进库
+                ctx.debug(f"跳过英文字幕版: {card_title[:40]}")
+                continue
             exact = 0 if exact_number_match(card_title, target) else 1
             scored.append((version_rank(card_title, match), exact, order, detail_url))
         if not scored:
-            ctx.debug(f"搜索结果均为模糊匹配, 已放弃: {ctx.input.number}")
+            ctx.debug(f"无可用候选(均为模糊匹配或英文字幕版), 已放弃: {ctx.input.number}")
             return []
         scored.sort()
         detail_urls = list(dict.fromkeys(item[3] for item in scored))
-        ctx.debug(f"精确命中 {len(detail_urls)} 条: {detail_urls[:MAX_DETAIL_CANDIDATES]}")
+        ctx.debug(f"精确命中 {len(detail_urls)} 条: {detail_urls[:MAX_SEARCH_CANDIDATES]}")
         return detail_urls
 
     @override
@@ -564,7 +603,7 @@ class JavarchiveCrawler(BaseCrawler):
         "series",
     )
 
-    # 只有这几项缺失才值得再抓其它版本: 演员/标签是模板本身不提供的, 多抓也补不出来
+    # 常规补齐只看这几项: 日文模板本身不提供演员/标签, 为它们多抓版本通常补不出来
     REQUIRED_FIELDS = ("release", "year", "runtime", "directors", "studio", "publisher")
 
     @classmethod
@@ -583,27 +622,34 @@ class JavarchiveCrawler(BaseCrawler):
     def _has_missing_fields(cls, data: CrawlerData) -> bool:
         return any(not is_valid(getattr(data, field_name)) for field_name in cls.REQUIRED_FIELDS)
 
+    async def _fetch_detail_data(self, ctx, detail_url: str) -> tuple[CrawlerData | None, CralwerException | None]:
+        """抓取并解析一个详情页, 失败时返回错误而不抛出."""
+        page_html, error = await self._fetch_detail(ctx, detail_url)
+        if page_html is None:
+            ctx.debug(f"详情页请求失败: {detail_url=} {error=}")
+            return None, CralwerException(f"详情页请求失败: {error}")
+        ctx.debug(f"详情页请求成功: {detail_url=}")
+        try:
+            data = await self._parse_detail_page(ctx, Selector(text=page_html), detail_url)
+        except CralwerException as exc:
+            ctx.debug(f"详情页解析失败: {detail_url=} {exc}")
+            return None, exc
+        if data is not None and not data.external_id:
+            data.external_id = detail_url
+        return data, None
+
     @override
     async def _detail(self, ctx, detail_urls: list[str]) -> CrawlerData | None:
+        """主版本优先, 关键字段仍有空缺时才继续抓同番号的其它版本补空."""
         merged: CrawlerData | None = None
         last_error: CralwerException | None = None
-        for detail_url in detail_urls[:MAX_DETAIL_CANDIDATES]:
-            page_html, error = await self._fetch_detail(ctx, detail_url)
-            if page_html is None:
-                last_error = CralwerException(f"详情页请求失败: {error}")
-                ctx.debug(f"详情页请求失败: {detail_url=} {error=}")
-                continue
-            ctx.debug(f"详情页请求成功: {detail_url=}")
-            try:
-                data = await self._parse_detail_page(ctx, Selector(text=page_html), detail_url)
-            except CralwerException as exc:
-                last_error = exc
-                ctx.debug(f"详情页解析失败: {detail_url=} {exc}")
+        for detail_url in detail_urls[:MAX_DETAIL_FETCHES]:
+            data, error = await self._fetch_detail_data(ctx, detail_url)
+            if error is not None:
+                last_error = error
                 continue
             if data is None:
                 continue
-            if not data.external_id:
-                data.external_id = detail_url
             if merged is None:
                 merged = data
             else:
