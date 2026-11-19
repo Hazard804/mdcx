@@ -1,3 +1,5 @@
+import time
+
 import httpx
 import pytest
 from openai import APITimeoutError, AuthenticationError
@@ -5,7 +7,7 @@ from openai import APITimeoutError, AuthenticationError
 from mdcx.base.translate import TranslateResult
 from mdcx.config.enums import Language, Translator
 from mdcx.config.models import Config
-from mdcx.llm import LLMError, LLMErrorKind, classify_llm_exception
+from mdcx.llm import LLMClient, LLMError, LLMErrorKind, classify_llm_exception
 from mdcx.models.types import CrawlersResult
 
 _FAKE_REQUEST = httpx.Request("POST", "https://llm.example.com/v1/chat/completions")
@@ -369,3 +371,169 @@ async def test_translate_with_engine_reports_llm_timeout_reason(monkeypatch: pyt
     assert result.error is not None
     assert "超时" in result.error
     assert result.outline == "outline"
+
+
+@pytest.mark.asyncio
+async def test_translate_with_engine_keeps_title_when_outline_fails(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.base import translate as base_translate
+
+    cfg = base_translate.manager.config.translate_config
+    monkeypatch.setattr(cfg, "llm_prompt_title", "TITLE::{content}")
+    monkeypatch.setattr(cfg, "llm_prompt_outline", "OUTLINE::{content}")
+
+    async def fake_ask(*, user_prompt: str, **kwargs):
+        if user_prompt.startswith("TITLE::"):
+            return "中文标题"
+        raise LLMError(LLMErrorKind.TIMEOUT, elapsed=60.0)
+
+    monkeypatch.setattr(base_translate.manager.computed.llm_client, "ask", fake_ask)
+
+    result = await base_translate.translate_with_engine(
+        Translator.LLM,
+        "English title",
+        "English outline",
+        title_language=Language.ZH_CN,
+        outline_language=Language.ZH_CN,
+    )
+
+    # 简介失败不应连带丢弃已经翻译好的标题
+    assert result.translated_title is True
+    assert result.title == "中文标题"
+    assert result.translated_outline is False
+    assert result.outline == "English outline"
+    assert result.success is True
+    # 有字段成功时 error 不再表示整体失败, 具体原因保留在字段级错误里
+    assert result.error is None
+    assert result.outline_error is not None
+    assert "超时" in result.outline_error
+
+
+@pytest.mark.asyncio
+async def test_translate_title_outline_keeps_title_when_outline_fails(monkeypatch: pytest.MonkeyPatch):
+    from mdcx.core import translate as core_translate
+
+    class _FieldCfg:
+        def __init__(self, language: Language, translate: bool):
+            self.language = language
+            self.translate = translate
+
+    class _TranslateCfg:
+        def __init__(self):
+            self.translate_by = [Translator.LLM]
+
+    class _Cfg:
+        def __init__(self):
+            self.translate_config = _TranslateCfg()
+
+        def get_field_config(self, _field):
+            return _FieldCfg(Language.ZH_CN, True)
+
+    class _Manager:
+        def __init__(self):
+            self.config = _Cfg()
+
+    async def fake_translate_with_engine(*args, **kwargs):
+        title = args[1]
+        outline = args[2]
+        return TranslateResult(
+            title=f"CN::{title}",
+            outline=outline,
+            error="LLM 请求超时",
+            engine=Translator.LLM,
+            translated_title=True,
+            translated_outline=False,
+            outline_error="LLM 请求超时",
+        )
+
+    monkeypatch.setattr(core_translate, "manager", _Manager())
+    monkeypatch.setattr(core_translate, "translate_with_engine", fake_translate_with_engine)
+    monkeypatch.setattr(core_translate, "get_translator_skip_reason", lambda _translator: None)
+
+    data = CrawlersResult.empty()
+    data.title = "A western movie title"
+    data.outline = "An English overview."
+
+    await core_translate.translate_title_outline(data, cd_part="-CD1", movie_number="ABC-123")
+
+    assert data.title == "CN::A western movie title"
+    assert data.outline == "An English overview."
+
+
+def test_should_fallback_to_non_stream_only_for_stream_specific_errors():
+    # 流式空内容/请求被拒绝/解析失败时, 值得退回普通请求
+    assert LLMError(LLMErrorKind.EMPTY, "模型返回内容为空").should_fallback_to_non_stream is True
+    assert LLMError(LLMErrorKind.BAD_REQUEST, "bad request").should_fallback_to_non_stream is True
+    # 超时与网络错误即使描述里带 stream 字样, 也不应误触发降级
+    assert (
+        LLMError(LLMErrorKind.TIMEOUT, "Request timed out while reading stream").should_fallback_to_non_stream is False
+    )
+    assert LLMError(LLMErrorKind.NETWORK, "connection reset").should_fallback_to_non_stream is False
+    # 明确说明不支持流式时才降级
+    assert LLMError(LLMErrorKind.SERVER, "This model does not support stream").should_fallback_to_non_stream is True
+
+
+def _make_llm_client() -> LLMClient:
+    return LLMClient(
+        api_key="test-key",
+        base_url="https://llm.example.com/v1",
+        timeout=httpx.Timeout(1.0),
+        rate=(100, 1),
+    )
+
+
+@pytest.mark.asyncio
+async def test_llm_ask_retries_timeout_up_to_max_try(monkeypatch: pytest.MonkeyPatch):
+    client = _make_llm_client()
+    calls: list[dict] = []
+
+    async def fake_request(**kwargs):
+        calls.append(kwargs)
+        raise LLMError(LLMErrorKind.TIMEOUT, elapsed=1.0)
+
+    monkeypatch.setattr(client, "_request", fake_request)
+
+    with pytest.raises(LLMError):
+        await client.ask(model="test-model", system_prompt="s", user_prompt="u", max_try=3)
+
+    # 超时只放大一次, 但仍应跑满 max_try 次尝试, 不能被压缩成 2 次
+    assert len(calls) == 3
+    assert calls[0]["timeout"] is None
+    assert calls[1]["timeout"].read == 2.0
+    assert calls[2]["timeout"].read == 2.0
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_llm_ask_falls_back_to_non_stream_on_empty(monkeypatch: pytest.MonkeyPatch):
+    client = _make_llm_client()
+    streams: list[bool] = []
+
+    async def fake_request(**kwargs):
+        streams.append(kwargs["stream"])
+        if kwargs["stream"]:
+            raise LLMError(LLMErrorKind.EMPTY, "模型返回内容为空")
+        return "正文"
+
+    monkeypatch.setattr(client, "_request", fake_request)
+
+    text = await client.ask(model="test-model", system_prompt="s", user_prompt="u", max_try=1)
+
+    assert text == "正文"
+    assert streams == [True, False]
+    assert client._stream_enabled("test-model") is False
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_stream_fallback_cooldown_recovers():
+    client = _make_llm_client()
+
+    client._disable_stream("test-model")
+    assert client._stream_enabled("test-model") is False
+
+    # 模拟冷却期结束, 应重新允许尝试流式
+    with client._stream_lock:
+        client._stream_disabled["test-model"] = time.monotonic() - 1
+
+    assert client._stream_enabled("test-model") is True
+    await client.close()

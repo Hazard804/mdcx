@@ -299,19 +299,26 @@ async def translate_title_outline(json_data: CrawlersResult, cd_part: str, movie
                 title_language=title_language,
                 outline_language=outline_language,
             )
-            if result.error:
-                LogBuffer.log().write(
-                    f"\n 🔴 Translation failed!({each.capitalize()})({get_used_time(start_time)}s) Error: {result.error}"
-                )
-                continue
             if result.translated_title:
                 json_data.title = result.title
                 title_translation_applied = True
             if result.translated_outline:
                 json_data.outline = result.outline
                 outline_translation_applied = True
+            if not (result.translated_title or result.translated_outline):
+                # 只有两个字段都没拿到有效翻译才算该引擎失败, 换下一个引擎继续尝试
+                LogBuffer.log().write(
+                    f"\n 🔴 Translation failed!({each.capitalize()})({get_used_time(start_time)}s) Error: {result.error}"
+                )
+                continue
+            if result.title_error or result.outline_error:
+                # 单字段失败时保留已成功的部分, 仅提示另一个字段的失败原因
+                detail = result.title_error or result.outline_error
+                LogBuffer.log().write(f"\n 🟡 Translation partially failed!({each.capitalize()}) {detail}")
             LogBuffer.log().write(f"\n 🍀 Translation done!({each.capitalize()})({get_used_time(start_time)}s)")
-            json_data.outline_from = each
+            if result.translated_outline:
+                # 简介来源只在简介真正翻译成功时记录, 避免 NFO 里对未翻译的简介标注翻译来源
+                json_data.outline_from = each
             break
         else:
             LogBuffer.log().write(

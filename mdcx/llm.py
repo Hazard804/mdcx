@@ -27,8 +27,23 @@ class LLMErrorKind(StrEnum):
 
 # 这些分类属于"可能是瞬时问题", 值得重试
 _RETRYABLE_KINDS = frozenset({LLMErrorKind.TIMEOUT, LLMErrorKind.RATE_LIMIT, LLMErrorKind.SERVER, LLMErrorKind.NETWORK})
-# 流式请求命中这些分类时, 通常只是服务端不支持流式输出, 值得退回普通请求再试一次
-_STREAM_FALLBACK_KINDS = frozenset({LLMErrorKind.BAD_REQUEST, LLMErrorKind.UNKNOWN})
+# 流式请求命中这些分类时, 通常只是服务端不支持流式或流式响应不完整, 值得退回普通请求再试一次
+# EMPTY 必须包含在内: 部分兼容接口在流式下只回 reason/usage 帧, 或丢弃 delta, 退回普通请求即可正常拿到正文
+_STREAM_FALLBACK_KINDS = frozenset({LLMErrorKind.BAD_REQUEST, LLMErrorKind.UNKNOWN, LLMErrorKind.EMPTY})
+# 明确指向"服务端不支持流式"的文案; 其余仅在错误描述里出现 stream 字样的错误不再误触发降级
+_STREAM_UNSUPPORTED_HINTS = (
+    "does not support stream",
+    "doesn't support stream",
+    "not support stream",
+    "stream is not supported",
+    "streaming is not supported",
+    "stream not supported",
+    "unsupported stream",
+    "streaming is unsupported",
+    "不支持流式",
+    "流式输出不支持",
+    "流式不支持",
+)
 
 
 class LLMError(Exception):
@@ -58,10 +73,15 @@ class LLMError(Exception):
 
     @property
     def should_fallback_to_non_stream(self) -> bool:
+        """是否值得退回普通(非流式)请求. 只在错误确实指向流式本身时成立.
+
+        早期实现只判断错误描述里是否含 "stream", 导致超时/连接重置等普通错误也会
+        触发降级并永久关闭流式; 这里改为按分类 + 明确文案判断, 避免误伤.
+        """
         if self.kind in _STREAM_FALLBACK_KINDS:
             return True
         detail = self.detail.lower()
-        return "stream" in detail or "流式" in self.detail
+        return any(hint in detail for hint in _STREAM_UNSUPPORTED_HINTS)
 
     def message(self) -> str:
         """面向用户/日志的错误说明, 明确区分"慢"和"失败"."""
@@ -141,12 +161,14 @@ def _clean_and_validate_text(text: str | None, *, elapsed: float, partial_chars:
 
 
 class LLMClient:
-    # 超时最多额外重试的次数; 超时往往是"模型较慢", 加大超时重试一次即可, 不宜反复重发
-    MAX_TIMEOUT_RETRY = 1
+    # 超时后额外放大超时的次数; 之后仍超时则按普通退避继续重试, 不再压缩 max_try 的尝试次数
+    MAX_TIMEOUT_BOOST = 1
     # 非流式请求需要一次性覆盖整段生成耗时, 因此基准超时先放大
     NON_STREAM_TIMEOUT_FACTOR = 2.0
     # 流式输出期间的心跳日志间隔(秒), 便于确认"在输出"而不是"卡死"
     PROGRESS_LOG_INTERVAL = 30.0
+    # 流式不可用后的降级冷却时间(秒); 过期后自动重新尝试流式, 避免一次异常永久关闭流式
+    STREAM_FALLBACK_COOLDOWN = 600.0
 
     def __init__(
         self,
@@ -174,8 +196,9 @@ class LLMClient:
         self._active_lock = asyncio.Lock()
         self._lease_lock = threading.Lock()
         self._leases = 0
-        # 服务端若不支持流式输出, 记录后后续请求直接用普通模式
-        self._stream_supported = True
+        # 服务端若不支持流式输出或流式响应不可用, 按模型记录降级截止时间, 到期后重新尝试流式
+        self._stream_lock = threading.Lock()
+        self._stream_disabled: dict[str, float] = {}
 
     def retain(self) -> None:
         with self._lease_lock:
@@ -190,10 +213,6 @@ class LLMClient:
         if self._close_requested:
             await self._close_if_idle()
 
-    def _lease_count(self) -> int:
-        with self._lease_lock:
-            return self._leases
-
     async def _begin_request(self) -> None:
         async with self._active_lock:
             if self._closed:
@@ -204,21 +223,33 @@ class LLMClient:
         async with self._active_lock:
             self._active_requests = max(self._active_requests - 1, 0)
 
-    async def _is_idle(self) -> bool:
-        async with self._active_lock:
-            return self._active_requests == 0 and self._lease_count() == 0
-
     async def _close_if_idle(self) -> bool:
-        if not await self._is_idle():
-            return False
-        await self.close()
+        """无活跃请求且无租约时关闭客户端.
+
+        与 retain() 共用 _lease_lock 做"判定空闲 + 标记关闭", 避免刚判定空闲就被新租约占用,
+        进而导致新请求在 _begin_request 处撞上"客户端已关闭"。
+        """
+        if self._closed:
+            return True
+        async with self._active_lock:
+            if self._active_requests > 0:
+                return False
+        with self._lease_lock:
+            if self._closed:
+                return True
+            if self._leases > 0:
+                return False
+            # 必须在锁内先标记关闭, 使并发的 retain() 立即失败而不是拿到一个即将关闭的客户端
+            self._closed = True
+        self._close_requested = True
+        with contextlib.suppress(Exception):
+            await self.client.close()
         return True
 
     async def close_when_idle(self, *, poll_interval: float = 0.2) -> None:
         self._close_requested = True
-        while not await self._is_idle():
+        while not await self._close_if_idle():
             await asyncio.sleep(poll_interval)
-        await self.close()
 
     async def close(self) -> None:
         if self._closed:
@@ -227,6 +258,23 @@ class LLMClient:
         self._closed = True
         with contextlib.suppress(Exception):
             await self.client.close()
+
+    def _stream_enabled(self, model: str) -> bool:
+        """该模型当前是否可以使用流式请求; 冷却期结束后自动恢复尝试."""
+        now = time.monotonic()
+        with self._stream_lock:
+            disabled_until = self._stream_disabled.get(model)
+            if disabled_until is None:
+                return True
+            if now < disabled_until:
+                return False
+            self._stream_disabled.pop(model, None)
+            return True
+
+    def _disable_stream(self, model: str) -> None:
+        """临时降级该模型的流式请求, 冷却期后自动恢复, 避免一次异常永久关闭流式."""
+        with self._stream_lock:
+            self._stream_disabled[model] = time.monotonic() + self.STREAM_FALLBACK_COOLDOWN
 
     def _scale_timeout(self, factor: float) -> Timeout:
         base = self._timeout
@@ -241,13 +289,13 @@ class LLMClient:
             pool=scale(base.pool),
         )
 
-    def _attempt_timeout(self, *, stream: bool, timeout_retries: int) -> Timeout | None:
-        """按请求模式与超时重试次数计算本次请求的超时; 返回 None 表示沿用客户端默认值."""
+    def _attempt_timeout(self, *, stream: bool, timeout_boost: int) -> Timeout | None:
+        """按请求模式与超时放大次数计算本次请求的超时; 返回 None 表示沿用客户端默认值."""
         factor = 1.0
         if not stream:
             factor *= self.NON_STREAM_TIMEOUT_FACTOR
-        if timeout_retries > 0:
-            factor *= 2.0**timeout_retries
+        if timeout_boost > 0:
+            factor *= 2.0**timeout_boost
         if factor == 1.0:
             return None
         return self._scale_timeout(factor)
@@ -333,42 +381,48 @@ class LLMClient:
         remaining = attempts
         attempt = 0
         wait = 1.0
-        timeout_retries = 0
-        stream = self._stream_supported
+        # 超时放大次数; 只影响本次请求使用的超时, 不占用 max_try 的尝试次数
+        timeout_boost = 0
+        stream = self._stream_enabled(model)
 
-        await self._begin_request()
         try:
-            async with self.limiter:
-                while True:
-                    attempt += 1
-                    try:
+            await self._begin_request()
+        except RuntimeError as err:
+            # 客户端恰好在租约切换时被关闭, 转成统一错误说明, 便于上层按普通失败记录
+            raise LLMError(LLMErrorKind.UNKNOWN, str(err)) from err
+        try:
+            while True:
+                attempt += 1
+                try:
+                    # 限流只覆盖单次请求; 重试等待不占用信号量, 避免并发任务互相排队放大耗时
+                    async with self.limiter:
                         return await self._request(
                             model=model,
                             messages=messages,
                             temperature=temperature,
                             extra_body=extra_body,
                             stream=stream,
-                            timeout=self._attempt_timeout(stream=stream, timeout_retries=timeout_retries),
+                            timeout=self._attempt_timeout(stream=stream, timeout_boost=timeout_boost),
                             log_fn=log_fn,
                         )
-                    except LLMError as err:
-                        # 流式不受支持时退回普通请求, 不消耗重试次数
-                        if stream and err.should_fallback_to_non_stream:
-                            stream = False
-                            self._stream_supported = False
-                            log_fn(f"🟡 LLM 流式请求不可用, 改用普通请求重试: {err.brief()}")
-                            continue
-                        remaining -= 1
-                        if not err.retryable or remaining <= 0:
-                            raise
-                        if err.kind is LLMErrorKind.TIMEOUT:
-                            if timeout_retries >= self.MAX_TIMEOUT_RETRY:
-                                raise
-                            timeout_retries += 1
-                            log_fn(f"⚠️ {err.brief()}, 加大超时后重试 ({attempt}/{attempts})")
-                            continue
-                        log_fn(f"⚠️ {err.brief()}, {wait:g}s 后重试 ({attempt}/{attempts})")
-                        await asyncio.sleep(wait)
-                        wait = min(wait * 2, 16)
+                except LLMError as err:
+                    # 流式不支持/流式响应为空或解析失败时, 退回普通请求再试, 不消耗重试次数
+                    if stream and err.should_fallback_to_non_stream:
+                        stream = False
+                        attempt -= 1
+                        self._disable_stream(model)
+                        log_fn(f"🟡 LLM 流式请求不可用, 改用普通请求重试: {err.brief()}")
+                        continue
+                    remaining -= 1
+                    if not err.retryable or remaining <= 0:
+                        raise
+                    if err.kind is LLMErrorKind.TIMEOUT and timeout_boost < self.MAX_TIMEOUT_BOOST:
+                        # 首次超时优先加大超时; 后续仍超时则按普通退避继续重试, 不再压缩尝试次数
+                        timeout_boost += 1
+                        log_fn(f"⚠️ {err.brief()}, 加大超时后重试 ({attempt}/{attempts})")
+                        continue
+                    log_fn(f"⚠️ {err.brief()}, {wait:g}s 后重试 ({attempt}/{attempts})")
+                    await asyncio.sleep(wait)
+                    wait = min(wait * 2, 16)
         finally:
             await self._end_request()

@@ -23,10 +23,14 @@ class TranslateResult:
     engine: Translator
     translated_title: bool = False
     translated_outline: bool = False
+    # 单个字段的失败原因; 用于"标题成功、简介失败"时仍保留已成功的翻译, 只把失败原因写进日志
+    title_error: str | None = None
+    outline_error: str | None = None
 
     @property
     def success(self) -> bool:
-        return self.error is None and (self.translated_title or self.translated_outline)
+        # 只要有任一字段拿到有效翻译就算成功, 避免一个字段失败连带丢弃另一个字段
+        return self.translated_title or self.translated_outline
 
 
 def _has_effective_translation(source: str, translated: str) -> bool:
@@ -40,10 +44,21 @@ def _build_translate_result(
     title: str,
     outline: str,
     error: str | None,
+    *,
+    title_error: str | None = None,
+    outline_error: str | None = None,
 ) -> TranslateResult:
     translated_title = _has_effective_translation(source_title, title)
     translated_outline = _has_effective_translation(source_outline, outline)
-    if error is None and not translated_title and not translated_outline:
+    # 源文本需要翻译但结果与原文一致(模型回显原文/返回空)时, 记录字段级原因便于日志排查
+    if error is None and source_title and not translated_title and title_error is None:
+        title_error = "未获得有效翻译结果"
+    if error is None and source_outline and not translated_outline and outline_error is None:
+        outline_error = "未获得有效翻译结果"
+    if translated_title or translated_outline:
+        # 只要有一个字段翻译成功, error 就不再表示整体失败; 单字段原因保留在 title_error/outline_error
+        error = None
+    elif error is None:
         error = "未获得有效翻译结果"
     return TranslateResult(
         title=title or source_title,
@@ -52,6 +67,8 @@ def _build_translate_result(
         engine=engine,
         translated_title=translated_title,
         translated_outline=translated_outline,
+        title_error=title_error,
+        outline_error=outline_error,
     )
 
 
@@ -192,6 +209,9 @@ async def llm_translate(title: str, outline: str, target_language: str = "简体
         _llm_translate_result(outline, translate_config.llm_prompt_outline, target_language),
     )
     if error := (e1 or e2):
+        # 部分成功时保留已翻译的字段, 并把整体错误降级为空, 避免一个字段失败连带丢弃另一个字段
+        if r1 or r2:
+            return r1 or title, r2 or outline, None
         return "", "", error
     return r1, r2, None
 
@@ -216,7 +236,14 @@ async def translate_with_engine(
             ),
         )
         return _build_translate_result(
-            engine, title, outline, title_result, outline_result, title_error or outline_error
+            engine,
+            title,
+            outline,
+            title_result,
+            outline_result,
+            title_error or outline_error,
+            title_error=title_error,
+            outline_error=outline_error,
         )
 
     if engine == Translator.BAIDU:

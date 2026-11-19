@@ -540,8 +540,9 @@ async def _translate_english_tag(tag_req: str, translate_by_list: list[Translato
             title_language=target_language,
             outline_language=target_language,
         )
-        if result.error:
-            signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {result.error}")
+        if not result.translated_title:
+            reason = result.title_error or result.error or "未获得有效翻译结果"
+            signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {reason}")
             continue
         actor_info.taglines = [result.title]
         return ""  # 清空tag_req表示已翻译
@@ -565,7 +566,7 @@ async def _translate_content(
             title_language=target_language,
             outline_language=target_language,
         )
-        if result.error:
+        if not (result.translated_title or result.translated_outline):
             signal.add_log(f"🔴 Translation failed!({each.capitalize()}) Error: {result.error}")
             continue
         translated = False
