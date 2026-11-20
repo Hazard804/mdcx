@@ -2274,7 +2274,7 @@ async def test_get_big_pic_by_amazon_barcode_fast_path_falls_back_to_title_searc
 async def test_get_big_pic_by_amazon_barcode_fast_path_tries_next_barcode_candidate(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    first_barcode = "1111111111111"
+    first_barcode = "4599999999999"
     second_barcode = "4550566395912"
     html_no_result = """
     <html>

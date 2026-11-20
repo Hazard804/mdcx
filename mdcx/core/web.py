@@ -408,6 +408,49 @@ def _cover_similarity(img_a: Image.Image, img_b: Image.Image) -> tuple[float, fl
         prepared_b.close()
 
 
+ORB_RESCUE_MIN_INLIERS = 25
+
+
+def _orb_inlier_count(img_a: Image.Image, img_b: Image.Image) -> int:
+    """用 ORB + RANSAC 统计可靠匹配点。
+
+    aHash 对整条腰带、换色版本过于敏感，实测会把同一封面的合法版本判成 0.77；
+    ORB 在这类样本上仍有 270+ 内点，而不同作品的内点为 0，适合作为兜底判据。
+    """
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        return 0
+
+    def to_gray(img: Image.Image):
+        copied = img.copy()
+        try:
+            copied.thumbnail((480, 720))
+            return np.asarray(copied.convert("L"))
+        finally:
+            copied.close()
+
+    try:
+        gray_a, gray_b = to_gray(img_a), to_gray(img_b)
+        orb = cv2.ORB_create(nfeatures=600, fastThreshold=12)
+        keypoints_a, descriptors_a = orb.detectAndCompute(gray_a, None)
+        keypoints_b, descriptors_b = orb.detectAndCompute(gray_b, None)
+        if descriptors_a is None or descriptors_b is None:
+            return 0
+        matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+        matches = matcher.knnMatch(descriptors_a, descriptors_b, k=2)
+        good = [match for match, sibling in matches if match.distance < 0.75 * sibling.distance]
+        if len(good) < 8:
+            return 0
+        src = np.float32([keypoints_a[match.queryIdx].pt for match in good]).reshape(-1, 1, 2)
+        dst = np.float32([keypoints_b[match.trainIdx].pt for match in good]).reshape(-1, 1, 2)
+        _, mask = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
+        return int(mask.sum()) if mask is not None else 0
+    except Exception:
+        return 0
+
+
 async def _download_image_to_memory(url: str, media_context: MediaResourceContext | None = None) -> Image.Image | None:
     if not url or not re.match(r"^https?://", url, flags=re.I):
         return None
@@ -423,6 +466,35 @@ async def _download_image_to_memory(url: str, media_context: MediaResourceContex
             LogBuffer.log().write(f"\n 🟡 Amazon图片校验：读取参考图失败 {error}")
         return None
     return await to_thread(_open_rgb_image_from_bytes, content)
+
+
+def _match_amazon_reference_images(
+    amazon_img: Image.Image,
+    reference_images: list[tuple[str, Image.Image]],
+) -> tuple[bool, str, float, float, float, int]:
+    """比对 Amazon 封面与所有参考图，返回 (是否通过, 参考来源, 分数, hash, hist, ORB内点)。
+
+    主判据沿用 0.82 / 0.86 / 0.70；主判据不通过、但结构高度一致时再用 ORB 兜底，
+    避免腰带、换色版本被 aHash 误杀。
+    """
+    best: tuple[float, str, float, float] = (0.0, "", 0.0, 0.0)
+    rescue: tuple[float, float, float, str, int] | None = None
+    for source, reference_img in reference_images:
+        score, hash_similarity, hist_similarity = _cover_similarity(amazon_img, reference_img)
+        if score > best[0]:
+            best = (score, source, hash_similarity, hist_similarity)
+        if score >= 0.82 and hash_similarity >= 0.86 and hist_similarity >= 0.70:
+            return True, source, score, hash_similarity, hist_similarity, 0
+        if rescue is None:
+            # aHash 对腰带、换色版本不敏感度不足，用 ORB 内点做结构兜底；
+            # 实测 56 个不同作品封面 ORB 内点为 0，同一封面加腰带仍有 270+。
+            inliers = _orb_inlier_count(amazon_img, reference_img)
+            if inliers >= ORB_RESCUE_MIN_INLIERS:
+                rescue = (score, hash_similarity, hist_similarity, source, inliers)
+    if rescue is not None:
+        score, hash_similarity, hist_similarity, source, inliers = rescue
+        return True, source, score, hash_similarity, hist_similarity, inliers
+    return False, best[1], best[0], best[2], best[3], 0
 
 
 async def _verify_soft_amazon_poster(
@@ -445,8 +517,9 @@ async def _verify_soft_amazon_poster(
     if thumb_path and await aiofiles.os.path.exists(thumb_path):
         thumb_img = await to_thread(_load_rgb_image_from_path, thumb_path)
         if thumb_img is not None:
+            # 原图与右裁都保留：竖版 thumb 右裁会切掉主体，横版拼图则相反，取两者较高分。
+            reference_images.append(("thumb", thumb_img))
             reference_images.append(("thumb right", await to_thread(_cut_thumb_right_image, thumb_img)))
-            thumb_img.close()
 
     if (
         original_poster_url
@@ -463,24 +536,28 @@ async def _verify_soft_amazon_poster(
         LogBuffer.log().write("\n 🟡 Amazon图片校验跳过：没有可用参考图，已放弃软匹配图片")
         return False
 
-    best: tuple[float, str, float, float] = (0.0, "", 0.0, 0.0)
     try:
-        for source, reference_img in reference_images:
-            score, hash_similarity, hist_similarity = await to_thread(_cover_similarity, amazon_img, reference_img)
-            if score > best[0]:
-                best = (score, source, hash_similarity, hist_similarity)
-            if score >= 0.82 and hash_similarity >= 0.86 and hist_similarity >= 0.70:
-                LogBuffer.log().write(
-                    f"\n 🟢 Amazon图片校验通过：参考({source}) "
-                    f"相似度({score:.2f}) hash({hash_similarity:.2f}) hist({hist_similarity:.2f})"
-                )
-                return True
+        passed, source, score, hash_similarity, hist_similarity, inliers = await to_thread(
+            _match_amazon_reference_images, amazon_img, reference_images
+        )
     finally:
         amazon_img.close()
         for _, reference_img in reference_images:
             reference_img.close()
 
-    score, source, hash_similarity, hist_similarity = best
+    if passed:
+        if inliers:
+            LogBuffer.log().write(
+                f"\n 🟢 Amazon图片校验通过：ORB救援(参考 {source}) 内点({inliers}) "
+                f"相似度({score:.2f}) hash({hash_similarity:.2f}) hist({hist_similarity:.2f})"
+            )
+        else:
+            LogBuffer.log().write(
+                f"\n 🟢 Amazon图片校验通过：参考({source}) "
+                f"相似度({score:.2f}) hash({hash_similarity:.2f}) hist({hist_similarity:.2f})"
+            )
+        return True
+
     LogBuffer.log().write(
         f"\n 🟡 Amazon图片校验未通过：最高参考({source or 'none'}) "
         f"相似度({score:.2f}) hash({hash_similarity:.2f}) hist({hist_similarity:.2f})，已放弃软匹配图片"
@@ -681,6 +758,19 @@ async def _get_big_poster(
         for key, value in ManualConfig.SPECIAL_WORD.items():
             originaltitle_amazon_replaced = originaltitle_amazon_replaced.replace(key, value)
             series_replaced = series_replaced.replace(key, value)
+
+        async def _verify_candidate(url: str, is_hard: bool) -> bool:
+            if is_hard and not manager.config.amazon_strict_pic_verify:
+                return True
+            return await _verify_soft_amazon_poster(
+                url,
+                thumb_path=other.thumb_path,
+                original_poster_url=poster_url,
+                original_poster_from=poster_from_before_amazon,
+                media_context=media_context,
+                strict=manager.config.amazon_strict_pic_verify,
+            )
+
         hd_pic_url = await get_big_pic_by_amazon(
             result,
             originaltitle_amazon_replaced,
@@ -689,12 +779,18 @@ async def _get_big_poster(
             originaltitle_amazon_raw,
             series_raw,
             media_context=media_context,
+            verify=_verify_candidate,
         )
         amazon_url = hd_pic_url or (result.poster if result.poster_from == "Amazon" else "")
         amazon_is_hd = bool(hd_pic_url)
         if amazon_url:
             amazon_match_is_hard = is_amazon_hard_match(result)
-            should_verify_amazon = manager.config.amazon_strict_pic_verify or not amazon_match_is_hard
+            # 高清候选在 get_big_pic_by_amazon 内部已经逐个校验过，这里只处理低清兜底图，
+            # 避免同一张图重复下载、重复比对。
+            already_verified = bool(getattr(result, "amazon_match_verified", False))
+            should_verify_amazon = not already_verified and (
+                manager.config.amazon_strict_pic_verify or not amazon_match_is_hard
+            )
             amazon_verify_passed = not should_verify_amazon or await _verify_soft_amazon_poster(
                 amazon_url,
                 thumb_path=other.thumb_path,

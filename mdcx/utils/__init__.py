@@ -488,3 +488,14 @@ def convert_half(string: str) -> str:
         string = string.replace(each[0], each[1])
     # 去除空格等符号
     return re.sub(r"[\W_]", "", string).upper()
+
+
+def convert_half_keep_separators(string: str) -> str:
+    """全角转半角并大写，但保留分隔符与空格。
+
+    convert_half 会把空格、括号等一并删掉，`【ABC-123】 [DVD]` 会被压成 `ABC123DVD`，
+    番号首尾的边界判定因此失效。需要按原始分隔符判断边界的场景改用本函数。
+    """
+    for each in ManualConfig.FULL_HALF_CHAR:
+        string = string.replace(each[0], each[1])
+    return string.upper()

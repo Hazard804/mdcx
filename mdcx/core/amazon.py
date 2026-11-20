@@ -5,6 +5,7 @@ Amazon 相关封面搜索与条码识别逻辑
 import re
 import urllib.parse
 from asyncio import to_thread
+from collections.abc import Awaitable, Callable
 from difflib import SequenceMatcher
 from functools import lru_cache
 from io import BytesIO
@@ -17,7 +18,7 @@ from ..base.web import get_amazon_data, get_imgsize
 from ..config.manager import manager
 from ..models.log_buffer import LogBuffer
 from ..models.types import CrawlersResult
-from ..utils import convert_half
+from ..utils import convert_half, convert_half_keep_separators
 from .media_resource import MediaResourceContext
 
 
@@ -31,9 +32,23 @@ def is_amazon_hard_match(result: CrawlersResult) -> bool:
     return bool(getattr(result, "amazon_match_is_hard", False))
 
 
+# 多演员作品在 Amazon 上普遍没有演员证据（标题只写作品名、详情页 byline 多为品牌/系列），
+# 这类候选只允许靠「标题几乎完全一致」放行，再由图片校验做最终确认。
+MULTI_ACTOR_ABSENCE_TITLE_CONFIDENCE = 0.95
+
+
 def _normalize_amazon_barcode(barcode: str) -> str:
     digits = re.sub(r"\D", "", str(barcode or ""))
     return digits if len(digits) == 13 else ""
+
+
+def _is_searchable_amazon_ean(barcode: str) -> bool:
+    """判断条码是否值得拿去 Amazon 搜索。
+
+    实测 1.5 万次条码搜索中，命中全部来自 45/49 开头的日本 EAN；非日本前缀
+    （多为 OCR 误读后碰巧通过校验位的数字）没有一次命中，只会白耗请求并加剧限流。
+    """
+    return str(barcode or "").startswith(("45", "49"))
 
 
 def _extract_labeled_amazon_barcodes(text: str) -> set[str]:
@@ -600,8 +615,11 @@ async def get_big_pic_by_amazon(
     originaltitle_amazon_raw: str = "",
     series_raw: str = "",
     media_context: MediaResourceContext | None = None,
+    *,
+    verify: Callable[[str, bool], Awaitable[bool]] | None = None,
 ) -> str:
     _set_amazon_match_state(result, is_hard=False, reason="", url="")
+    result.amazon_match_verified = False
     if not originaltitle_amazon and not originaltitle_amazon_raw:
         return ""
     hd_pic_url = ""
@@ -668,13 +686,19 @@ async def get_big_pic_by_amazon(
         LogBuffer.log().write("\n 🔎 Amazon搜索：未找到有效演员，切换为标题/番号模式")
 
     def build_number_regex(number_text: str) -> re.Pattern[str] | None:
-        normalized_number = convert_half(number_text or "").upper().strip()
+        normalized_number = convert_half_keep_separators(number_text or "").strip()
         if not normalized_number:
             return None
         token_list = re.findall(r"[A-Z0-9]+", normalized_number)
         if not token_list:
             return None
-        pattern = r"(?<![A-Z0-9])" + r"[^A-Z0-9]*".join(re.escape(token) for token in token_list) + r"(?![A-Z0-9])"
+        # 分隔符只允许标点/空格（不允许汉字、假名），避免把「ABC 作品 123」误判成 ABC-123；
+        # 上限 3 个字符，防止跨度过大。
+        pattern = (
+            r"(?<![A-Z0-9])"
+            + r"[\s\-_・･/／.,，、:：‐‑‒–—―ー]{0,3}".join(re.escape(token) for token in token_list)
+            + r"(?![A-Z0-9])"
+        )
         return re.compile(pattern, flags=re.IGNORECASE)
 
     number_regex = build_number_regex(result.number)
@@ -682,7 +706,9 @@ async def get_big_pic_by_amazon(
     def text_has_target_number(text: str) -> bool:
         if not number_regex or not text:
             return False
-        return bool(number_regex.search(convert_half(text).upper()))
+        # 用保留分隔符的归一化做边界判定：`【ABC-123】 [DVD]` 里 `】` 是合法右边界，
+        # 若先经 convert_half 压成 `ABC123DVD`，则会被 `(?![A-Z0-9])` 误判为不命中。
+        return bool(number_regex.search(convert_half_keep_separators(text)))
 
     def count_actor_group_matches(text: str) -> int:
         if not actor_groups_normalized or not text:
@@ -1348,9 +1374,27 @@ async def get_big_pic_by_amazon(
             if expected_actor_count == 1:
                 if detail_actor_count > 1:
                     return title_confidence >= 0.92 and actor_match_count >= 1
-                return (actor_match_count >= 1 and title_confidence >= 0.78) or title_confidence >= 0.93
-            return title_confidence >= 0.76 and actor_match_count >= required_actor_match_count
+                # 实测日志中有 348 条单演员候选卡在 0.90~0.93、演员命中为 0；
+                # 这类标题差异通常只是「Amazon.co.jp 限定」等前后缀，交由图片校验兜底。
+                return (actor_match_count >= 1 and title_confidence >= 0.78) or title_confidence >= 0.90
+            if actor_match_count >= required_actor_match_count:
+                return title_confidence >= 0.76
+            # 多演员作品在 Amazon 上普遍拿不到演员证据：标题只写作品名，详情页 byline 多为
+            # 品牌/系列（实测 4 份日志 168 条「演员命中 0」候选中有 80 条标题置信度 >= 0.95）。
+            # 演员缺位不等于「作品不对」，按标题一致性放行，由图片校验做最终裁决。
+            if actor_match_count >= 1:
+                return title_confidence >= 0.90
+            return title_confidence >= MULTI_ACTOR_ABSENCE_TITLE_CONFIDENCE
         return title_confidence >= 0.88
+
+    def is_multi_actor_absence_match(candidate: dict[str, object]) -> bool:
+        """多演员作品但 Amazon 完全没有演员证据：演员命中 0，仅靠标题高度一致放行。"""
+        return (
+            has_valid_actor
+            and expected_actor_count > 1
+            and candidate_actor_match_count(candidate) == 0
+            and float(candidate["title_confidence"]) >= MULTI_ACTOR_ABSENCE_TITLE_CONFIDENCE
+        )
 
     def candidate_sort_key(
         candidate: dict[str, object],
@@ -1414,9 +1458,18 @@ async def get_big_pic_by_amazon(
         )
 
     async def try_get_big_pic_by_amazon_via_barcode() -> str:
-        barcodes = (await try_get_amazon_barcodes_from_covers(result, media_context))[:3]
+        raw_barcodes = await try_get_amazon_barcodes_from_covers(result, media_context)
+        barcodes = [barcode for barcode in raw_barcodes if _is_searchable_amazon_ean(barcode)]
+        if dropped_count := len(raw_barcodes) - len(barcodes):
+            LogBuffer.log().write(
+                f"\n 🔎 Amazon条码快路径：已跳过 {dropped_count} 个非日本前缀条码（45/49 之外的条码实测从未命中）"
+            )
+        barcodes = barcodes[:3]
         if not barcodes:
-            LogBuffer.log().write("\n 🟡 Amazon条码快路径跳过：未获取到条码，回退标题搜索")
+            if raw_barcodes:
+                LogBuffer.log().write("\n 🟡 Amazon条码快路径跳过：无可用日本条码，回退标题搜索")
+            else:
+                LogBuffer.log().write("\n 🟡 Amazon条码快路径跳过：未获取到条码，回退标题搜索")
             return ""
 
         async def try_get_big_pic_by_amazon_via_single_barcode(
@@ -1692,6 +1745,15 @@ async def get_big_pic_by_amazon(
                 if best_fallback_candidate is None:
                     best_fallback_candidate = each_candidate
                 if is_hd_candidate_width(int(each_candidate["width"])):
+                    candidate_is_hard = candidate_is_hard_match(each_candidate)
+                    if verify is not None and not await verify(str(each_candidate["url"]), candidate_is_hard):
+                        LogBuffer.log().write("\n 🟡 Amazon图片校验未通过：继续尝试下一个候选")
+                        continue
+                    if is_multi_actor_absence_match(each_candidate):
+                        verify_note = "已通过图片校验" if verify is not None else "未启用图片校验"
+                        LogBuffer.log().write(
+                            f"\n 🔎 Amazon候选：多演员作品无演员证据，按标题一致性放行（{verify_note}）"
+                        )
                     LogBuffer.log().write(
                         f"\n 🟢 Amazon命中：标题置信度({float(each_candidate['title_confidence']):.2f}) "
                         f"番号命中({candidate_number_match(each_candidate)}) "
@@ -1700,10 +1762,11 @@ async def get_big_pic_by_amazon(
                     )
                     _set_amazon_match_state(
                         result,
-                        is_hard=candidate_is_hard_match(each_candidate),
+                        is_hard=candidate_is_hard,
                         reason=candidate_match_reason(each_candidate),
                         url=str(each_candidate["url"]),
                     )
+                    result.amazon_match_verified = verify is not None
                     return str(each_candidate["url"])
             if best_fallback_candidate:
                 result.poster = str(best_fallback_candidate["url"])
