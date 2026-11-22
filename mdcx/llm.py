@@ -22,11 +22,21 @@ class LLMErrorKind(StrEnum):
     SERVER = "server"  # 服务端异常
     NETWORK = "network"  # 网络连接失败
     EMPTY = "empty"  # 请求成功但未返回有效内容
+    CONTENT_FILTER = "content_filter"  # 内容审核拦截: 重试无意义
     UNKNOWN = "unknown"
 
 
 # 这些分类属于"可能是瞬时问题", 值得重试
-_RETRYABLE_KINDS = frozenset({LLMErrorKind.TIMEOUT, LLMErrorKind.RATE_LIMIT, LLMErrorKind.SERVER, LLMErrorKind.NETWORK})
+# EMPTY 也属于瞬时问题: 兼容接口会偶发返回空响应, 立刻重试通常就能拿到正文
+_RETRYABLE_KINDS = frozenset(
+    {
+        LLMErrorKind.TIMEOUT,
+        LLMErrorKind.RATE_LIMIT,
+        LLMErrorKind.SERVER,
+        LLMErrorKind.NETWORK,
+        LLMErrorKind.EMPTY,
+    }
+)
 # 流式请求命中这些分类时, 通常只是服务端不支持流式或流式响应不完整, 值得退回普通请求再试一次
 # EMPTY 必须包含在内: 部分兼容接口在流式下只回 reason/usage 帧, 或丢弃 delta, 退回普通请求即可正常拿到正文
 _STREAM_FALLBACK_KINDS = frozenset({LLMErrorKind.BAD_REQUEST, LLMErrorKind.UNKNOWN, LLMErrorKind.EMPTY})
@@ -44,6 +54,11 @@ _STREAM_UNSUPPORTED_HINTS = (
     "流式输出不支持",
     "流式不支持",
 )
+
+# 关闭模型思考的请求参数: 推理模型(如 DeepSeek-V3.x)默认先输出大段 reasoning,
+# 首 token 往往要等 30~80s, 很容易撞上 LLM 读取超时; 翻译不需要推理过程, 统一关闭.
+# 若服务端不认识该参数而返回请求被拒绝, ask() 会自动去掉该参数重试.
+_DISABLE_THINKING_BODY = {"enable_thinking": False}
 
 
 class LLMError(Exception):
@@ -80,6 +95,9 @@ class LLMError(Exception):
         """
         if self.kind in _STREAM_FALLBACK_KINDS:
             return True
+        if self.kind in (LLMErrorKind.AUTH, LLMErrorKind.CONTENT_FILTER, LLMErrorKind.RATE_LIMIT):
+            # 鉴权/内容审核/限流与流式本身无关, 换普通请求不会得到不同结果
+            return False
         detail = self.detail.lower()
         return any(hint in detail for hint in _STREAM_UNSUPPORTED_HINTS)
 
@@ -102,6 +120,11 @@ class LLMError(Exception):
             return f"LLM 请求被拒绝({self.status}): {self.detail}" if self.detail else "LLM 请求被拒绝"
         if self.kind is LLMErrorKind.EMPTY:
             return f"LLM 未返回有效内容: {self.detail}" if self.detail else "LLM 未返回有效内容"
+        if self.kind is LLMErrorKind.CONTENT_FILTER:
+            # 内容审核拦截重试无效, 需要直接告知用户换模型/服务商或调整提示词
+            status = f"({self.status})" if self.status else ""
+            detail = f": {self.detail}" if self.detail else ""
+            return f"LLM 内容审核拦截{status}{detail} 建议更换模型/服务商或调整提示词"
         return f"LLM 请求异常: {self.detail}" if self.detail else "LLM 请求异常"
 
     def brief(self) -> str:
@@ -138,6 +161,9 @@ def classify_llm_exception(exc: Exception, *, elapsed: float = 0.0, partial_char
             return LLMError(LLMErrorKind.TIMEOUT, detail, status=status, elapsed=elapsed, partial_chars=partial_chars)
         elif status == 429:
             kind = LLMErrorKind.RATE_LIMIT
+        elif status == 451:
+            # 服务商内容审核的常见状态码(如 SiliconFlow 的 code 20021), 换请求也不会通过
+            kind = LLMErrorKind.CONTENT_FILTER
         elif status is not None and status >= 500:
             kind = LLMErrorKind.SERVER
         else:
@@ -146,14 +172,18 @@ def classify_llm_exception(exc: Exception, *, elapsed: float = 0.0, partial_char
     return LLMError(LLMErrorKind.UNKNOWN, detail, elapsed=elapsed, partial_chars=partial_chars)
 
 
-def _clean_and_validate_text(text: str | None, *, elapsed: float, partial_chars: int) -> str:
+def _clean_and_validate_text(text: str | None, *, elapsed: float, partial_chars: int, reasoning_chars: int = 0) -> str:
     cleaned = text or ""
     # 移除 cot
     cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
     if not cleaned.strip():
+        # 区分"真的空响应"和"只输出了思考内容"; 后者通常是服务端忽略了关闭思考参数
+        detail = "模型返回内容为空"
+        if reasoning_chars:
+            detail = f"模型只输出了 {reasoning_chars} 字思考内容, 未返回正文"
         raise LLMError(
             LLMErrorKind.EMPTY,
-            "模型返回内容为空",
+            detail,
             elapsed=elapsed,
             partial_chars=partial_chars,
         )
@@ -199,6 +229,9 @@ class LLMClient:
         # 服务端若不支持流式输出或流式响应不可用, 按模型记录降级截止时间, 到期后重新尝试流式
         self._stream_lock = threading.Lock()
         self._stream_disabled: dict[str, float] = {}
+        # 按模型记录"服务端是否支持关闭思考参数"; 命中不支持后不再携带, 避免每次请求都先失败一次
+        self._thinking_lock = threading.Lock()
+        self._thinking_unsupported: set[str] = set()
 
     def retain(self) -> None:
         with self._lease_lock:
@@ -276,6 +309,27 @@ class LLMClient:
         with self._stream_lock:
             self._stream_disabled[model] = time.monotonic() + self.STREAM_FALLBACK_COOLDOWN
 
+    def _thinking_param_enabled(self, model: str) -> bool:
+        """该模型是否还需要携带关闭思考参数; 已确认不支持的服务端不再重复尝试."""
+        with self._thinking_lock:
+            return model not in self._thinking_unsupported
+
+    def _mark_thinking_unsupported(self, model: str) -> None:
+        """记录该模型不支持关闭思考参数, 后续请求不再携带, 避免每次都先失败一次."""
+        with self._thinking_lock:
+            self._thinking_unsupported.add(model)
+
+    def _apply_thinking_body(self, extra_body: object | None) -> object | None:
+        """合并关闭思考参数; 调用方显式指定 enable_thinking 时以其为准."""
+        if extra_body is None:
+            return dict(_DISABLE_THINKING_BODY)
+        if isinstance(extra_body, dict):
+            merged = dict(extra_body)
+            merged.setdefault("enable_thinking", False)
+            return merged
+        # 非 dict 的 extra_body 由调用方自行负责, 不强行合并
+        return extra_body
+
     def _scale_timeout(self, factor: float) -> Timeout:
         base = self._timeout
 
@@ -311,23 +365,36 @@ class LLMClient:
         """流式请求: 超时判定变为"两个 chunk 之间的空闲时间", 因此慢但在输出的响应不会被判失败."""
         stream = await self.client.chat.completions.create(**kwargs, stream=True)
         next_progress_log = self.PROGRESS_LOG_INTERVAL
+        reasoning_chars = 0
         try:
             async for chunk in stream:
                 if not chunk.choices:
                     continue
-                content = getattr(chunk.choices[0].delta, "content", None)
-                if not content:
-                    continue
-                partial.append(content)
+                delta = chunk.choices[0].delta
+                # 部分服务端忽略关闭思考参数时仍会输出 reasoning; 统计长度便于区分"在思考"与"卡死"
+                reasoning = getattr(delta, "reasoning_content", None) or getattr(delta, "reasoning", None)
+                if reasoning:
+                    reasoning_chars += len(reasoning)
+                content = getattr(delta, "content", None)
+                if content:
+                    partial.append(content)
                 elapsed = time.monotonic() - started
                 if elapsed >= next_progress_log:
-                    log_fn(f"🟡 LLM 仍在输出 (已等待 {elapsed:.0f}s, 已接收 {len(''.join(partial))} 字)")
+                    detail = f"已接收 {len(''.join(partial))} 字"
+                    if reasoning_chars:
+                        detail += f", 已思考 {reasoning_chars} 字"
+                    log_fn(f"🟡 LLM 仍在输出 (已等待 {elapsed:.0f}s, {detail})")
                     next_progress_log = elapsed + self.PROGRESS_LOG_INTERVAL
         finally:
             with contextlib.suppress(Exception):
                 await stream.close()
         text = "".join(partial)
-        return _clean_and_validate_text(text, elapsed=time.monotonic() - started, partial_chars=len(text))
+        return _clean_and_validate_text(
+            text,
+            elapsed=time.monotonic() - started,
+            partial_chars=len(text),
+            reasoning_chars=reasoning_chars,
+        )
 
     async def _request(
         self,
@@ -348,18 +415,28 @@ class LLMClient:
 
         started = time.monotonic()
         partial: list[str] = []
+        reasoning_chars = 0
         try:
             if stream:
                 return await self._request_stream(kwargs, started=started, partial=partial, log_fn=log_fn)
             chat = await self.client.chat.completions.create(**kwargs)
             text = chat.choices[0].message.content if chat.choices else None
+            if chat.choices:
+                message = chat.choices[0].message
+                reasoning = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None)
+                reasoning_chars = len(reasoning) if reasoning else 0
         except Exception as e:
             raise classify_llm_exception(
                 e,
                 elapsed=time.monotonic() - started,
                 partial_chars=len("".join(partial)),
             ) from e
-        return _clean_and_validate_text(text, elapsed=time.monotonic() - started, partial_chars=0)
+        return _clean_and_validate_text(
+            text,
+            elapsed=time.monotonic() - started,
+            partial_chars=0,
+            reasoning_chars=reasoning_chars,
+        )
 
     async def ask(
         self,
@@ -384,6 +461,9 @@ class LLMClient:
         # 超时放大次数; 只影响本次请求使用的超时, 不占用 max_try 的尝试次数
         timeout_boost = 0
         stream = self._stream_enabled(model)
+        # 默认关闭模型思考; 推理模型会先输出大段 reasoning, 首 token 常超过读取超时
+        thinking_active = self._thinking_param_enabled(model)
+        request_extra_body = self._apply_thinking_body(extra_body) if thinking_active else extra_body
 
         try:
             await self._begin_request()
@@ -400,12 +480,20 @@ class LLMClient:
                             model=model,
                             messages=messages,
                             temperature=temperature,
-                            extra_body=extra_body,
+                            extra_body=request_extra_body,
                             stream=stream,
                             timeout=self._attempt_timeout(stream=stream, timeout_boost=timeout_boost),
                             log_fn=log_fn,
                         )
                 except LLMError as err:
+                    # 服务端不认识关闭思考参数时去掉该参数重试, 不消耗重试次数
+                    if thinking_active and err.kind is LLMErrorKind.BAD_REQUEST:
+                        thinking_active = False
+                        request_extra_body = extra_body
+                        attempt -= 1
+                        self._mark_thinking_unsupported(model)
+                        log_fn(f"🟡 服务端不支持关闭思考参数, 去掉后重试: {err.brief()}")
+                        continue
                     # 流式不支持/流式响应为空或解析失败时, 退回普通请求再试, 不消耗重试次数
                     if stream and err.should_fallback_to_non_stream:
                         stream = False

@@ -2,7 +2,7 @@ import time
 
 import httpx
 import pytest
-from openai import APITimeoutError, AuthenticationError
+from openai import APIStatusError, APITimeoutError, AuthenticationError
 
 from mdcx.base.translate import TranslateResult
 from mdcx.config.enums import Language, Translator
@@ -472,6 +472,38 @@ def test_should_fallback_to_non_stream_only_for_stream_specific_errors():
     assert LLMError(LLMErrorKind.SERVER, "This model does not support stream").should_fallback_to_non_stream is True
 
 
+def test_classify_451_as_content_filter():
+    err = classify_llm_exception(
+        APIStatusError(
+            "It appears to contain prohibited or sensitive content",
+            response=httpx.Response(451, request=_FAKE_REQUEST),
+            body=None,
+        )
+    )
+
+    # 内容审核拦截重试无效, 也不应退化成普通请求
+    assert err.kind is LLMErrorKind.CONTENT_FILTER
+    assert err.retryable is False
+    assert err.should_fallback_to_non_stream is False
+    assert "审核" in err.message()
+    assert "451" in err.message()
+
+
+def test_empty_result_is_retryable():
+    # 兼容接口偶发返回空响应, 属于可重试的瞬时问题
+    assert LLMError(LLMErrorKind.EMPTY, "模型返回内容为空").retryable is True
+
+
+def test_empty_error_distinguishes_reasoning_only():
+    from mdcx.llm import _clean_and_validate_text
+
+    with pytest.raises(LLMError) as exc_info:
+        _clean_and_validate_text("", elapsed=70.0, partial_chars=0, reasoning_chars=3200)
+
+    assert exc_info.value.kind is LLMErrorKind.EMPTY
+    assert "思考内容" in exc_info.value.detail
+
+
 def _make_llm_client() -> LLMClient:
     return LLMClient(
         api_key="test-key",
@@ -536,4 +568,95 @@ async def test_stream_fallback_cooldown_recovers():
         client._stream_disabled["test-model"] = time.monotonic() - 1
 
     assert client._stream_enabled("test-model") is True
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_llm_ask_disables_thinking_by_default(monkeypatch: pytest.MonkeyPatch):
+    client = _make_llm_client()
+    calls: list[dict] = []
+
+    async def fake_request(**kwargs):
+        calls.append(kwargs)
+        return "正文"
+
+    monkeypatch.setattr(client, "_request", fake_request)
+
+    text = await client.ask(model="test-model", system_prompt="s", user_prompt="u", max_try=1)
+
+    assert text == "正文"
+    # 默认就应关闭模型思考, 避免推理模型先用几十秒输出 reasoning
+    assert calls[0]["extra_body"] == {"enable_thinking": False}
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_llm_ask_keeps_caller_thinking_switch(monkeypatch: pytest.MonkeyPatch):
+    client = _make_llm_client()
+    calls: list[dict] = []
+
+    async def fake_request(**kwargs):
+        calls.append(kwargs)
+        return "正文"
+
+    monkeypatch.setattr(client, "_request", fake_request)
+
+    await client.ask(
+        model="test-model",
+        system_prompt="s",
+        user_prompt="u",
+        max_try=1,
+        extra_body={"enable_thinking": True, "top_p": 0.9},
+    )
+
+    # 调用方显式指定时应以其为准
+    assert calls[0]["extra_body"] == {"enable_thinking": True, "top_p": 0.9}
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_llm_ask_drops_thinking_param_when_server_rejects(monkeypatch: pytest.MonkeyPatch):
+    client = _make_llm_client()
+    calls: list[dict] = []
+
+    async def fake_request(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            raise LLMError(LLMErrorKind.BAD_REQUEST, "unknown field enable_thinking", status=400)
+        return "正文"
+
+    monkeypatch.setattr(client, "_request", fake_request)
+
+    text = await client.ask(model="test-model", system_prompt="s", user_prompt="u", max_try=1)
+
+    # 去掉参数重试不应消耗尝试次数, 且该模型后续不再携带
+    assert text == "正文"
+    assert calls[0]["extra_body"] == {"enable_thinking": False}
+    assert calls[1]["extra_body"] is None
+    assert client._thinking_param_enabled("test-model") is False
+
+    await client.ask(model="test-model", system_prompt="s", user_prompt="u", max_try=1)
+    assert calls[2]["extra_body"] is None
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_llm_ask_retries_empty_result(monkeypatch: pytest.MonkeyPatch):
+    client = _make_llm_client()
+    # 关掉流式, 直接在非流式路径上验证空结果可重试
+    client._disable_stream("test-model")
+    calls: list[dict] = []
+
+    async def fake_request(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            raise LLMError(LLMErrorKind.EMPTY, "模型返回内容为空")
+        return "正文"
+
+    monkeypatch.setattr(client, "_request", fake_request)
+
+    text = await client.ask(model="test-model", system_prompt="s", user_prompt="u", max_try=2)
+
+    assert text == "正文"
+    assert len(calls) == 2
     await client.close()
