@@ -296,3 +296,148 @@ async def test_extrafanart_download_does_not_gate_batch_on_first_image_failure(
 
     assert result is False
     assert calls == ["https://example.test/fanart1.jpg", "https://example.test/fanart2.jpg"]
+
+
+@pytest.mark.asyncio
+async def test_extrafanart_download_falls_back_to_candidate_group(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    calls: list[str] = []
+
+    async def fake_download_extrafanart_task(task):
+        calls.append(task[0])
+        return "second.test" in task[0]
+
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.EXTRAFANART])
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr(core_web, "download_extrafanart_task", fake_download_extrafanart_task)
+
+    result = await core_web.extrafanart_download(
+        ["https://first.test/fanart1.jpg", "https://first.test/fanart2.jpg"],
+        "javbus",
+        tmp_path,
+        candidate_groups=[
+            ("javbus", ["https://first.test/fanart1.jpg", "https://first.test/fanart2.jpg"]),
+            ("javdb", ["https://second.test/fanart1.jpg"]),
+        ],
+    )
+
+    assert result is True
+    assert calls == [
+        "https://first.test/fanart1.jpg",
+        "https://first.test/fanart2.jpg",
+        "https://second.test/fanart1.jpg",
+    ]
+    assert (tmp_path / "extrafanart").is_dir()
+
+
+@pytest.mark.asyncio
+async def test_extrafanart_download_skips_group_with_same_urls(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    calls: list[str] = []
+
+    async def fake_download_extrafanart_task(task):
+        calls.append(task[0])
+        return False
+
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.EXTRAFANART])
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr(core_web, "download_extrafanart_task", fake_download_extrafanart_task)
+
+    urls = [
+        "https://pics.dmm.co.jp/digital/video/abc001/abc001jp-1.jpg",
+        "https://pics.dmm.co.jp/digital/video/abc001/abc001jp-2.jpg",
+    ]
+    result = await core_web.extrafanart_download(
+        urls,
+        "javbus",
+        tmp_path,
+        # 协议不同、顺序颠倒，但指向同一组图片，应判定为相同链接
+        candidate_groups=[("jav321", [url.replace("https://", "http://") for url in reversed(urls)])],
+    )
+
+    assert result is False
+    assert calls == urls
+
+
+@pytest.mark.asyncio
+async def test_extrafanart_download_does_not_fall_back_after_partial_success(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    calls: list[str] = []
+
+    async def fake_download_extrafanart_task(task):
+        calls.append(task[0])
+        return task[0].endswith("fanart1.jpg")
+
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.EXTRAFANART])
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr(core_web, "download_extrafanart_task", fake_download_extrafanart_task)
+
+    result = await core_web.extrafanart_download(
+        ["https://first.test/fanart1.jpg", "https://first.test/fanart2.jpg"],
+        "javbus",
+        tmp_path,
+        candidate_groups=[("javdb", ["https://second.test/fanart1.jpg"])],
+    )
+
+    assert result is False
+    assert calls == ["https://first.test/fanart1.jpg", "https://first.test/fanart2.jpg"]
+
+
+@pytest.mark.asyncio
+async def test_extrafanart_download_replaces_old_folder_after_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    async def fake_download_extrafanart_task(task):
+        url, file_path, folder_path, name = task
+        if "second.test" in url:
+            file_path.write_bytes(b"new")
+            return True
+        return False
+
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.EXTRAFANART])
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr(core_web, "download_extrafanart_task", fake_download_extrafanart_task)
+
+    old_folder = tmp_path / "extrafanart"
+    old_folder.mkdir()
+    (old_folder / "fanart1.jpg").write_bytes(b"old")
+
+    result = await core_web.extrafanart_download(
+        ["https://first.test/fanart1.jpg"],
+        "javbus",
+        tmp_path,
+        candidate_groups=[("javdb", ["https://second.test/fanart1.jpg"])],
+    )
+
+    assert result is True
+    assert sorted(path.name for path in old_folder.iterdir()) == ["fanart1.jpg"]
+    assert (old_folder / "fanart1.jpg").read_bytes() == b"new"
+    assert not (tmp_path / "extrafanart[DOWNLOAD]").exists()
+
+
+@pytest.mark.asyncio
+async def test_extrafanart_download_pulls_lazy_fallback_groups(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    calls: list[str] = []
+    pulled: list[str] = []
+
+    async def fake_download_extrafanart_task(task):
+        calls.append(task[0])
+        return "second.test" in task[0]
+
+    async def fake_fallback_groups():
+        pulled.append("javdb")
+        yield "javdb", ["https://second.test/fanart1.jpg"]
+        pulled.append("jav321")
+        yield "jav321", ["https://third.test/fanart1.jpg"]
+
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.EXTRAFANART])
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr(core_web, "download_extrafanart_task", fake_download_extrafanart_task)
+
+    result = await core_web.extrafanart_download(
+        ["https://first.test/fanart1.jpg"],
+        "javbus",
+        tmp_path,
+        fallback_groups=fake_fallback_groups(),
+    )
+
+    assert result is True
+    assert pulled == ["javdb"]
+    assert calls == ["https://first.test/fanart1.jpg", "https://second.test/fanart1.jpg"]

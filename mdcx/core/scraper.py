@@ -1,6 +1,7 @@
 import asyncio
 import time
 import traceback
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -38,7 +39,7 @@ from ..utils.dataclass import update
 from ..utils.file import copy_file_async, move_file_async
 from ..utils.path import is_any_descendant
 from .file import creat_folder, deal_old_files, get_file_info_v2, get_output_name, move_movie
-from .file_crawler import FileScraper, classify_existing_scrape_result, classify_scrape_task
+from .file_crawler import FileScraper, ScrapeClassification, classify_existing_scrape_result, classify_scrape_task
 from .image import add_mark
 from .media_resource import MediaResourceContext
 from .nfo import get_nfo_data, write_nfo
@@ -565,6 +566,8 @@ class Scraper:
         is_nfo_existed = False
         res = CrawlersResult.empty()  # todo 保证所有路径上均有 res 值
         file_classification = None
+        # 标记本次是否真的发起了刮削，用于判断剧照是否可以跨来源回退
+        crawled_now = False
         # 读取模式
         file_can_download = True
         if manager.config.main_mode == 4:
@@ -683,6 +686,7 @@ class Scraper:
             res = await scraper.run(crawl_task, file_mode)
             if res is None:
                 return None, None
+            crawled_now = True
             # 处理 FileInfo 和 CrawlersResult 的共同字段, 即 number/mosaic/letters
             # todo 理想情况, crawl 后应该以 res 为准, 后续不应再访问 file_info 的相关字段
             # todo 注意, 实际上目前各 crawler 返回的 mosaic 和 number 字段并未被使用
@@ -841,7 +845,17 @@ class Scraper:
 
             # 下载剧照和剧照副本
             if single_folder_catched:
-                await extrafanart_download(res.extrafanart, res.extrafanart_from, folder_new_path)
+                fallback_groups = None
+                # 只有本次确实按字段优先刮削时才允许跨来源回退，避免速度优先/指定网站模式跨站取图
+                if crawled_now and manager.config.scrape_like == "info":
+                    fallback_groups = self._extrafanart_fallback_groups(file_info, file_classification, res)
+                await extrafanart_download(
+                    res.extrafanart,
+                    res.extrafanart_from,
+                    folder_new_path,
+                    candidate_groups=res.extrafanart_list,
+                    fallback_groups=fallback_groups,
+                )
                 await extrafanart_copy2(folder_new_path)
                 await extrafanart_extras_copy(folder_new_path)
 
@@ -888,6 +902,25 @@ class Scraper:
             other.thumb_path = fanart_final_path
 
         return res, other
+
+    def _extrafanart_fallback_groups(
+        self,
+        file_info: FileInfo,
+        classification: ScrapeClassification | None,
+        res: CrawlersResult,
+    ) -> AsyncIterator[tuple[str, list[str]]] | None:
+        """
+        构造剧照回退来源生成器：只补爬已设置但本次尚未请求过的站点。
+
+        生成器在被迭代时才发起请求，因此剧照下载成功时不会产生任何额外请求。
+        """
+        if classification is None:
+            return None
+        consulted_sources = {source for source, _ in res.extrafanart_list}
+        if res.extrafanart_from:
+            consulted_sources.add(res.extrafanart_from)
+        scraper = FileScraper(manager.config, self.crawler_provider)
+        return scraper.iter_extra_fanart_candidates(file_info.crawl_task(), classification, consulted_sources)
 
     def _check_stop(self, show_name: str) -> None:
         if signal.stop or Flags.stop_requested:

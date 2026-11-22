@@ -2,10 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from mdcx.config.enums import FixedScrapingType, Language, Website
+import mdcx.core.web as core_web
+from mdcx.config.enums import DownloadableFile, FixedScrapingType, Language, Website
+from mdcx.config.manager import manager
 from mdcx.config.models import Config, FieldConfig, FieldPriorityConfig
 from mdcx.core.file_crawler import (
     FileScraper,
+    ScrapeClassification,
     _deal_res,
     _is_suren_number,
     classify_existing_scrape_result,
@@ -531,6 +534,186 @@ async def test_call_crawlers_collects_poster_candidates_only_from_type_poster_pr
     assert result.poster_list == [
         (Website.FC2HUB.value, "https://example.test/fc2hub-poster.jpg", True),
     ]
+
+
+@pytest.mark.asyncio
+async def test_call_crawlers_collects_extrafanart_candidates_from_requested_sites(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(ManualConfig, "REDUCED_FIELDS", (CrawlerResultFields.TITLE, CrawlerResultFields.EXTRAFANART))
+
+    class _ExtrafanartPriorityConfig(_FakeConfig):
+        def get_field_config(self, field: CrawlerResultFields) -> FieldConfig:
+            if field == CrawlerResultFields.EXTRAFANART:
+                return FieldConfig(site_prority=[Website.AVBASE, Website.JAVDB, Website.FC2HUB])
+            return FieldConfig(site_prority=[Website.AVBASE])
+
+    avbase = _build_result(Website.AVBASE)
+    javdb = _build_result(Website.JAVDB)
+    javdb.extrafanart = ["https://example.test/javdb-1.jpg", "https://example.test/javdb-2.jpg"]
+
+    provider = _FakeCrawlerProvider({Website.AVBASE: avbase, Website.JAVDB: javdb})
+    scraper = FileScraper(_ExtrafanartPriorityConfig(), provider)
+    task_input = CrawlerInput.empty()
+    task_input.number = "ABF-131"
+
+    result = await scraper._call_crawlers(
+        task_input,
+        classification=ScrapeClassification(
+            FixedScrapingType.YOUMA,
+            "auto",
+            sites=[Website.AVBASE, Website.JAVDB, Website.FC2HUB],
+        ),
+    )
+
+    assert result is not None
+    assert result.extrafanart_from == Website.JAVDB.value
+    # avbase 已请求但无剧照，javdb 为当前来源；fc2hub 从未请求过，不进入候选
+    assert result.extrafanart_list == [
+        (Website.AVBASE.value, []),
+        (Website.JAVDB.value, ["https://example.test/javdb-1.jpg", "https://example.test/javdb-2.jpg"]),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_iter_extra_fanart_candidates_skips_consulted_sites_and_clears_appoint_url():
+    class _Config:
+        def get_field_config(self, field: CrawlerResultFields) -> FieldConfig:
+            return FieldConfig(site_prority=[Website.AVBASE, Website.JAVDB, Website.JAV321])
+
+    class _Provider:
+        def __init__(self, crawlers):
+            self._crawlers = crawlers
+
+        async def get(self, site: Website):
+            return self._crawlers[site]
+
+    class _Crawler:
+        def __init__(self, site: Website, extrafanart: list[str], records: list[str]):
+            self._site = site
+            self._extrafanart = extrafanart
+            self._records = records
+
+        async def run(self, task_input: CrawlerInput) -> CrawlerResponse:
+            self._records.append(self._site.value)
+            assert task_input.appoint_url == ""
+            data = _build_result(self._site)
+            data.extrafanart = self._extrafanart
+            return CrawlerResponse(debug_info=CrawlerDebugInfo(execution_time=0.01), data=data)
+
+    records: list[str] = []
+    provider = _Provider(
+        {
+            Website.AVBASE: _Crawler(Website.AVBASE, ["https://example.test/avbase-1.jpg"], records),
+            Website.JAVDB: _Crawler(Website.JAVDB, [], records),
+            Website.JAV321: _Crawler(Website.JAV321, ["https://example.test/jav321-1.jpg"], records),
+        }
+    )
+    scraper = FileScraper(_Config(), provider)
+    task_input = CrawlTask.empty()
+    task_input.number = "ABF-131"
+    task_input.appoint_url = "https://javbus.com/ABF-131"
+
+    groups = [
+        group
+        async for group in scraper.iter_extra_fanart_candidates(
+            task_input,
+            ScrapeClassification(
+                FixedScrapingType.YOUMA,
+                "auto",
+                sites=[Website.AVBASE, Website.JAVDB, Website.JAV321],
+            ),
+            {Website.AVBASE.value},
+        )
+    ]
+
+    # 已咨询过的 avbase 不再请求；javdb 无剧照；jav321 命中
+    assert records == [Website.JAVDB.value, Website.JAV321.value]
+    assert groups == [(Website.JAV321.value, ["https://example.test/jav321-1.jpg"])]
+    assert task_input.appoint_url == ""
+
+
+@pytest.mark.asyncio
+async def test_extrafanart_fallback_crawls_remaining_sites_until_one_succeeds(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    """首站字段齐全时只爬 1 站；剧照全失败后按优先级逐个补爬，成功即停"""
+    monkeypatch.setattr(ManualConfig, "REDUCED_FIELDS", (CrawlerResultFields.TITLE, CrawlerResultFields.EXTRAFANART))
+
+    class _Config:
+        def get_field_config(self, field: CrawlerResultFields) -> FieldConfig:
+            if field == CrawlerResultFields.EXTRAFANART:
+                return FieldConfig(site_prority=[Website.DMM, Website.JAVDB, Website.JAV321])
+            return FieldConfig(site_prority=[Website.DMM])
+
+    class _Provider:
+        def __init__(self, crawlers):
+            self._crawlers = crawlers
+
+        async def get(self, site: Website):
+            return self._crawlers[site]
+
+    class _Crawler:
+        def __init__(self, site: Website, extrafanart: list[str], records: list[str]):
+            self._site = site
+            self._extrafanart = extrafanart
+            self._records = records
+
+        async def run(self, task_input: CrawlerInput) -> CrawlerResponse:
+            self._records.append(self._site.value)
+            data = CrawlerResult.empty()
+            data.source = self._site.value
+            data.external_id = f"{self._site.value}:id"
+            data.title = f"{self._site.value} title"
+            data.extrafanart = self._extrafanart
+            return CrawlerResponse(debug_info=CrawlerDebugInfo(execution_time=0.01), data=data)
+
+    records: list[str] = []
+    provider = _Provider(
+        {
+            Website.DMM: _Crawler(Website.DMM, ["https://dmm.test/1.jpg", "https://dmm.test/2.jpg"], records),
+            Website.JAVDB: _Crawler(Website.JAVDB, ["https://javdb.test/1.jpg"], records),
+            Website.JAV321: _Crawler(Website.JAV321, ["https://jav321.test/1.jpg"], records),
+        }
+    )
+    scraper = FileScraper(_Config(), provider)
+    task_input = CrawlTask.empty()
+    task_input.number = "ABF-131"
+    classification = ScrapeClassification(
+        FixedScrapingType.YOUMA, "auto", sites=[Website.DMM, Website.JAVDB, Website.JAV321]
+    )
+
+    res = await scraper._call_crawlers(task_input, classification)
+
+    assert res is not None
+    # 首站 dmm 已满足全部字段，后面两个站点根本没被爬
+    assert records == [Website.DMM.value]
+    assert res.extrafanart_list == [
+        (Website.DMM.value, ["https://dmm.test/1.jpg", "https://dmm.test/2.jpg"]),
+    ]
+
+    async def fake_download_extrafanart_task(task):
+        if "javdb.test" not in task[0]:
+            return False
+        task[1].write_bytes(b"new")
+        return True
+
+    monkeypatch.setattr(manager.config, "download_files", [DownloadableFile.EXTRAFANART])
+    monkeypatch.setattr(manager.config, "keep_files", [])
+    monkeypatch.setattr(core_web, "download_extrafanart_task", fake_download_extrafanart_task)
+
+    result = await core_web.extrafanart_download(
+        res.extrafanart,
+        res.extrafanart_from,
+        tmp_path,
+        candidate_groups=res.extrafanart_list,
+        fallback_groups=scraper.iter_extra_fanart_candidates(task_input, classification, {Website.DMM.value}),
+    )
+
+    assert result is True
+    # 逐个补爬：javdb 试成功，jav321 不再爬
+    assert records == [Website.DMM.value, Website.JAVDB.value]
+    assert sorted(path.name for path in (tmp_path / "extrafanart").iterdir()) == ["fanart1.jpg"]
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,5 @@
 import re
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import date
 from itertools import chain
@@ -256,6 +257,78 @@ class FileScraper:
             return data
         return all_res.get((site, Language.UNDEFINED))
 
+    def _collect_extrafanart_candidates(
+        self,
+        all_res: dict[tuple[Website, Language], CrawlerResult],
+        failed: set[tuple[Website, Language]],
+        sites: list[Website],
+        language: Language,
+        primary_source: str,
+    ) -> list[tuple[str, list[str]]]:
+        """
+        按剧照优先级收集已请求站点的剧照，作为下载失败时的回退候选。
+
+        只读取本次刮削已有的结果，不额外发起请求。主来源之前的站点在字段聚合时必然已请求过，
+        之后的站点只有命中缓存或请求失败时才视为“已请求”，其余留待下载阶段按需补爬。
+        """
+        candidates: list[tuple[str, list[str]]] = []
+        primary_index = next((index for index, site in enumerate(sites) if site.value == primary_source), len(sites))
+        for index, site in enumerate(sites):
+            key = (site, language) if site in MULTI_LANGUAGE_WEBSITES else (site, Language.UNDEFINED)
+            data = self._get_cached_site_result(all_res, site, language)
+            if index >= primary_index and data is None and key not in failed:
+                continue
+            candidates.append((site.value, list(data.extrafanart) if data and data.extrafanart else []))
+        return candidates
+
+    async def iter_extra_fanart_candidates(
+        self,
+        task_input: CrawlTask,
+        classification: ScrapeClassification,
+        consulted_sources: set[str],
+    ) -> AsyncIterator[tuple[str, list[str]]]:
+        """
+        剧照整批下载失败时，按剧照优先级继续爬取尚未请求过的已设置站点。
+
+        该生成器只在被迭代时才会发起请求，不设数量上限，是否停止由调用方决定。
+        """
+        extrafanart_field_config = self.config.get_field_config(CrawlerResultFields.EXTRAFANART)
+        if hasattr(self.config, "get_type_field_config"):
+            priority_sites = self.config.get_type_field_config(
+                classification.scraping_type, CrawlerResultFields.EXTRAFANART
+            ).site_prority
+        else:
+            priority_sites = extrafanart_field_config.site_prority
+        type_site_set = set(classification.sites or [])
+        field_language = extrafanart_field_config.language
+
+        # 回退时只能按番号重新搜索：若沿用指定详情页 URL，会把上一个网站的页面交给其它网站解析
+        task_input.appoint_url = ""
+
+        for site in priority_sites:
+            if type_site_set and site not in type_site_set:
+                continue
+            if site.value in consulted_sources:
+                continue
+            if Flags.stop_requested:
+                return
+
+            # 多语言站点未指定语言时使用日语，与 _call_crawlers 的取值规则保持一致
+            language = field_language
+            if site in MULTI_LANGUAGE_WEBSITES and language == Language.UNDEFINED:
+                language = Language.JP
+            task_input.language = language
+            task_input.org_language = language
+
+            try:
+                web_data = await self._call_crawler(task_input, site)
+            except Exception as e:
+                LogBuffer.log().write(f"\n 💡 ExtraFanart 回退来源不可用: {site.value} ({e})")
+                continue
+            if web_data.data is None or not web_data.data.extrafanart:
+                continue
+            yield site.value, list(web_data.data.extrafanart)
+
     async def _call_crawler(
         self, task_input: CrawlerInput, website: Website, timeout: float | None = 30
     ) -> CrawlerResponse:
@@ -444,6 +517,23 @@ class FileScraper:
             # 记录海报候选时严格遵循当前类型的海报优先级，避免其它字段请求过的站点混入候选。
             if data and data.poster:
                 reduced.poster_list.append((data.source, data.poster, data.image_download))
+
+        # 记录剧照候选，供剧照整批下载失败时按优先级回退；这里只读缓存，不新增请求
+        extrafanart_field_config = self.config.get_field_config(CrawlerResultFields.EXTRAFANART)
+        if use_type_field_config and hasattr(self.config, "get_type_field_config"):
+            extrafanart_priority_config = self.config.get_type_field_config(
+                classification.scraping_type, CrawlerResultFields.EXTRAFANART
+            )
+        else:
+            extrafanart_priority_config = extrafanart_field_config
+        extrafanart_sites = [site for site in extrafanart_priority_config.site_prority if site in type_site_set]
+        reduced.extrafanart_list = self._collect_extrafanart_candidates(
+            all_res,
+            failed,
+            extrafanart_sites,
+            extrafanart_field_config.language,
+            reduced.extrafanart_from,
+        )
 
         for data in all_res.values():
             # 记录所有来源的 actor 用于 Amazon 搜图

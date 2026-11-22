@@ -7,9 +7,11 @@ import re
 import shutil
 import time
 from asyncio import to_thread
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import aiofiles
 import aiofiles.os
@@ -22,6 +24,7 @@ from ..base.web import (
     get_dmm_trailer,
     get_imgsize,
     get_url_content_length,
+    normalize_media_url,
 )
 from ..config.enums import DownloadableFile, FixedScrapingType, HDPicSource, KeepableFile
 from ..config.manager import manager
@@ -1322,7 +1325,52 @@ async def fanart_download(
                 return False
 
 
-async def extrafanart_download(extrafanart: list[str], extrafanart_from: str, folder_new_path: Path) -> bool | None:
+def _extrafanart_group_key(url: str) -> str:
+    """归一化剧照链接，用于判断不同来源是否指向同一组图片"""
+    normalized = normalize_media_url(url)
+    if normalized.startswith("//"):
+        normalized = f"https:{normalized}"
+    parts = urlsplit(normalized)
+    if not parts.netloc:
+        return normalized
+    query = f"?{parts.query}" if parts.query else ""
+    return f"{parts.netloc.lower()}{parts.path}{query}"
+
+
+def _extrafanart_group_signature(urls: list[str]) -> frozenset[str]:
+    """剧照组的链接签名，不区分顺序与协议，仅用于判重"""
+    return frozenset(key for url in urls if (key := _extrafanart_group_key(url)))
+
+
+async def _download_extrafanart_group(urls: list[str], folder_path: Path) -> tuple[int, int]:
+    """下载一组剧照，返回 (成功数, 总数)"""
+    task_list: list[tuple[str, Path, Path, str]] = []
+    for index, url in enumerate(urls, 1):
+        name = f"fanart{index}.jpg"
+        task_list.append((url, folder_path / name, folder_path, name))
+
+    # 使用异步并发执行下载任务
+    results = await asyncio.gather(*(download_extrafanart_task(task) for task in task_list), return_exceptions=True)
+    return sum(1 for result in results if result is True), len(task_list)
+
+
+async def extrafanart_download(
+    extrafanart: list[str],
+    extrafanart_from: str,
+    folder_new_path: Path,
+    candidate_groups: list[tuple[str, list[str]]] | None = None,
+    fallback_groups: AsyncIterator[tuple[str, list[str]]] | None = None,
+) -> bool | None:
+    """
+    下载剧照
+
+    Args:
+        extrafanart: 主来源的剧照 URL 列表
+        extrafanart_from: 主来源网站
+        folder_new_path: 影片输出目录
+        candidate_groups: 刮削阶段从已请求站点收集到的剧照候选（按剧照优先级排序）
+        fallback_groups: 候选全部失败后才按需补爬的来源生成器，未被迭代时不会发起请求
+    """
     start_time = time.time()
     download_files = manager.config.download_files
     keep_files = manager.config.keep_files
@@ -1361,39 +1409,77 @@ async def extrafanart_download(extrafanart: list[str], extrafanart_from: str, fo
         else:
             await aiofiles.os.makedirs(extrafanart_folder_path_temp)
 
-        extrafanart_count = 0
-        extrafanart_count_succ = 0
-        task_list = []
-        for extrafanart_url in extrafanart_list:
-            extrafanart_count += 1
-            extrafanart_name = "fanart" + str(extrafanart_count) + ".jpg"
-            extrafanart_file_path = extrafanart_folder_path_temp / extrafanart_name
-            task_list.append((extrafanart_url, extrafanart_file_path, extrafanart_folder_path_temp, extrafanart_name))
+        # 主来源优先，其余候选按剧照优先级追加
+        groups: list[tuple[str, list[str]]] = [(extrafanart_from, list(extrafanart_list))]
+        for source, urls in candidate_groups or []:
+            if urls and source != extrafanart_from:
+                groups.append((source, list(urls)))
 
-        # 使用异步并发执行下载任务
-        tasks = [download_extrafanart_task(task) for task in task_list]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        async def iter_groups() -> AsyncIterator[tuple[str, list[str]]]:
+            for group in groups:
+                yield group
+            if fallback_groups is not None:
+                async for group in fallback_groups:
+                    yield group
 
-        for res in results:
-            if res is True:
-                extrafanart_count_succ += 1
-        if extrafanart_count_succ == extrafanart_count:
-            if extrafanart_folder_path_temp != extrafanart_folder_path:
-                await to_thread(shutil.rmtree, extrafanart_folder_path)
-                await aiofiles.os.rename(extrafanart_folder_path_temp, extrafanart_folder_path)
-            LogBuffer.log().write(
-                f"\n 🍀 ExtraFanart done! ({extrafanart_from} {extrafanart_count_succ}/{extrafanart_count})({get_used_time(start_time)}s)"
+        tried_sources: list[str] = []
+        tried_signatures: set[frozenset[str]] = set()
+        status = "failed"
+        async for source, urls in iter_groups():
+            # 过滤空链接，避免无效地址把整组判定为“部分失败”
+            urls = [url for url in urls if _extrafanart_group_key(url)]
+            signature = _extrafanart_group_signature(urls)
+            if not signature:
+                continue
+            if signature in tried_signatures:
+                # 不同站点常引用同一组剧照，链接完全相同时没必要再试一次
+                LogBuffer.log().write(f"\n ⏭ ExtraFanart 跳过相同链接来源: {source}")
+                continue
+            tried_signatures.add(signature)
+            tried_sources.append(source)
+
+            # 每组使用独立的临时目录，避免上一组失败时的残留文件混入
+            if await aiofiles.os.path.exists(extrafanart_folder_path_temp):
+                await to_thread(shutil.rmtree, extrafanart_folder_path_temp, ignore_errors=True)
+            await aiofiles.os.makedirs(extrafanart_folder_path_temp)
+
+            extrafanart_count_succ, extrafanart_count = await _download_extrafanart_group(
+                urls, extrafanart_folder_path_temp
             )
-            return True
-        else:
-            LogBuffer.log().write(
-                f"\n 🟠 ExtraFanart download failed! ({extrafanart_from} {extrafanart_count_succ}/{extrafanart_count})({get_used_time(start_time)}s)"
-            )
+            tried_info = f"{'->'.join(tried_sources)} {extrafanart_count_succ}/{extrafanart_count}"
+
+            if extrafanart_count_succ == extrafanart_count:
+                if extrafanart_folder_path_temp != extrafanart_folder_path:
+                    if await aiofiles.os.path.exists(extrafanart_folder_path):
+                        await to_thread(shutil.rmtree, extrafanart_folder_path)
+                    await aiofiles.os.rename(extrafanart_folder_path_temp, extrafanart_folder_path)
+                LogBuffer.log().write(f"\n 🍀 ExtraFanart done! ({tried_info})({get_used_time(start_time)}s)")
+                return True
+
+            LogBuffer.log().write(f"\n 🟠 ExtraFanart download failed! ({tried_info})({get_used_time(start_time)}s)")
+            if extrafanart_count_succ > 0:
+                # 部分成功时保持原有语义，不再继续回退
+                status = "incomplete"
+                break
+            # 整批失败，清理残留后继续尝试下一个候选来源
+            await to_thread(shutil.rmtree, extrafanart_folder_path_temp, ignore_errors=True)
+
+        if status == "incomplete":
             if extrafanart_folder_path_temp != extrafanart_folder_path:
-                await to_thread(shutil.rmtree, extrafanart_folder_path_temp)
+                await to_thread(shutil.rmtree, extrafanart_folder_path_temp, ignore_errors=True)
             else:
                 LogBuffer.log().write(f"\n 🍀 ExtraFanart done! (incomplete)({get_used_time(start_time)}s)")
                 return False
+        elif status == "failed":
+            LogBuffer.log().write(
+                f"\n 🟠 ExtraFanart download failed! 已尝试 {'->'.join(tried_sources)}，均无可用剧照！"
+            )
+            if extrafanart_folder_path_temp == extrafanart_folder_path:
+                # 没有旧目录可回退，清掉本轮残留后按失败处理
+                if await aiofiles.os.path.exists(extrafanart_folder_path):
+                    await to_thread(shutil.rmtree, extrafanart_folder_path, ignore_errors=True)
+                return False
+            await to_thread(shutil.rmtree, extrafanart_folder_path_temp, ignore_errors=True)
         LogBuffer.log().write("\n 🟠 ExtraFanart download failed! 将继续使用之前的本地文件！")
     if await aiofiles.os.path.exists(extrafanart_folder_path):  # 使用旧文件
         LogBuffer.log().write(f"\n 🍀 ExtraFanart done! (old)({get_used_time(start_time)}s)")

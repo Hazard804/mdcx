@@ -344,6 +344,8 @@ class CrawlersResult(BaseCrawlerResult):
     amazon_orginaltitle_actor: str  # 用于 Amazon 搜索的原始标题中的演员
     thumb_list: list[tuple[str, str]]  # 所有来源的缩略图URL列表
     poster_list: list[tuple[str, str, bool]]  # 所有来源的海报URL列表(来源, URL, 是否直下)
+    # 已请求站点的剧照候选(来源, 剧照URL列表)，按剧照优先级排序；空列表表示该来源已请求但无剧照
+    extrafanart_list: list[tuple[str, list[str]]]
     originaltitle_amazon: str  # 用于 Amazon 搜索的原始标题
     amazon_raw_director: str  # Amazon 标题清洗用导演（未映射）
     amazon_raw_studio: str  # Amazon 标题清洗用制作商（未映射）
@@ -375,6 +377,7 @@ class CrawlersResult(BaseCrawlerResult):
             amazon_orginaltitle_actor="",
             thumb_list=[],
             poster_list=[],
+            extrafanart_list=[],
             originaltitle_amazon="",
             amazon_raw_director="",
             amazon_raw_studio="",
