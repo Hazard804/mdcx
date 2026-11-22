@@ -2,7 +2,7 @@ import platform
 import sys
 from pathlib import Path
 
-LOCAL_VERSION = 220261122
+LOCAL_VERSION = 220261123
 
 GITHUB_REPO = "Hazard804/mdcx"
 GITHUB_RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases"
